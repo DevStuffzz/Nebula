@@ -32,6 +32,7 @@ project "Nebula"
     includedirs
     {
         "%{prj.name}/vendor/spdlog/include",
+        "%{prj.name}/src",
     }
 
     filter "system:windows"
@@ -82,7 +83,8 @@ project "Sandbox"
     includedirs
     {
         "Nebula/vendor/spdlog/include",
-        "Nebula/src"
+        "Nebula/src",
+        "%{prj.name}/src",
     }
     
     links
