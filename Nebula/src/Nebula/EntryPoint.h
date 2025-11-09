@@ -1,7 +1,7 @@
 #pragma once
 
 
-#ifdef NEB_PLATFORM_WINDOWS
+#ifdef NB_PLATFORM_WINDOWS
 
 // To be defined by client
 extern Nebula::Application* Nebula::CreateApplication();

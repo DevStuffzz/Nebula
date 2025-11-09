@@ -1,8 +1,8 @@
 #pragma once
 
 
-#ifdef NEB_PLATFORM_WINDOWS
-#ifdef NEB_BUILD_DLL
+#ifdef NB_PLATFORM_WINDOWS
+#ifdef NB_BUILD_DLL
 #define NEBULA_API __declspec(dllexport)
 #else
 #define NEBULA_API __declspec(dllimport)
