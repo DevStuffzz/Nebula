@@ -23,6 +23,9 @@ project "Nebula"
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
     objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+    pchheader "nbpch.h"
+    pchsource "Nebula/src/nbpch.cpp"
+
     files
     {
         "%{prj.name}/src/**.h",

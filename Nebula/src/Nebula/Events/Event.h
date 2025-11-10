@@ -2,8 +2,8 @@
 
 #include "Nebula/Core.h"
 
-#include <string>
-#include <functional>
+#include "nbpch.h"
+
 
 namespace Nebula {
 
