@@ -12,6 +12,13 @@ workspace "Nebula"
 
     startproject "Sandbox"
 
+
+
+IncludeDir = {}
+IncludeDir["GLFW"] = "Nebula/vendor/GLFW/include"
+
+include "Nebula/vendor/GLFW"
+
 project "Nebula"
     location "Nebula"
 
@@ -36,6 +43,13 @@ project "Nebula"
     {
         "%{prj.name}/vendor/spdlog/include",
         "%{prj.name}/src",
+        "%{IncludeDir.GLFW}",
+    }
+
+    links
+    {
+        "GLFW",
+        "opengl32.lib"
     }
 
     filter "system:windows"
