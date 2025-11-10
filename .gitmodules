@@ -1,3 +1,6 @@
 [submodule "Nebula/vendor/spdlog"]
 	path = Nebula/vendor/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "Nebula/vendor/GLFW"]
+	path = Nebula/vendor/GLFW
+	url = https://github.com/TheCherno/GLFW
