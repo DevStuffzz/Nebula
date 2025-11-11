@@ -25,8 +25,6 @@ project "Nebula"
     kind "SharedLib"
     language "C++"
 
-    buildoptions { "/utf-8" }       -- <--- add this line here
-
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
     objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
@@ -39,6 +37,11 @@ project "Nebula"
         "%{prj.name}/src/**.cpp"
     }
 
+    removefiles
+    {
+        "%{prj.name}/src/Platform/Windows/**"
+    }
+
     includedirs
     {
         "%{prj.name}/vendor/spdlog/include",
@@ -48,14 +51,14 @@ project "Nebula"
 
     links
     {
-        "GLFW",
-        "opengl32.lib"
+        "GLFW"
     }
 
     filter "system:windows"
         cppdialect "C++17"
         staticruntime "On"
         systemversion "latest"
+        buildoptions { "/utf-8" }
 
         defines
         {
@@ -63,9 +66,38 @@ project "Nebula"
             "NB_BUILD_DLL"
         }
 
+        links
+        {
+            "opengl32.lib"
+        }
+
         postbuildcommands
         {
             ("{COPY} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox\"")
+        }
+
+    filter "system:macosx"
+        cppdialect "C++17"
+        systemversion "10.15"
+
+        defines
+        {
+            "NB_PLATFORM_MACOS",
+            "NB_BUILD_DLL",
+            "GL_SILENCE_DEPRECATION"
+        }
+
+        links
+        {
+            "OpenGL.framework",
+            "Cocoa.framework",
+            "IOKit.framework",
+            "CoreVideo.framework"
+        }
+
+        postbuildcommands
+        {
+            ("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/")
         }
 
     
@@ -86,8 +118,6 @@ project "Sandbox"
     kind "ConsoleApp"
     language "C++"
     
-    buildoptions { "/utf-8" }       -- <--- add this line here
-
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
     objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
     
@@ -113,10 +143,21 @@ project "Sandbox"
         cppdialect "C++17"
         staticruntime "On"
         systemversion "latest"
+        buildoptions { "/utf-8" }
 
         defines
         {
             "NB_PLATFORM_WINDOWS",
+        }
+
+    filter "system:macosx"
+        cppdialect "C++17"
+        systemversion "10.15"
+
+        defines
+        {
+            "NB_PLATFORM_MACOS",
+            "GL_SILENCE_DEPRECATION"
         }
     
     filter "configurations:Debug"

@@ -5,7 +5,16 @@
 bin/
 bin-int/
 
+# Generated project files
 *.sln
 *.vcxproj
 *.user
 *.filters
+
+# Generated Makefiles (from premake)
+Makefile
+*/Makefile
+**/*Makefile
+
+# macOS specific
+.DS_Store
