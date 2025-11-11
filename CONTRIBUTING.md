@@ -9,7 +9,7 @@ Nebula is in **early development** with the following priorities:
 1. **Core Architecture** - Building fundamental engine systems
 2. **Layer Stack System** - Rendering layer management (in progress)
 3. **Renderer Interface** - Abstract rendering API design
-4. **Platform-Specific Rendering** - DirectX (Windows) and Metal (macOS) backends
+4. **Platform-Specific Rendering** - OpenGL (cross-platform) and Metal (macOS) backends
 
 ## 🛠️ Development Setup
 
@@ -57,9 +57,9 @@ Nebula is in **early development** with the following priorities:
 - Cross-platform compatibility fixes
 
 **🎨 Platform-Specific Features**
-- DirectX renderer (Windows)
-- Metal renderer (macOS)
-- Vulkan support (cross-platform)
+- OpenGL renderer (Windows/macOS fallback)
+- Metal renderer (macOS native)
+- DirectX/Vulkan support (future)
 
 **🔧 Tools & Infrastructure**
 - Build system improvements

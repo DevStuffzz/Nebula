@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "Nebula/Types.h"
 
 #ifdef NB_PLATFORM_WINDOWS
 #include <Windows.h>
