@@ -69,8 +69,6 @@ namespace Nebula {
 				layer->OnUpdate();
 			}
 
-			NB_CORE_TRACE("{0}, {1}", Input::GetMouseX(), Input::GetMouseY());
-
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack) {
 				layer->OnImGuiRender();
