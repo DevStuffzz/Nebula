@@ -17,6 +17,7 @@ workspace "Nebula"
 IncludeDir = {}
 IncludeDir["GLFW"] = "Nebula/vendor/GLFW/include"
 IncludeDir["ImGui"] = "Nebula/vendor/imgui"
+IncludeDir["glm"] = "Nebula/vendor/glm"
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
@@ -39,17 +40,13 @@ project "Nebula"
         "%{prj.name}/src/**.cpp"
     }
 
-    removefiles
-    {
-        "%{prj.name}/src/Platform/Windows/**"
-    }
-
     includedirs
     {
         "%{prj.name}/vendor/spdlog/include",
         "%{prj.name}/src",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.ImGui}",
+        "%{IncludeDir.glm}",
     }
 
     links
