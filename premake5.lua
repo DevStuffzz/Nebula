@@ -16,8 +16,10 @@ workspace "Nebula"
 
 IncludeDir = {}
 IncludeDir["GLFW"] = "Nebula/vendor/GLFW/include"
+IncludeDir["ImGui"] = "Nebula/vendor/imgui"
 
 include "Nebula/vendor/GLFW"
+include "Nebula/vendor/imgui"
 
 project "Nebula"
     location "Nebula"
@@ -47,16 +49,18 @@ project "Nebula"
         "%{prj.name}/vendor/spdlog/include",
         "%{prj.name}/src",
         "%{IncludeDir.GLFW}",
+        "%{IncludeDir.ImGui}",
     }
 
     links
     {
-        "GLFW"
+        "GLFW",
+        "ImGui"
     }
 
     filter "system:windows"
         cppdialect "C++17"
-        staticruntime "On"
+        staticruntime "Off"
         systemversion "latest"
         buildoptions { "/utf-8" }
 
@@ -141,7 +145,7 @@ project "Sandbox"
 
     filter "system:windows"
         cppdialect "C++17"
-        staticruntime "On"
+        staticruntime "Off"
         systemversion "latest"
         buildoptions { "/utf-8" }
 

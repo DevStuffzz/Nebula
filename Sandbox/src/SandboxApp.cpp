@@ -9,11 +9,13 @@ public:
 	}
 
 	void OnUpdate() override {
-		NB_INFO("ExampleLayer::OnUpdate");
 	}
 	
 	void OnEvent(Nebula::Event& event) override {
-		NB_TRACE("{0}", event.ToString());
+	}
+
+	void OnImGuiRender() override {
+		ImGui::ImText("Hello from client");
 	}
 };
 
