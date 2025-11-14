@@ -16,11 +16,13 @@ workspace "Nebula"
 
 IncludeDir = {}
 IncludeDir["GLFW"] = "Nebula/vendor/GLFW/include"
+IncludeDir["glad"] = "Nebula/vendor/glad/include"
 IncludeDir["ImGui"] = "Nebula/vendor/imgui"
 IncludeDir["glm"] = "Nebula/vendor/glm"
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
+include "Nebula/vendor/glad"
 
 project "Nebula"
     location "Nebula"
@@ -47,12 +49,14 @@ project "Nebula"
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.ImGui}",
         "%{IncludeDir.glm}",
+        "%{IncludeDir.glad}",
     }
 
     links
     {
         "GLFW",
-        "ImGui"
+        "ImGui",
+        "glad",
     }
 
     filter "system:windows"
