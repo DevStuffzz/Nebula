@@ -1,7 +1,7 @@
 # Nebula Game Engine
 
 <p align="center">
-  <img src="branding/logo.png" alt="Nebula Game Engine" width="400"/>
+  <img src="branding/logo-bg.png" alt="Nebula Game Engine" width="400"/>
 </p>
 
 <p align="center">
