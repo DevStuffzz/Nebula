@@ -7,7 +7,6 @@ class ExampleLayer : public Nebula::Layer {
 public:
 	ExampleLayer() 
 		: Layer("Example"), 
-		  m_Camera(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f),
 		  m_CubeTransform(glm::vec3(0.0f, 0.0f, 0.0f)),
 		  m_CameraPosition(0.0f, 0.0f, 5.0f),
 		  m_CameraRotation(0.0f, 0.0f, 0.0f),
@@ -98,8 +97,10 @@ public:
 		m_Material->SetFloat("u_Roughness", 0.5f);
 		m_Material->SetFloat3("u_Emission", glm::vec3(0.0f));
 
-		m_Camera.SetPosition(m_CameraPosition);
-		m_Camera.SetRotation(m_CameraRotation);
+		// Initialize Application camera position and rotation
+		auto& camera = static_cast<Nebula::PerspectiveCamera&>(Nebula::Application::Get().GetCamera());
+		camera.SetPosition(m_CameraPosition);
+		camera.SetRotation(m_CameraRotation);
 	}
 
 	void OnUpdate(Nebula::Timestep ts) override {
@@ -180,10 +181,12 @@ public:
 			m_FirstMouse = true;
 		}
 
-		m_Camera.SetPosition(m_CameraPosition);
-		m_Camera.SetRotation(m_CameraRotation);
+		// Update Application camera
+		auto& camera = static_cast<Nebula::PerspectiveCamera&>(Nebula::Application::Get().GetCamera());
+		camera.SetPosition(m_CameraPosition);
+		camera.SetRotation(m_CameraRotation);
 
-		Nebula::Renderer::BeginScene(m_Camera);
+		Nebula::Renderer::BeginScene(camera);
 
 		Nebula::Renderer::Submit(m_Material, m_SquareVA, m_CubeTransform.GetTransform());
 
@@ -227,9 +230,6 @@ public:
 		
 		Nebula::NebulaGui::End();
 	}
-	
-	void OnEvent(Nebula::Event& event) override {
-	}
 
 private:
 	std::shared_ptr<Nebula::Shader> m_TextureShader;
@@ -237,7 +237,6 @@ private:
 	std::shared_ptr<Nebula::Material> m_Material;
 	std::shared_ptr<Nebula::VertexArray> m_SquareVA;
 
-	Nebula::PerspectiveCamera m_Camera;
 	glm::vec3 m_CameraPosition;
 	glm::vec3 m_CameraRotation;
 

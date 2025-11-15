@@ -4,6 +4,7 @@
 
 #include "Nebula/Events/ApplicationEvent.h"
 #include "Window.h"
+#include "Renderer/Camera.h"
 
 #include "LayerStack.h"
 
@@ -25,18 +26,19 @@ namespace Nebula {
 		void PushOverlay(Layer* overlay);
 
 		inline Window& GetWindow() { return *m_Window; }
+	inline Camera& GetCamera() { return *m_Camera; }
 
-		inline static Application& Get() { return *s_Instance; }
+	inline static Application& Get() { return *s_Instance; }
 
-	private:
-		bool OnWindowClose(WindowCloseEvent& e);
+private:
+	bool OnWindowClose(WindowCloseEvent& e);
+	bool OnWindowResize(WindowResizeEvent& e);
 
-	private:
-		std::unique_ptr<Window> m_Window;
-		ImGuiLayer* m_ImGuiLayer;
-		bool m_Running = true;
-
-		LayerStack m_LayerStack;
+private:
+	std::unique_ptr<Window> m_Window;
+	std::unique_ptr<Camera> m_Camera;
+	ImGuiLayer* m_ImGuiLayer;
+	bool m_Running = true;		LayerStack m_LayerStack;
 		
 		float m_LastFrameTime = 0.0f;
 

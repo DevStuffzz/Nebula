@@ -30,6 +30,12 @@ namespace Nebula {
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
+		// Initialize perspective camera with initial window aspect ratio
+		uint32_t width = m_Window->GetWidth();
+		uint32_t height = m_Window->GetHeight();
+		float aspectRatio = (float)width / (float)height;
+		m_Camera = std::unique_ptr<Camera>(new PerspectiveCamera(45.0f, aspectRatio, 0.1f, 100.0f));
+
 		Renderer::Init();
 
 		m_ImGuiLayer = new ImGuiLayer();
@@ -45,6 +51,7 @@ namespace Nebula {
 	{
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();) {
 			(*--it)->OnEvent(e);
@@ -95,5 +102,20 @@ namespace Nebula {
 	bool Application::OnWindowClose(WindowCloseEvent& e) {
 		m_Running = false;
 		return true;
+	}
+
+	bool Application::OnWindowResize(WindowResizeEvent& e)
+	{
+		RenderCommand::SetViewport(0, 0, e.GetWidth(), e.GetHeight());
+		
+		// Update camera aspect ratio
+		if (m_Camera) {
+			float aspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
+			if (auto* perspCam = dynamic_cast<PerspectiveCamera*>(m_Camera.get())) {
+				perspCam->SetProjection(45.0f, aspectRatio, 0.1f, 100.0f);
+			}
+		}
+		
+		return false;
 	}
 }
