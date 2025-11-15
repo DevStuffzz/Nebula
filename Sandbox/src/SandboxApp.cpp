@@ -91,13 +91,14 @@ public:
 
 		// Create material with properties
 		m_Material = std::make_shared<Nebula::Material>(m_TextureShader);
+		m_Material->SetAlbedo(glm::vec4(1.0f, 0.8f, 0.6f, 1.0f)); // Sets u_Color
 		m_Material->SetTexture("u_Texture", m_Texture);
-		m_Material->SetFloat4("u_Color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		m_Material->SetInt("u_UseTexture", 1); // Enable texture
 		m_Material->SetFloat("u_Metallic", 0.0f);
 		m_Material->SetFloat("u_Roughness", 0.5f);
 		m_Material->SetFloat3("u_Emission", glm::vec3(0.0f));
 
-		// Initialize Application camera position and rotation
+		// Set initial camera position using Application's camera
 		auto& camera = static_cast<Nebula::PerspectiveCamera&>(Nebula::Application::Get().GetCamera());
 		camera.SetPosition(m_CameraPosition);
 		camera.SetRotation(m_CameraRotation);
@@ -208,30 +209,34 @@ public:
 		if (Nebula::NebulaGui::DragFloat3("Scale", &scale.x, 0.1f, 0.01f, 10.0f))
 			m_CubeTransform.SetScale(scale);
 		
-		Nebula::NebulaGui::End();
+	Nebula::NebulaGui::End();
 
-		Nebula::NebulaGui::Begin("Material Properties");
-		
-		glm::vec4 color = m_Material->GetFloat4("u_Color");
-		if (Nebula::NebulaGui::DragFloat4("Color", &color.x, 0.01f, 0.0f, 1.0f))
-			m_Material->SetFloat4("u_Color", color);
-		
-		float metallic = m_Material->GetFloat("u_Metallic");
-		if (Nebula::NebulaGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f))
-			m_Material->SetFloat("u_Metallic", metallic);
-		
-		float roughness = m_Material->GetFloat("u_Roughness");
-		if (Nebula::NebulaGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f))
-			m_Material->SetFloat("u_Roughness", roughness);
-		
-		glm::vec3 emission = m_Material->GetFloat3("u_Emission");
-		if (Nebula::NebulaGui::DragFloat3("Emission", &emission.x, 0.01f, 0.0f, 10.0f))
-			m_Material->SetFloat3("u_Emission", emission);
-		
-		Nebula::NebulaGui::End();
-	}
-
-private:
+	Nebula::NebulaGui::Begin("Material Properties");
+	
+	// Albedo (base color)
+	glm::vec4 albedo = m_Material->GetFloat4("u_Color");
+	if (Nebula::NebulaGui::DragFloat4("Albedo", &albedo.x, 0.01f, 0.0f, 1.0f))
+		m_Material->SetAlbedo(albedo);
+	
+	// Texture toggle
+	bool useTexture = m_Material->GetInt("u_UseTexture") == 1;
+	if (Nebula::NebulaGui::Checkbox("Use Texture", &useTexture))
+		m_Material->SetInt("u_UseTexture", useTexture ? 1 : 0);
+	
+	float metallic = m_Material->GetFloat("u_Metallic");
+	if (Nebula::NebulaGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f))
+		m_Material->SetFloat("u_Metallic", metallic);
+	
+	float roughness = m_Material->GetFloat("u_Roughness");
+	if (Nebula::NebulaGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f))
+		m_Material->SetFloat("u_Roughness", roughness);
+	
+	glm::vec3 emission = m_Material->GetFloat3("u_Emission");
+	if (Nebula::NebulaGui::DragFloat3("Emission", &emission.x, 0.01f, 0.0f, 10.0f))
+		m_Material->SetFloat3("u_Emission", emission);
+	
+	Nebula::NebulaGui::End();
+}private:
 	std::shared_ptr<Nebula::Shader> m_TextureShader;
 	std::shared_ptr<Nebula::Texture2D> m_Texture;
 	std::shared_ptr<Nebula::Material> m_Material;

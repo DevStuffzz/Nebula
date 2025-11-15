@@ -54,8 +54,8 @@ namespace Nebula {
 
 		// Convenience methods for common properties
 		void SetColor(const std::string& name, const glm::vec4& color) { SetFloat4(name, color); }
-		void SetAlbedo(const glm::vec4& color) { SetFloat4("u_Albedo", color); }
-		void SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture) { SetTexture("u_AlbedoTexture", texture); }
+		void SetAlbedo(const glm::vec4& color) { SetFloat4("u_Color", color); }
+		void SetAlbedoTexture(const std::shared_ptr<Texture2D>& texture) { SetTexture("u_Texture", texture); }
 		void SetMetallic(float value) { SetFloat("u_Metallic", value); }
 		void SetRoughness(float value) { SetFloat("u_Roughness", value); }
 		void SetEmission(const glm::vec3& color) { SetFloat3("u_Emission", color); }
