@@ -20,6 +20,7 @@ IncludeDir["glad"] = "Nebula/vendor/glad/include"
 IncludeDir["ImGui"] = "Nebula/vendor/imgui"
 IncludeDir["glm"] = "Nebula/vendor/glm"
 IncludeDir["stb_image"] = "Nebula/vendor/stb_image"
+IncludeDir["entt"] = "Nebula/vendor/entt/src"
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
@@ -52,6 +53,7 @@ project "Nebula"
         "%{IncludeDir.glm}",
         "%{IncludeDir.glad}",
         "%{IncludeDir.stb_image}",
+        "%{IncludeDir.entt}",
     }
 
     links
@@ -70,7 +72,8 @@ project "Nebula"
         defines
         {
             "NB_PLATFORM_WINDOWS",
-            "NB_BUILD_DLL"
+            "NB_BUILD_DLL",
+            "NOMINMAX"
         }
 
         links
@@ -80,7 +83,8 @@ project "Nebula"
 
         postbuildcommands
         {
-            ("{COPY} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox\"")
+            ("{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox/\""),
+            ("{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Cosmic/\"")
         }
 
     filter "system:macosx"
@@ -140,6 +144,7 @@ project "Sandbox"
         "Nebula/src",
         "%{prj.name}/src",
         "Nebula/vendor/glm",
+        "%{IncludeDir.entt}",
     }
     
     links
@@ -162,8 +167,14 @@ project "Sandbox"
 
         postbuildcommands
         {
-            ("{COPYDIR} %{prj.location}/assets ../bin/" .. outputdir .. "/Sandbox/assets")
+            -- Copy all Sandbox assets to Sandbox output folder
+            ("{COPYDIR} \"%{prj.location}/assets\" \"../bin/" .. outputdir .. "/Sandbox/assets\""),
+
+            -- Copy all Sandbox assets to Cosmic output folder
+            ("{COPYDIR} \"%{prj.location}/assets\" \"../bin/" .. outputdir .. "/Cosmic/assets\"")
         }
+
+
 
     filter "system:macosx"
         cppdialect "C++17"
@@ -173,6 +184,76 @@ project "Sandbox"
         {
             "NB_PLATFORM_MACOS",
             "GL_SILENCE_DEPRECATION"
+        }
+    
+    filter "configurations:Debug"
+        defines "NB_DEBUG"
+        symbols "On"
+
+    filter "configurations:Release"
+        defines "NB_RELEASE"
+        optimize "On"
+
+    filter "configurations:Dist"
+        defines "NB_DIST"
+        optimize "On"
+
+project "Cosmic"
+    location "Cosmic"
+    kind "ConsoleApp"
+    language "C++"
+    
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+    
+    files
+    {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.cpp"
+    }
+    
+    includedirs
+    {
+        "Nebula/vendor/spdlog/include",
+        "Nebula/src",
+        "%{prj.name}/src",
+        "Nebula/vendor/glm",
+        "%{IncludeDir.entt}",
+        "%{IncludeDir.ImGui}",
+    }
+    
+    links
+    {
+        "Nebula",
+        "ImGui"
+    }
+
+    filter "system:windows"
+        cppdialect "C++17"
+        staticruntime "Off"
+        systemversion "latest"
+        buildoptions { "/utf-8" }
+
+        defines
+        {
+            "NB_PLATFORM_WINDOWS",
+            "NOMINMAX"
+        }
+
+        debugdir ("bin/" .. outputdir .. "/Cosmic")
+
+        postbuildcommands
+        {
+            ("{COPYDIR} %{prj.location}/assets ../bin/" .. outputdir .. "/Cosmic/assets")
+        }
+
+    filter "system:macosx"
+        cppdialect "C++17"
+        systemversion "10.15"
+
+        defines
+        {
+            "NB_PLATFORM_MACOS"
         }
     
     filter "configurations:Debug"

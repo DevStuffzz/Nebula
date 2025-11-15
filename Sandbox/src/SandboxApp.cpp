@@ -14,77 +14,8 @@ public:
 		  m_LastMouseY(0.0f),
 		  m_FirstMouse(true)
 	{
-		// Textured cube
-		m_SquareVA.reset(Nebula::VertexArray::Create());
-
-		// Cube vertices: 24 vertices (4 per face * 6 faces)
-		// Each vertex has: position (x, y, z), texcoord (u, v)
-		float cubeVerts[5 * 24]{
-			// Front face
-			-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-			-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-			
-			// Back face
-			 0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-			-0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-			-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			 0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-			
-			// Left face
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-			-0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-			-0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-			
-			// Right face
-			 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-			 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-			 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			 0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-			
-			// Top face
-			-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-			 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-			 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-			-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-			
-			// Bottom face
-			-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-			 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-			 0.5f, -0.5f,  0.5f,  1.0f, 1.0f,
-			-0.5f, -0.5f,  0.5f,  0.0f, 1.0f,
-		};
-
-		std::shared_ptr<Nebula::VertexBuffer> squareVB;
-		squareVB.reset(Nebula::VertexBuffer::Create(cubeVerts, sizeof(cubeVerts)));
-
-		Nebula::BufferLayout squareLayout = {
-			{Nebula::ShaderDataType::Float3, "a_Position"},
-			{Nebula::ShaderDataType::Float2, "a_TexCoord"}
-		};
-		squareVB->SetLayout(squareLayout);
-		m_SquareVA->AddVertexBuffer(squareVB);
-
-		// Cube indices: 6 faces * 2 triangles * 3 vertices = 36 indices
-		unsigned int cubeIndices[36]{
-			// Front
-			0, 1, 2, 2, 3, 0,
-			// Back
-			4, 5, 6, 6, 7, 4,
-			// Left
-			8, 9, 10, 10, 11, 8,
-			// Right
-			12, 13, 14, 14, 15, 12,
-			// Top
-			16, 17, 18, 18, 19, 16,
-			// Bottom
-			20, 21, 22, 22, 23, 20
-		};
-		std::shared_ptr<Nebula::IndexBuffer> squareIB;
-		squareIB.reset(Nebula::IndexBuffer::Create(cubeIndices, 36));
-		m_SquareVA->SetIndexBuffer(squareIB);
+		// Create cube mesh
+		m_CubeMesh = Nebula::Mesh::CreateCube();
 
 		m_TextureShader.reset(Nebula::Shader::Create("assets/shaders/Basic.glsl"));
 		m_Texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
@@ -189,7 +120,7 @@ public:
 
 		Nebula::Renderer::BeginScene(camera);
 
-		Nebula::Renderer::Submit(m_Material, m_SquareVA, m_CubeTransform.GetTransform());
+		Nebula::Renderer::Submit(m_Material, m_CubeMesh, m_CubeTransform.GetTransform());
 
 		Nebula::Renderer::EndScene();
 	}
@@ -236,11 +167,13 @@ public:
 		m_Material->SetFloat3("u_Emission", emission);
 	
 	Nebula::NebulaGui::End();
-}private:
+}
+
+private:
 	std::shared_ptr<Nebula::Shader> m_TextureShader;
 	std::shared_ptr<Nebula::Texture2D> m_Texture;
 	std::shared_ptr<Nebula::Material> m_Material;
-	std::shared_ptr<Nebula::VertexArray> m_SquareVA;
+	std::shared_ptr<Nebula::Mesh> m_CubeMesh;
 
 	glm::vec3 m_CameraPosition;
 	glm::vec3 m_CameraRotation;

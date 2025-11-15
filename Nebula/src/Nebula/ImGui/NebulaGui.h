@@ -20,6 +20,13 @@ namespace Nebula {
 		static bool Button(const char* label);
 		static bool Checkbox(const char* label, bool* v);
 		static bool SliderFloat(const char* label, float* v, float min, float max);
+
+		static bool Image(uint32_t textureID, const glm::vec2& size);
+		static bool Image(uint32_t textureID, const glm::vec2& size, const glm::vec2& uv0 = { 0,0 }, const glm::vec2& uv1 = { 1,1 });
+		static bool Image(void* textureID, const glm::vec2& size, const glm::vec2& uv0 = { 0, 0 }, const glm::vec2& uv1 = { 1, 1 });
+
+	
+		static glm::vec2 GetContentRegionAvail();
 	};
 
 }

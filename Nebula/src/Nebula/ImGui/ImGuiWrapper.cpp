@@ -58,4 +58,46 @@ namespace Nebula {
 		return ImGui::SliderFloat(label, v, min, max);
 	}
 
+	bool NebulaGui::Image(uint32_t textureID, const glm::vec2& size)
+	{
+		if (textureID == 0)
+			return false; // No valid texture to display
+
+		// ImGui::Image expects void* texture id, cast from uint32_t
+		ImGui::Image((void*)(intptr_t)textureID, ImVec2(size.x, size.y));
+		return true;
+	}
+
+	bool NebulaGui::Image(uint32_t textureID, const glm::vec2& size, const glm::vec2& uv0, const glm::vec2& uv1)
+	{
+		if (textureID == 0)
+			return false;
+
+		ImGui::Image((void*)(intptr_t)textureID, ImVec2(size.x, size.y), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
+		return true;
+	}
+
+	bool NebulaGui::Image(void* textureID, const glm::vec2& size, const glm::vec2& uv0, const glm::vec2& uv1)
+	{
+		if (textureID == nullptr)
+			return false;
+
+		ImGui::Image(
+			textureID,
+			ImVec2(size.x, size.y),
+			ImVec2(uv0.x, uv0.y),
+			ImVec2(uv1.x, uv1.y)
+		);
+
+		return true;
+	}
+
+
+
+	glm::vec2 NebulaGui::GetContentRegionAvail()
+	{
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		return glm::vec2(size.x, size.y);
+	}
+
 }

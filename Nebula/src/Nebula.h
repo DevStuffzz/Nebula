@@ -26,9 +26,14 @@
 #include "Nebula/Renderer/VertexArray.h"
 #include "Nebula/Renderer/Camera.h"
 #include "Nebula/Renderer/Material.h"
+#include "Nebula/Renderer/Mesh.h"
+#include "Nebula/Renderer/Framebuffer.h"
 
 // Scene
 #include "Nebula/Scene/Transform.h"
+#include "Nebula/Scene/Entity.h"
+#include "Nebula/Scene/Components.h"
+#include "Nebula/Scene/Scene.h"
 
 // ------------- Entry Point
 #include "Nebula/EntryPoint.h"

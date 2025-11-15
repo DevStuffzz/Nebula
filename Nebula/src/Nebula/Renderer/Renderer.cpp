@@ -4,6 +4,7 @@
 #include "VertexArray.h"
 #include "Shader.h"
 #include "Material.h"
+#include "Mesh.h"
 #include "Camera.h"
 
 namespace Nebula {
@@ -43,5 +44,16 @@ namespace Nebula {
 
 		vertexArray->Bind();
 		RenderCommand::DrawIndexed(vertexArray);
+	}
+
+	void Renderer::Submit(const std::shared_ptr<Material>& material, const std::shared_ptr<Mesh>& mesh, const glm::mat4& transform)
+	{
+		material->Bind();
+		auto shader = material->GetShader();
+		shader->SetMat4("u_ViewProjection", s_SceneData->ViewProjectionMatrix);
+		shader->SetMat4("u_Transform", transform);
+
+		mesh->Bind();
+		RenderCommand::DrawIndexed(mesh->GetVertexArray());
 	}
 }
