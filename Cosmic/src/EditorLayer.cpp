@@ -9,11 +9,22 @@
 #include <Nebula/Renderer/Shader.h>
 
 #include "Nebula/Renderer/Material.h"
+#include "Nebula/Renderer/Texture.h"
+
+#include "EditorWindows/Viewport.h"
+#include "EditorWindows/SceneHeirarchy.h"
+#include "EditorWindows/PropertiesPanel.h"
+#include "EditorWindows/MenuBar.h"
+#include "EditorWindows/ContentBrowser.h"
+
+#include "Nebula/Input.h"
+#include "Nebula/Keycodes.h"
+#include "Nebula/MouseButtonCodes.h"
 
 namespace Cosmic {
 
 	EditorLayer::EditorLayer()
-		: Layer("EditorLayer"), m_ActiveScene(nullptr)
+		: Nebula::Layer("EditorLayer"), m_ActiveScene(nullptr), m_ViewportSize(1920.0f, 1080.0f)
 	{
 	}
 
@@ -21,72 +32,153 @@ namespace Cosmic {
 	{
 		NB_CORE_INFO("EditorLayer attached");
 
+		// Create framebuffer with initial fixed size (can be resized later)
 		Nebula::FramebufferSpecification fbSpec;
-		fbSpec.Width = 1280;
-		fbSpec.Height = 720;
+		fbSpec.Width = (uint32_t)m_ViewportSize.x;
+		fbSpec.Height = (uint32_t)m_ViewportSize.y;
 		m_Framebuffer = Nebula::Framebuffer::Create(fbSpec);
 
-		// Position camera to see the scene
 		auto& camera = Nebula::Application::Get().GetCamera();
-		if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera)) {
-			perspCam->SetPosition({ 0.0f, 0.0f, 5.0f });
+		if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera))
+		{
+			perspCam->SetPosition(m_CameraPosition);
+			perspCam->SetRotation(m_CameraRotation);
 		}
 
 		// Create a default scene if none is set
 		if (!m_ActiveScene)
 		{
-			m_ActiveScene = new Nebula::Scene("Editor Scene");
-			
+			m_ActiveScene = std::make_shared<Nebula::Scene>("Editor Scene");
+
 			// Create a sample entity
 			auto entity = m_ActiveScene->CreateEntity("Sample Cube");
 			auto& meshRenderer = entity.AddComponent<Nebula::MeshRendererComponent>();
-			
+
 			// Create mesh
 			meshRenderer.Mesh = Nebula::Mesh::CreateCube();
 
 			// Create shader and material
 			Nebula::Shader* rawShader = Nebula::Shader::Create("assets/shaders/Basic.glsl");
 			std::shared_ptr<Nebula::Shader> shader(rawShader);
-			
+
 			auto material = std::make_shared<Nebula::Material>(shader);
 			material->SetFloat4("u_Color", glm::vec4(1.0f, 0.5f, 0.2f, 1.0f)); // Orange color
-			material->SetInt("u_UseTexture", 0); // No texture
-			
+
+			std::shared_ptr<Nebula::Texture2D> texture;
+			texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
+
+			material->SetTexture("u_Texture", texture);
+			material->SetInt("u_UseTexture", 1); // No texture for now
+
 			meshRenderer.Material = material;
 		}
+	
+
+		SceneHierarchy::SetContext(m_ActiveScene);
+
+		// Setup content browser
+		ContentBrowser::SetContentPath("assets");
+
+		// Setup menu bar callbacks
+		MenuBar::SetCallbacks(
+			[this]() { NewScene(); },
+			[this]() { SaveScene(); },
+			[this]() { LoadScene(); },
+			[]() { /* Exit handled elsewhere */ }
+		);
+
 	}
 
 	void EditorLayer::OnDetach()
 	{
 		delete m_Framebuffer;
-		
-		// Only delete if we created it ourselves
+
 		if (m_ActiveScene)
 		{
-			delete m_ActiveScene;
-			m_ActiveScene = nullptr;
+			m_ActiveScene.reset();
 		}
 	}
 
 	void EditorLayer::OnUpdate(Nebula::Timestep ts)
 	{
-		// Resize framebuffer if needed
-		if (m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f)
+		float moveSpeed = 2.5f * ts;
+
+		// Check if right mouse button held for camera rotation
+		if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2))
 		{
-			if (m_Framebuffer->GetSpecification().Width != (uint32_t)m_ViewportSize.x ||
-				m_Framebuffer->GetSpecification().Height != (uint32_t)m_ViewportSize.y)
+			Nebula::Application::Get().GetWindow().SetCursorMode(true); // Lock cursor
+
+			auto [mouseX, mouseY] = Nebula::Input::GetMousePos();
+
+			if (m_FirstMouse)
 			{
-				m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+				m_LastMouseX = mouseX;
+				m_LastMouseY = mouseY;
+				m_FirstMouse = false;
 			}
+
+			float xOffset = mouseX - m_LastMouseX;
+			float yOffset = m_LastMouseY - mouseY; // Y inverted
+
+			m_LastMouseX = mouseX;
+			m_LastMouseY = mouseY;
+
+			float sensitivity = 0.1f;
+			xOffset *= sensitivity;
+			yOffset *= sensitivity;
+
+			m_CameraRotation.y -= xOffset; // yaw
+			m_CameraRotation.x += yOffset; // pitch
+
+			// Clamp pitch
+			if (m_CameraRotation.x > 89.0f) m_CameraRotation.x = 89.0f;
+			if (m_CameraRotation.x < -89.0f) m_CameraRotation.x = -89.0f;
+		}
+		else
+		{
+			Nebula::Application::Get().GetWindow().SetCursorMode(false); // Unlock cursor
+			m_FirstMouse = true;
 		}
 
-		// Render to framebuffer
+		// Calculate direction vectors based on updated rotation
+		float pitch = glm::radians(m_CameraRotation.x);
+		float yaw = glm::radians(m_CameraRotation.y);
+
+		glm::mat4 rotation(1.0f);
+		rotation = glm::rotate(rotation, yaw, glm::vec3(0, 1, 0));   // yaw
+		rotation = glm::rotate(rotation, pitch, glm::vec3(1, 0, 0)); // pitch
+
+		glm::vec3 forward = -glm::vec3(rotation[2]);
+		glm::vec3 right = glm::vec3(rotation[0]);
+
+		// Movement input
+		if (Nebula::Input::IsKeyPressed(NB_KEY_W))
+			m_CameraPosition += forward * moveSpeed;
+		if (Nebula::Input::IsKeyPressed(NB_KEY_S))
+			m_CameraPosition -= forward * moveSpeed;
+		if (Nebula::Input::IsKeyPressed(NB_KEY_A))
+			m_CameraPosition -= right * moveSpeed;
+		if (Nebula::Input::IsKeyPressed(NB_KEY_D))
+			m_CameraPosition += right * moveSpeed;
+		if (Nebula::Input::IsKeyPressed(NB_KEY_SPACE))
+			m_CameraPosition.y += moveSpeed;
+		if (Nebula::Input::IsKeyPressed(NB_KEY_Q))
+			m_CameraPosition.y -= moveSpeed;
+
+		// Update camera transform
+		auto& camera = Nebula::Application::Get().GetCamera();
+		if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera))
+		{
+			perspCam->SetPosition(m_CameraPosition);
+			perspCam->SetRotation(m_CameraRotation);
+		}
+
+		// --- Existing framebuffer bind, render code ---
 		m_Framebuffer->Bind();
 		Nebula::RenderCommand::SetViewport(0, 0, (uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		Nebula::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
 		Nebula::RenderCommand::Clear();
 
-		// Update and render the active scene
 		if (m_ActiveScene)
 		{
 			m_ActiveScene->OnUpdate(ts);
@@ -98,20 +190,59 @@ namespace Cosmic {
 
 	void EditorLayer::OnImGuiRender()
 	{
-		// Simple viewport window for now
-		Nebula::NebulaGui::Begin("Viewport");
-		
-		glm::vec2 viewportPanelSize = Nebula::NebulaGui::GetContentRegionAvail();
-		m_ViewportSize = viewportPanelSize;
+		// Menu Bar
+		MenuBar::OnImGuiRender();
 
 		uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
-		Nebula::NebulaGui::Image((void*)(intptr_t)textureID, glm::vec2{ m_ViewportSize.x, m_ViewportSize.y }, glm::vec2{ 0, 1 }, glm::vec2{ 1, 0 });
 
-		Nebula::NebulaGui::End();
+		// Render the viewport and get the actual display size (16:9 aspect ratio)
+		glm::vec2 actualDisplaySize = Viewport::OnImGuiRender((void*)(intptr_t)textureID, m_ViewportSize, glm::vec2{ 0,1 }, glm::vec2{ 1,0 });
+
+		// Clamp minimum size to avoid zero-sized framebuffer
+		if (actualDisplaySize.x < 1.0f) actualDisplaySize.x = 1.0f;
+		if (actualDisplaySize.y < 1.0f) actualDisplaySize.y = 1.0f;
+
+		// Resize framebuffer only if size changed - match the actual displayed image size
+		if ((uint32_t)actualDisplaySize.x != (uint32_t)m_ViewportSize.x ||
+			(uint32_t)actualDisplaySize.y != (uint32_t)m_ViewportSize.y)
+		{
+			m_ViewportSize = actualDisplaySize;
+			m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+		}
+
+		// Scene Hierarchy
+		SceneHierarchy::OnImGuiRender();
+
+		// Properties Panel - sync selection from hierarchy
+		PropertiesPanel::SetSelectedEntity(SceneHierarchy::GetSelectedEntity());
+		PropertiesPanel::OnImGuiRender();
+
+		// Content Browser
+		ContentBrowser::OnImGuiRender();
 	}
 
 	void EditorLayer::OnEvent(Nebula::Event& e)
 	{
+		// Event handling if needed
+	}
+
+	void EditorLayer::NewScene()
+	{
+		m_ActiveScene = std::make_shared<Nebula::Scene>("Untitled Scene");
+		SceneHierarchy::SetContext(m_ActiveScene);
+		NB_CORE_INFO("Created new scene");
+	}
+
+	void EditorLayer::SaveScene()
+	{
+		NB_CORE_INFO("Save scene functionality not yet implemented");
+		// TODO: Implement scene serialization
+	}
+
+	void EditorLayer::LoadScene()
+	{
+		NB_CORE_INFO("Load scene functionality not yet implemented");
+		// TODO: Implement scene deserialization
 	}
 
 }

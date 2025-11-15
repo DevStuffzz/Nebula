@@ -111,11 +111,15 @@ namespace Nebula {
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 		}
 
-		ImGui::End();
+		// Don't end the dockspace window here - let user code add menu bars and other content
+		// ImGui::End() will be called in ImGuiLayer::End()
 	}
 
 	void ImGuiLayer::End()
 	{
+		// End the dockspace window that was begun in Begin()
+		ImGui::End();
+
 		ImGuiIO& io = ImGui::GetIO();
 		Application& app = Application::Get();
 		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());

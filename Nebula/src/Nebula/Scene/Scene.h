@@ -16,10 +16,12 @@ namespace Nebula {
 		Entity CreateEntity(const std::string& name = "Entity");
 		void DestroyEntity(Entity entity);
 
-	void OnUpdate(float deltaTime);
-	void OnRender();
+		void OnUpdate(float deltaTime);
+		void OnRender();
 
-	const std::string& GetName() const { return m_Name; }		// Get the entt registry for advanced usage
+		std::vector<Entity> GetAllEntities() const;
+
+		const std::string& GetName() const { return m_Name; }		
 		entt::registry& GetRegistry() { return m_Registry; }
 
 	private:

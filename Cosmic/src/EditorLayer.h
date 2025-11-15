@@ -22,14 +22,25 @@ namespace Cosmic {
 		virtual void OnEvent(Nebula::Event& e) override;
 
 	private:
+		void NewScene();
+		void SaveScene();
+		void LoadScene();
+
+	private:
 		Nebula::Framebuffer* m_Framebuffer;
-		Nebula::Scene* m_ActiveScene;
+		std::shared_ptr<Nebula::Scene> m_ActiveScene;
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
+	private:
+		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 5.0f };
+		glm::vec3 m_CameraRotation = { 0.0f, 0.0f, 0.0f }; // pitch (x), yaw (y), roll (z)
+		float m_LastMouseX = 0.0f;
+		float m_LastMouseY = 0.0f;
+		bool m_FirstMouse = true;
 
 	public:
 		// Allow setting a scene from outside
-		void SetActiveScene(Nebula::Scene* scene) { m_ActiveScene = scene; }
-		Nebula::Scene* GetActiveScene() { return m_ActiveScene; }
+		void SetActiveScene(std::shared_ptr<Nebula::Scene> scene) { m_ActiveScene = scene; }
+		std::shared_ptr<Nebula::Scene> GetActiveScene() { return m_ActiveScene; }
 	};
 
 }

@@ -60,4 +60,17 @@ namespace Nebula {
 		Renderer::EndScene();
 	}
 
+	std::vector<Entity> Scene::GetAllEntities() const
+	{
+		std::vector<Entity> entities;
+
+		m_Registry.each([&](auto entityID) {
+			entities.emplace_back(entityID, const_cast<Scene*>(this));
+			});
+
+		return entities;
+	}
+
+
+
 }

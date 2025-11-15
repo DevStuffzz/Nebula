@@ -72,7 +72,6 @@ namespace Nebula {
 	}
 	
 	void Application::Run() {
-		
 		while (m_Running) {
 			float time = (float)glfwGetTime();
 			Timestep timestep = time - m_LastFrameTime;
