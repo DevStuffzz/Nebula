@@ -158,10 +158,11 @@ project "Sandbox"
             "NB_PLATFORM_WINDOWS",
         }
 
+        debugdir ("bin/" .. outputdir .. "/Sandbox")
+
         postbuildcommands
         {
-            ("{MKDIR} ../bin/" .. outputdir .. "/Sandbox/assets"),
-            ("{COPY} %{prj.location}/assets ../bin/" .. outputdir .. "/Sandbox/assets")
+            ("{COPYDIR} %{prj.location}/assets ../bin/" .. outputdir .. "/Sandbox/assets")
         }
 
     filter "system:macosx"

@@ -19,6 +19,7 @@
 #include "Nebula/Renderer/RenderCommand.h"
 #include "Nebula/Renderer/Buffer.h"
 #include "Nebula/Renderer/Shader.h"
+#include "Nebula/Renderer/Texture.h"
 #include "Nebula/Renderer/VertexArray.h"
 #include "Nebula/Renderer/Camera.h"
 
