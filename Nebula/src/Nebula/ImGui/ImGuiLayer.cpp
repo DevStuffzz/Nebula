@@ -60,6 +60,10 @@ namespace Nebula {
 		ImGui::DestroyContext();
 	}
 
+	void ImGuiLayer::OnUpdate(Timestep ts)
+	{
+	}
+
 	void ImGuiLayer::OnImGuiRender()
 	{
 	}

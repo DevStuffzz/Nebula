@@ -3,6 +3,7 @@
 
 #include "Nebula/Core.h"
 #include "Nebula/Events/Event.h"
+#include "Nebula/Timestep.h"
 
 namespace Nebula {
 
@@ -13,7 +14,7 @@ namespace Nebula {
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate() {}
+		virtual void OnUpdate(Timestep ts) {}
 		virtual void OnImGuiRender() {}
 		virtual void OnEvent(Event& event) {}
 

@@ -37,6 +37,8 @@ namespace Nebula {
 		bool m_Running = true;
 
 		LayerStack m_LayerStack;
+		
+		float m_LastFrameTime = 0.0f;
 
 	private:
 		static Application* s_Instance;

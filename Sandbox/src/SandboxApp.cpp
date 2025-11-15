@@ -96,9 +96,9 @@ public:
 		m_Camera.SetRotation(m_CameraRotation);
 	}
 
-	void OnUpdate() override {
+	void OnUpdate(Nebula::Timestep ts) override {
 		// Camera movement
-		float moveSpeed = 2.5f * 0.016f; // Assuming ~60 FPS, adjust for delta time later
+		float moveSpeed = 2.5f * ts;
 
 		// Mouse rotation (right-click drag)
 		if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2)) {
