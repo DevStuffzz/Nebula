@@ -166,6 +166,14 @@ namespace Nebula {
 	{
 		return m_Data.VSync;
 	}
+
+	void GLFWWindow::SetCursorMode(bool disabled)
+	{
+		if (disabled)
+			glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		else
+			glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
 	
 	void GLFWWindow::Shutdown()
 	{

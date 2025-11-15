@@ -20,6 +20,7 @@
 #include "Nebula/Renderer/Buffer.h"
 #include "Nebula/Renderer/Shader.h"
 #include "Nebula/Renderer/VertexArray.h"
+#include "Nebula/Renderer/Camera.h"
 
 // ------------- Entry Point
 #include "Nebula/EntryPoint.h"

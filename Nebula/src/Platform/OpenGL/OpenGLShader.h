@@ -13,6 +13,8 @@ namespace Nebula {
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
 
+		virtual void SetMat4(const std::string& name, const glm::mat4& matrix) override;
+
 	private:
 		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<uint32_t, std::string> PreProcess(const std::string& source);
