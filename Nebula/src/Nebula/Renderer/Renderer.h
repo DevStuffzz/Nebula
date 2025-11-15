@@ -1,19 +1,22 @@
 #pragma once 
 
+#include "Nebula/Core.h"
+#include "RenderCommand.h"
 
 namespace Nebula {
-	enum class RendererAPI {
-		None = 0,
-		OpenGL = 1,
-		Direct3D = 2,
-		Vulkan = 3,
-		Metal = 4
-	};
 
-	class Renderer {
+	class Shader;
+	class VertexArray;
+
+	class NEBULA_API Renderer {
 	public:
-		inline static RendererAPI GetAPI() { return s_RendererAPI; }
-	private:
-		static RendererAPI s_RendererAPI;
+		static void Init();
+
+		static void BeginScene();
+		static void EndScene();
+		
+		static void Submit(const std::shared_ptr<Shader>& shader, const std::shared_ptr<VertexArray>& vertexArray);
+
+		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 	};
 }

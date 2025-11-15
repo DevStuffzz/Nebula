@@ -19,6 +19,7 @@ IncludeDir["GLFW"] = "Nebula/vendor/GLFW/include"
 IncludeDir["glad"] = "Nebula/vendor/glad/include"
 IncludeDir["ImGui"] = "Nebula/vendor/imgui"
 IncludeDir["glm"] = "Nebula/vendor/glm"
+IncludeDir["stb_image"] = "Nebula/vendor/stb_image"
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
@@ -50,6 +51,7 @@ project "Nebula"
         "%{IncludeDir.ImGui}",
         "%{IncludeDir.glm}",
         "%{IncludeDir.glad}",
+        "%{IncludeDir.stb_image}",
     }
 
     links
@@ -137,6 +139,7 @@ project "Sandbox"
         "Nebula/vendor/spdlog/include",
         "Nebula/src",
         "%{prj.name}/src",
+        "Nebula/vendor/glm",
     }
     
     links
@@ -153,6 +156,12 @@ project "Sandbox"
         defines
         {
             "NB_PLATFORM_WINDOWS",
+        }
+
+        postbuildcommands
+        {
+            ("{MKDIR} ../bin/" .. outputdir .. "/Sandbox/assets"),
+            ("{COPY} %{prj.location}/assets ../bin/" .. outputdir .. "/Sandbox/assets")
         }
 
     filter "system:macosx"

@@ -7,6 +7,8 @@
 
 #include "Platform/OpenGL/OpenGLContext.h"
 
+#include <stb_image.h>
+
 namespace Nebula {
 
 	static bool s_GLFWInitialized = false;
@@ -47,6 +49,26 @@ namespace Nebula {
 		}
 
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
+		
+		// Load and set window icon
+		// Note: Title bar icons are limited to 16x16 by Windows, but taskbar/Alt+Tab use larger sizes
+		stbi_set_flip_vertically_on_load(0); // Don't flip icon
+		int iconWidth, iconHeight, iconChannels;
+		unsigned char* iconPixels = stbi_load("assets/logo.png", &iconWidth, &iconHeight, &iconChannels, 4);
+		if (iconPixels)
+		{
+			GLFWimage icon;
+			icon.width = iconWidth;
+			icon.height = iconHeight;
+			icon.pixels = iconPixels;
+			glfwSetWindowIcon(m_Window, 1, &icon);
+			stbi_image_free(iconPixels);
+			NB_CORE_INFO("Window icon set ({0}x{1}) - Title bar shows 16x16, taskbar shows larger", iconWidth, iconHeight);
+		}
+		else
+		{
+			NB_CORE_WARN("Failed to load window icon from assets/logo.png");
+		}
 		
 		m_Context = new OpenGLContext(m_Window);
 		m_Context->Init();

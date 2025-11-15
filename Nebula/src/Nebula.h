@@ -14,6 +14,13 @@
 
 #include "Nebula/ImGui/ImGuiLayer.h"
 
+// Renderer
+#include "Nebula/Renderer/Renderer.h"
+#include "Nebula/Renderer/RenderCommand.h"
+#include "Nebula/Renderer/Buffer.h"
+#include "Nebula/Renderer/Shader.h"
+#include "Nebula/Renderer/VertexArray.h"
+
 // ------------- Entry Point
 #include "Nebula/EntryPoint.h"
 // -------------------------
