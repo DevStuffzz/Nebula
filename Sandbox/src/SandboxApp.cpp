@@ -90,8 +90,13 @@ public:
 		m_TextureShader.reset(Nebula::Shader::Create("assets/shaders/Basic.glsl"));
 		m_Texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
 
-		m_TextureShader->Bind();
-		m_TextureShader->SetInt("u_Texture", 0);
+		// Create material with properties
+		m_Material = std::make_shared<Nebula::Material>(m_TextureShader);
+		m_Material->SetTexture("u_Texture", m_Texture);
+		m_Material->SetFloat4("u_Color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		m_Material->SetFloat("u_Metallic", 0.0f);
+		m_Material->SetFloat("u_Roughness", 0.5f);
+		m_Material->SetFloat3("u_Emission", glm::vec3(0.0f));
 
 		m_Camera.SetPosition(m_CameraPosition);
 		m_Camera.SetRotation(m_CameraRotation);
@@ -180,8 +185,7 @@ public:
 
 		Nebula::Renderer::BeginScene(m_Camera);
 
-		m_Texture->Bind();
-		Nebula::Renderer::Submit(m_TextureShader, m_SquareVA, m_CubeTransform.GetTransform());
+		Nebula::Renderer::Submit(m_Material, m_SquareVA, m_CubeTransform.GetTransform());
 
 		Nebula::Renderer::EndScene();
 	}
@@ -202,6 +206,26 @@ public:
 			m_CubeTransform.SetScale(scale);
 		
 		Nebula::NebulaGui::End();
+
+		Nebula::NebulaGui::Begin("Material Properties");
+		
+		glm::vec4 color = m_Material->GetFloat4("u_Color");
+		if (Nebula::NebulaGui::DragFloat4("Color", &color.x, 0.01f, 0.0f, 1.0f))
+			m_Material->SetFloat4("u_Color", color);
+		
+		float metallic = m_Material->GetFloat("u_Metallic");
+		if (Nebula::NebulaGui::DragFloat("Metallic", &metallic, 0.01f, 0.0f, 1.0f))
+			m_Material->SetFloat("u_Metallic", metallic);
+		
+		float roughness = m_Material->GetFloat("u_Roughness");
+		if (Nebula::NebulaGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f))
+			m_Material->SetFloat("u_Roughness", roughness);
+		
+		glm::vec3 emission = m_Material->GetFloat3("u_Emission");
+		if (Nebula::NebulaGui::DragFloat3("Emission", &emission.x, 0.01f, 0.0f, 10.0f))
+			m_Material->SetFloat3("u_Emission", emission);
+		
+		Nebula::NebulaGui::End();
 	}
 	
 	void OnEvent(Nebula::Event& event) override {
@@ -210,6 +234,7 @@ public:
 private:
 	std::shared_ptr<Nebula::Shader> m_TextureShader;
 	std::shared_ptr<Nebula::Texture2D> m_Texture;
+	std::shared_ptr<Nebula::Material> m_Material;
 	std::shared_ptr<Nebula::VertexArray> m_SquareVA;
 
 	Nebula::PerspectiveCamera m_Camera;

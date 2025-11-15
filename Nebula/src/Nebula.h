@@ -25,6 +25,7 @@
 #include "Nebula/Renderer/Texture.h"
 #include "Nebula/Renderer/VertexArray.h"
 #include "Nebula/Renderer/Camera.h"
+#include "Nebula/Renderer/Material.h"
 
 // Scene
 #include "Nebula/Scene/Transform.h"

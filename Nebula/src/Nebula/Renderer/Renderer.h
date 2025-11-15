@@ -10,6 +10,7 @@ namespace Nebula {
 	class Shader;
 	class VertexArray;
 	class Camera;
+	class Material;
 
 	class NEBULA_API Renderer {
 	public:
@@ -19,6 +20,7 @@ namespace Nebula {
 		static void EndScene();
 		
 		static void Submit(const std::shared_ptr<Shader>& shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform = glm::mat4(1.0f));
+		static void Submit(const std::shared_ptr<Material>& material, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform = glm::mat4(1.0f));
 
 		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
