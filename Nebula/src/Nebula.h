@@ -14,6 +14,8 @@
 #include "Nebula/Timestep.h"
 
 #include "Nebula/ImGui/ImGuiLayer.h"
+#include "Nebula/ImGui/NebulaGui.h"
+
 
 // Renderer
 #include "Nebula/Renderer/Renderer.h"
@@ -23,6 +25,9 @@
 #include "Nebula/Renderer/Texture.h"
 #include "Nebula/Renderer/VertexArray.h"
 #include "Nebula/Renderer/Camera.h"
+
+// Scene
+#include "Nebula/Scene/Transform.h"
 
 // ------------- Entry Point
 #include "Nebula/EntryPoint.h"

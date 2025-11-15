@@ -8,6 +8,7 @@ public:
 	ExampleLayer() 
 		: Layer("Example"), 
 		  m_Camera(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f),
+		  m_CubeTransform(glm::vec3(0.0f, 0.0f, 0.0f)),
 		  m_CameraPosition(0.0f, 0.0f, 5.0f),
 		  m_CameraRotation(0.0f, 0.0f, 0.0f),
 		  m_LastMouseX(0.0f),
@@ -86,7 +87,7 @@ public:
 		squareIB.reset(Nebula::IndexBuffer::Create(cubeIndices, 36));
 		m_SquareVA->SetIndexBuffer(squareIB);
 
-		m_TextureShader.reset(Nebula::Shader::Create("assets/shaders/Texture.glsl"));
+		m_TextureShader.reset(Nebula::Shader::Create("assets/shaders/Basic.glsl"));
 		m_Texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
 
 		m_TextureShader->Bind();
@@ -180,9 +181,27 @@ public:
 		Nebula::Renderer::BeginScene(m_Camera);
 
 		m_Texture->Bind();
-		Nebula::Renderer::Submit(m_TextureShader, m_SquareVA);
+		Nebula::Renderer::Submit(m_TextureShader, m_SquareVA, m_CubeTransform.GetTransform());
 
 		Nebula::Renderer::EndScene();
+	}
+	
+	void OnImGuiRender() override {
+		Nebula::NebulaGui::Begin("Transform Controls");
+		
+		glm::vec3 position = m_CubeTransform.GetPosition();
+		if (Nebula::NebulaGui::DragFloat3("Position", &position.x, 0.1f))
+			m_CubeTransform.SetPosition(position);
+		
+		glm::vec3 rotation = m_CubeTransform.GetRotation();
+		if (Nebula::NebulaGui::DragFloat3("Rotation", &rotation.x, 1.0f))
+			m_CubeTransform.SetRotation(rotation);
+		
+		glm::vec3 scale = m_CubeTransform.GetScale();
+		if (Nebula::NebulaGui::DragFloat3("Scale", &scale.x, 0.1f, 0.01f, 10.0f))
+			m_CubeTransform.SetScale(scale);
+		
+		Nebula::NebulaGui::End();
 	}
 	
 	void OnEvent(Nebula::Event& event) override {
@@ -199,6 +218,8 @@ private:
 
 	float m_LastMouseX, m_LastMouseY;
 	bool m_FirstMouse;
+	
+	Nebula::Transform m_CubeTransform;
 };
 
 class Sandbox : public Nebula::Application {
