@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Nebula/Input.h"
+#include "Nebula/Keycodes.h"
 
 
 
@@ -80,6 +81,9 @@ namespace Nebula {
 			m_ImGuiLayer->End();
 
 			m_Window->OnUpdate();
+
+			if(Input::IsKeyPressed(NB_KEY_ESCAPE))
+				m_Running = false;
 		}
 	}
 

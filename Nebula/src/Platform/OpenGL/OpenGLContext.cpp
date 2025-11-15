@@ -23,6 +23,14 @@ namespace Nebula {
 		NB_CORE_INFO(" Renderer:	{}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
 		NB_CORE_INFO(" Version:		{}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
+		// Enable depth testing for 3D rendering
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+
+		// Enable backface culling
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		glFrontFace(GL_CCW);
 	}
 
 	void OpenGLContext::SwapBuffers()
