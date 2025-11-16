@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "Components.h"
 #include "Nebula/Renderer/Renderer.h"
+#include "Nebula/Renderer/Material.h"
 #include "Nebula/Application.h"
 
 #include "Nebula/Application.h"
@@ -9,7 +10,7 @@
 namespace Nebula {
 
 	Scene::Scene(const std::string& name)
-		: m_Name(name)
+		: m_Name(name), m_GlobalIllumination(0.1f, 0.1f, 0.1f)
 	{
 	}
 
@@ -33,6 +34,11 @@ namespace Nebula {
 		m_Registry.destroy(entity);
 	}
 
+	void Scene::Clear()
+	{
+		m_Registry.clear();
+	}
+
 	void Scene::OnUpdate(float deltaTime)
 	{
 		// Update systems here
@@ -44,14 +50,46 @@ namespace Nebula {
 		// Begin the scene with the application camera
 		Renderer::BeginScene(Application::Get().GetCamera());
 
+		// Update scene-wide point lights list
+		m_PointLights.clear();
+
+		auto lightView = m_Registry.view<PointLightComponent, TransformComponent>();
+
+		for (auto entity : lightView)
+		{
+			auto& light = lightView.get<PointLightComponent>(entity);
+			auto& transform = lightView.get<TransformComponent>(entity);
+
+			m_PointLights.push_back({
+				transform.Position,  // use entity's world position
+				light.Color,
+				light.Intensity,
+				light.Radius
+				});
+		}
+
+
+
 		// Render all entities with mesh renderer components
 		auto view = m_Registry.view<TransformComponent, MeshRendererComponent>();
+		int numLights = (int)m_PointLights.size();
 		for (auto entity : view)
 		{
 			auto [transform, meshRenderer] = view.get<TransformComponent, MeshRendererComponent>(entity);
 
 			if (meshRenderer.Mesh && meshRenderer.Material)
 			{
+				std::shared_ptr<Nebula::Shader> shader = meshRenderer.Material->GetShader();
+				shader->SetFloat3("u_GI", m_GlobalIllumination);
+				shader->SetInt("u_NumPointLights", numLights);
+				for (int i = 0; i < numLights && i < 4; ++i)
+				{
+					std::string idx = std::to_string(i);
+					shader->SetFloat3("u_PointLights[" + idx + "].Position", m_PointLights[i].Position);
+					shader->SetFloat3("u_PointLights[" + idx + "].Color", m_PointLights[i].Color);
+					shader->SetFloat("u_PointLights[" + idx + "].Intensity", m_PointLights[i].Intensity);
+					shader->SetFloat("u_PointLights[" + idx + "].Radius", m_PointLights[i].Radius);
+				}
 				Renderer::Submit(meshRenderer.Material, meshRenderer.Mesh, transform.GetTransform());
 			}
 		}

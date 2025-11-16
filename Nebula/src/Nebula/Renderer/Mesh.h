@@ -29,9 +29,10 @@ namespace Nebula {
 		const std::shared_ptr<VertexArray>& GetVertexArray() const { return m_VertexArray; }
 
 		// Primitive mesh creation helpers
+		static std::shared_ptr<Mesh> LoadOBJ(const std::string& path);
 		static std::shared_ptr<Mesh> CreateCube();
 		static std::shared_ptr<Mesh> CreateQuad();
-		static std::shared_ptr<Mesh> CreateSphere(uint32_t segments = 32, uint32_t rings = 16);
+		static std::shared_ptr<Mesh> CreateSphere();
 
 	private:
 		std::shared_ptr<VertexArray> m_VertexArray;

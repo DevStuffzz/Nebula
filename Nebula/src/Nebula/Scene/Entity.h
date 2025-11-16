@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "Nebula/Core.h"
@@ -43,6 +44,8 @@ namespace Nebula {
 			NEB_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
 			m_Scene->m_Registry.remove<T>(m_EntityHandle);
 		}
+
+		Scene* GetScene() const { return m_Scene; }
 
 		operator bool() const { return m_EntityHandle != entt::null && m_Scene != nullptr; }
 		operator uint32_t() const { return (uint32_t)m_EntityHandle; }

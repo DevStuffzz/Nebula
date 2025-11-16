@@ -38,9 +38,11 @@ namespace Cosmic {
 
 				// Mesh Renderer Component
 				if (s_SelectedEntity.HasComponent<Nebula::MeshRendererComponent>())
-				{
 					DrawMeshRendererComponent(s_SelectedEntity.GetComponent<Nebula::MeshRendererComponent>());
-				}
+
+				// Point Light Component
+				if (s_SelectedEntity.HasComponent<Nebula::PointLightComponent>())
+					DrawPointLightComponent(s_SelectedEntity.GetComponent<Nebula::PointLightComponent>());
 
 				Nebula::NebulaGui::Separator();
 
@@ -58,6 +60,12 @@ namespace Cosmic {
 							s_SelectedEntity.AddComponent<Nebula::MeshRendererComponent>();
 						Nebula::NebulaGui::CloseCurrentPopup();
 					}
+					if (Nebula::NebulaGui::MenuItem("Point Light"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::PointLightComponent>())
+							s_SelectedEntity.AddComponent<Nebula::PointLightComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
 					Nebula::NebulaGui::EndPopup();
 				}
 			}
@@ -68,6 +76,7 @@ namespace Cosmic {
 
 			Nebula::NebulaGui::End();
 		}
+
 
 	private:
 		static void DrawTagComponent(Nebula::TagComponent& tag)
@@ -100,22 +109,30 @@ namespace Cosmic {
 			if (Nebula::NebulaGui::CollapsingHeader("Mesh Renderer", true))
 			{
 				Nebula::NebulaGui::Text("Mesh: %s", meshRenderer.Mesh ? "Loaded" : "None");
+				Nebula::NebulaGui::SameLine();
+				Nebula::NebulaGui::Button("[Drop Mesh]", glm::vec2(100, 30));
+				if (Nebula::NebulaGui::BeginDragDropTarget())
+				{
+					const char* payload = (const char*)Nebula::NebulaGui::AcceptDragDropPayload("MESH_ASSET");
+					if (payload)
+					{
+						std::string meshPath = payload;
+						meshRenderer.Mesh = Nebula::Mesh::LoadOBJ(meshPath);
+					}
+					Nebula::NebulaGui::EndDragDropTarget();
+				}
 				Nebula::NebulaGui::Text("Material: %s", meshRenderer.Material ? "Loaded" : "None");
 
 				if (meshRenderer.Material)
 				{
-					// Color property
 					glm::vec4 color = meshRenderer.Material->GetFloat4("u_Color");
 					if (Nebula::NebulaGui::ColorEdit4("Color", &color.x))
 					{
 						meshRenderer.Material->SetFloat4("u_Color", color);
 					}
 
-					// Texture property with drag/drop support
 					Nebula::NebulaGui::Text("Texture:");
 					Nebula::NebulaGui::SameLine();
-					
-					// Display current texture or drop target
 					auto texture = meshRenderer.Material->GetTexture("u_Texture");
 					if (texture)
 					{
@@ -125,20 +142,15 @@ namespace Cosmic {
 					{
 						Nebula::NebulaGui::Button("[Drop Here]", glm::vec2(100, 100));
 					}
-					
-					// Handle drag/drop
 					if (Nebula::NebulaGui::BeginDragDropTarget())
 					{
 						const char* payload = (const char*)Nebula::NebulaGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
 						if (payload)
 						{
 							std::string path = payload;
-							// Check if it's an image file (C++17 compatible)
 							auto hasExtension = [](const std::string& str, const std::string& ext) {
-								return str.size() >= ext.size() && 
-									   str.compare(str.size() - ext.size(), ext.size(), ext) == 0;
+								return str.size() >= ext.size() && str.compare(str.size() - ext.size(), ext.size(), ext) == 0;
 							};
-							
 							if (hasExtension(path, ".png") || hasExtension(path, ".jpg") || hasExtension(path, ".jpeg"))
 							{
 								std::shared_ptr<Nebula::Texture2D> newTexture;
@@ -149,8 +161,6 @@ namespace Cosmic {
 						}
 						Nebula::NebulaGui::EndDragDropTarget();
 					}
-
-					// Texture toggle
 					int useTexture = meshRenderer.Material->GetInt("u_UseTexture");
 					bool useTextureBool = useTexture == 1;
 					if (Nebula::NebulaGui::Checkbox("Use Texture", &useTextureBool))
@@ -158,6 +168,16 @@ namespace Cosmic {
 						meshRenderer.Material->SetInt("u_UseTexture", useTextureBool ? 1 : 0);
 					}
 				}
+			}
+		}
+
+		static void DrawPointLightComponent(Nebula::PointLightComponent& light)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Point Light", true))
+			{
+				Nebula::NebulaGui::ColorEdit3("Color", &light.Color.x);
+				Nebula::NebulaGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
+				Nebula::NebulaGui::DragFloat("Radius", &light.Radius, 0.1f, 0.0f, 100.0f);
 			}
 		}
 

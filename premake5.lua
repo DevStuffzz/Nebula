@@ -21,6 +21,7 @@ IncludeDir["ImGui"] = "Nebula/vendor/imgui"
 IncludeDir["glm"] = "Nebula/vendor/glm"
 IncludeDir["stb_image"] = "Nebula/vendor/stb_image"
 IncludeDir["entt"] = "Nebula/vendor/entt/src"
+IncludeDir["json"] = "Nebula/vendor/json"
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
@@ -54,6 +55,7 @@ project "Nebula"
         "%{IncludeDir.glad}",
         "%{IncludeDir.stb_image}",
         "%{IncludeDir.entt}",
+        "%{IncludeDir.json}",
     }
 
     links
@@ -83,8 +85,9 @@ project "Nebula"
 
         postbuildcommands
         {
-            ("{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox/\""),
-            ("{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Cosmic/\"")
+            "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox/\"",
+            "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Cosmic/\"",
+            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Nebula/assets"
         }
 
     filter "system:macosx"
@@ -167,11 +170,8 @@ project "Sandbox"
 
         postbuildcommands
         {
-            -- Copy all Sandbox assets to Sandbox output folder
-            ("{COPYDIR} \"%{prj.location}/assets\" \"../bin/" .. outputdir .. "/Sandbox/assets\""),
-
-            -- Copy all Sandbox assets to Cosmic output folder
-            ("{COPYDIR} \"%{prj.location}/assets\" \"../bin/" .. outputdir .. "/Cosmic/assets\"")
+            "{COPYDIR} \"%{prj.location}/assets\" \"../bin/" .. outputdir .. "/Sandbox/assets\"",
+            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Sandbox/assets"
         }
 
 
@@ -244,7 +244,8 @@ project "Cosmic"
 
         postbuildcommands
         {
-            ("{COPYDIR} %{prj.location}/assets ../bin/" .. outputdir .. "/Cosmic/assets")
+            "{COPYDIR} %{prj.location}/assets ../bin/" .. outputdir .. "/Cosmic/assets",
+            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Cosmic/assets"
         }
 
     filter "system:macosx"

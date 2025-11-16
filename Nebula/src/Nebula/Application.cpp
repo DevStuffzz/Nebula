@@ -5,6 +5,8 @@
 #include "Nebula/Log.h"
 #include "Nebula/ImGui/ImGuiLayer.h"
 #include "Nebula/Renderer/Renderer.h"
+#include "Nebula/Asset/AssetManager.h"
+#include "Nebula/Asset/AssetManagerRegistry.h"
 
 #include <GLFW/glfw3.h>
 
@@ -38,13 +40,17 @@ namespace Nebula {
 
 		Renderer::Init();
 
+		// Initialize Asset Management System
+		AssetManager::Init();
+		AssetManagerRegistry::RegisterImporters();
+
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application()
 	{
-
+		AssetManager::Shutdown();
 	}
 
 	void Application::OnEvent(Event& e)

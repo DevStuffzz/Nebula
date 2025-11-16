@@ -4,6 +4,71 @@
 #include <glm/gtc/constants.hpp>
 
 namespace Nebula {
+	std::shared_ptr<Mesh> Mesh::LoadOBJ(const std::string& path)
+	{
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<glm::vec3> positions;
+		std::vector<glm::vec2> texCoords;
+		std::vector<glm::vec3> normals;
+		std::vector<uint32_t> vertexIndices;
+
+		std::ifstream file(path);
+		if (!file.is_open())
+			return nullptr;
+
+		std::string line;
+		while (std::getline(file, line))
+		{
+			std::istringstream iss(line);
+			std::string prefix;
+			iss >> prefix;
+			if (prefix == "v") {
+				float x, y, z;
+				iss >> x >> y >> z;
+				positions.emplace_back(x, y, z);
+			} else if (prefix == "vt") {
+				float u, v;
+				iss >> u >> v;
+				texCoords.emplace_back(u, v);
+			} else if (prefix == "vn") {
+				float nx, ny, nz;
+				iss >> nx >> ny >> nz;
+				normals.emplace_back(nx, ny, nz);
+			} else if (prefix == "f") {
+				std::vector<std::string> faceVerts;
+				std::string vertStr;
+				while (iss >> vertStr) {
+					faceVerts.push_back(vertStr);
+				}
+				std::vector<uint32_t> faceIndices;
+				for (const auto& vert : faceVerts) {
+					std::istringstream viss(vert);
+					std::string idxStr;
+					std::vector<int> idxs;
+					while (std::getline(viss, idxStr, '/')) {
+						idxs.push_back(idxStr.empty() ? 0 : std::stoi(idxStr));
+					}
+					int posIdx = idxs.size() > 0 ? idxs[0] - 1 : -1;
+					int texIdx = idxs.size() > 1 ? idxs[1] - 1 : -1;
+					int normIdx = idxs.size() > 2 ? idxs[2] - 1 : -1;
+					glm::vec3 pos = posIdx >= 0 ? positions[posIdx] : glm::vec3(0);
+					glm::vec2 tex = texIdx >= 0 ? texCoords[texIdx] : glm::vec2(0);
+					glm::vec3 norm = normIdx >= 0 ? normals[normIdx] : glm::vec3(0, 1, 0);
+					vertices.emplace_back(pos, tex, norm);
+					faceIndices.push_back((uint32_t)vertices.size() - 1);
+				}
+				// Triangulate face (fan method)
+				for (size_t i = 1; i + 1 < faceIndices.size(); ++i) {
+					indices.push_back(faceIndices[0]);
+					indices.push_back(faceIndices[i]);
+					indices.push_back(faceIndices[i + 1]);
+				}
+			}
+		}
+		file.close();
+		return std::make_shared<Mesh>(vertices, indices);
+	}
 
 	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
 		: m_Vertices(vertices), m_Indices(indices)
@@ -30,128 +95,17 @@ namespace Nebula {
 
 	std::shared_ptr<Mesh> Mesh::CreateCube()
 	{
-		std::vector<Vertex> vertices;
-		std::vector<uint32_t> indices;
-
-		// Front face (z = 0.5)
-		vertices.emplace_back(glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		vertices.emplace_back(glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		vertices.emplace_back(glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		vertices.emplace_back(glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		// Back face (z = -0.5)
-		vertices.emplace_back(glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-		vertices.emplace_back(glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-		vertices.emplace_back(glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-		vertices.emplace_back(glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-
-		// Left face (x = -0.5)
-		vertices.emplace_back(glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-		vertices.emplace_back(glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(1.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-		vertices.emplace_back(glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(1.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-		vertices.emplace_back(glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-
-		// Right face (x = 0.5)
-		vertices.emplace_back(glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		vertices.emplace_back(glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		vertices.emplace_back(glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		vertices.emplace_back(glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
-		// Top face (y = 0.5)
-		vertices.emplace_back(glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		vertices.emplace_back(glm::vec3( 0.5f,  0.5f,  0.5f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		vertices.emplace_back(glm::vec3( 0.5f,  0.5f, -0.5f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		vertices.emplace_back(glm::vec3(-0.5f,  0.5f, -0.5f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-		// Bottom face (y = -0.5)
-		vertices.emplace_back(glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-		vertices.emplace_back(glm::vec3( 0.5f, -0.5f, -0.5f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-		vertices.emplace_back(glm::vec3( 0.5f, -0.5f,  0.5f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-		vertices.emplace_back(glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-
-		// Indices for 6 faces
-		indices = {
-			// Front
-			0, 1, 2, 2, 3, 0,
-			// Back
-			4, 5, 6, 6, 7, 4,
-			// Left
-			8, 9, 10, 10, 11, 8,
-			// Right
-			12, 13, 14, 14, 15, 12,
-			// Top
-			16, 17, 18, 18, 19, 16,
-			// Bottom
-			20, 21, 22, 22, 23, 20
-		};
-
-		return std::make_shared<Mesh>(vertices, indices);
+		return LoadOBJ("assets/models/Cube.obj");
 	}
 
 	std::shared_ptr<Mesh> Mesh::CreateQuad()
 	{
-		std::vector<Vertex> vertices = {
-			Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-			Vertex(glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-			Vertex(glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-			Vertex(glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-		};
-
-		std::vector<uint32_t> indices = {
-			0, 1, 2, 2, 3, 0
-		};
-
-		return std::make_shared<Mesh>(vertices, indices);
+		return LoadOBJ("assets/models/Quad.obj");
 	}
 
-	std::shared_ptr<Mesh> Mesh::CreateSphere(uint32_t segments, uint32_t rings)
+	std::shared_ptr<Mesh> Mesh::CreateSphere()
 	{
-		std::vector<Vertex> vertices;
-		std::vector<uint32_t> indices;
-
-		const float pi = glm::pi<float>();
-		const float twoPi = 2.0f * pi;
-
-		// Generate vertices
-		for (uint32_t ring = 0; ring <= rings; ++ring)
-		{
-			float theta = ring * pi / rings;
-			float sinTheta = sin(theta);
-			float cosTheta = cos(theta);
-
-			for (uint32_t segment = 0; segment <= segments; ++segment)
-			{
-				float phi = segment * twoPi / segments;
-				float sinPhi = sin(phi);
-				float cosPhi = cos(phi);
-
-				glm::vec3 normal(cosPhi * sinTheta, cosTheta, sinPhi * sinTheta);
-				glm::vec3 position = normal * 0.5f; // Radius of 0.5
-				glm::vec2 texCoord((float)segment / segments, (float)ring / rings);
-
-				vertices.emplace_back(position, texCoord, normal);
-			}
-		}
-
-		// Generate indices
-		for (uint32_t ring = 0; ring < rings; ++ring)
-		{
-			for (uint32_t segment = 0; segment < segments; ++segment)
-			{
-				uint32_t first = ring * (segments + 1) + segment;
-				uint32_t second = first + segments + 1;
-
-				indices.push_back(first);
-				indices.push_back(second);
-				indices.push_back(first + 1);
-
-				indices.push_back(second);
-				indices.push_back(second + 1);
-				indices.push_back(first + 1);
-			}
-		}
-
-		return std::make_shared<Mesh>(vertices, indices);
+		return LoadOBJ("assets/models/Sphere.obj");
 	}
 
 }

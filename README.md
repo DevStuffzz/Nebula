@@ -14,8 +14,37 @@
 - ✅ **OpenGL Renderer** - Hardware-accelerated rendering
 - ✅ **Shader System** - Abstract shader interface with OpenGL implementation
 - ✅ **File-based Shaders** - Load shaders from .glsl files with #type directives
+- ✅ **Material System** - PBR-ready materials with textures and properties
+- ✅ **Texture Support** - 2D texture loading via stb_image
+- ✅ **Mesh Rendering** - 3D mesh system with primitives (cube, sphere, plane)
+- ✅ **Framebuffer System** - Render-to-texture for editor viewport
 - ✅ **Vertex Arrays & Buffers** - Efficient geometry management
 - ✅ **Render Commands** - Platform-agnostic rendering API
+
+### Scene & Entity System
+- ✅ **Entity-Component System (ECS)** - Using EnTT library
+- ✅ **Scene Management** - Scene graph with entity lifecycle
+- ✅ **Components** - Tag, Transform, MeshRenderer, Camera components
+- ✅ **Camera System** - Perspective and Orthographic cameras
+- ✅ **Scene Rendering** - Component-based rendering pipeline
+
+### Asset Management System 🆕
+- ✅ **AssetManager** - Centralized asset loading and caching
+- ✅ **GUID-based References** - Unique asset handles for referencing
+- ✅ **Asset Registry** - Metadata tracking for all assets
+- ✅ **Import Pipeline** - Extensible asset importers
+- ✅ **Texture Importer** - Automatic texture loading
+- ✅ **Shader Importer** - GLSL shader compilation
+- ✅ **Asset Metadata** - .meta file generation
+- ✅ **Type Detection** - Automatic asset type from extension
+
+### Cosmic Editor 🆕
+- ✅ **Scene Hierarchy** - Entity tree view with creation/deletion
+- ✅ **Properties Panel** - Component inspector with drag-drop
+- ✅ **Viewport** - 3D scene rendering with first-person camera
+- ✅ **Content Browser** - File system navigation with asset icons
+- ✅ **Menu Bar** - File operations (New/Save/Load scene)
+- ✅ **ImGui Integration** - Modern debug UI framework
 
 ### Platform Support
 - ✅ **Windows** - Full support with Visual Studio project generation
@@ -39,25 +68,30 @@
 
 ## 🎯 Planned Features
 
+### High Priority
+- 📋 **Scene Serialization** - Save/load scenes to JSON/YAML format
+- 📋 **Lighting System** - Directional, point, and spot lights with shadows
+- 📋 **PBR Materials** - Physically-based rendering workflow
+- 📋 **Model Importing** - FBX, OBJ, GLTF support via ASSIMP
+- 📋 **Editor Gizmos** - Translate/rotate/scale manipulation tools
+- 📋 **Entity Picking** - Click-to-select in viewport
+
 ### Rendering Enhancements
-- 📋 **Camera System** - 2D/3D camera controls
-- 📋 **Texture Support** - Image loading and texture binding
 - 📋 **Batch Rendering** - Optimized draw call batching
+- 📋 **Shadow Mapping** - Real-time shadow rendering
+- 📋 **Post-Processing** - Bloom, HDR, tone mapping
+- 📋 **Skybox** - Environment maps and reflections
 - 📋 **DirectX 11/12** - Windows native rendering backend
 - 📋 **Metal** - macOS native rendering backend  
 - 📋 **Vulkan** - Cross-platform high-performance rendering
 
-### Engine Architecture
-- 📋 **Entity Component System (ECS)** - Modern game object architecture
-- 📋 **Scene Management** - Hierarchical scene graph system
-- 📋 **Asset Pipeline** - Efficient asset loading and management
-- 📋 **Memory Management** - Custom allocators and memory pools
-
-### Advanced Features
-- 📋 **Physics Integration** - 2D/3D physics simulation
-- 📋 **Audio System** - 3D spatial audio support
-- 📋 **Scripting** - Lua/C# scripting integration
-- 📋 **Editor Tools** - ImGui-based development tools
+### Gameplay Systems
+- 📋 **Physics Integration** - Bullet Physics or Box2D
+- 📋 **Audio System** - 3D spatial audio with OpenAL/FMOD
+- 📋 **Scripting** - Lua or C# integration
+- 📋 **Animation System** - Skeletal animation and blend trees
+- 📋 **Particle System** - GPU-accelerated particle effects
+- 📋 **UI System** - Runtime game UI (not editor UI)
 
 ### Platforms
 - 📋 **Linux** - Ubuntu/Debian support
@@ -110,19 +144,37 @@ Nebula Engine
 │   ├── Application Framework
 │   ├── Window Management (GLFW)
 │   ├── Event System
-│   └── Logging (spdlog)
-├── Platform Layer
-│   ├── Windows (DirectX/Vulkan)
-│   └── macOS (Metal/OpenGL)
-├── Rendering (Planned)
-│   ├── Layer Stack
-│   ├── Renderer API
-│   └── Platform Backends
-└── Game Framework (Planned)
-    ├── ECS
-    ├── Scene Management
-    └── Asset Pipeline
+│   ├── Logging (spdlog)
+│   └── Asset Management (GUID-based)
+├── Rendering
+│   ├── Renderer API (OpenGL)
+│   ├── Shader System
+│   ├── Material System
+│   ├── Mesh Rendering
+│   └── Framebuffer System
+├── Scene System
+│   ├── Entity-Component System (EnTT)
+│   ├── Scene Graph
+│   ├── Components (Transform, MeshRenderer, Camera)
+│   └── Scene Rendering Pipeline
+├── Asset Pipeline
+│   ├── AssetManager (Loading/Caching)
+│   ├── Asset Importers (Texture, Shader)
+│   ├── Asset Registry & Metadata
+│   └── GUID Reference System
+└── Cosmic Editor
+    ├── Viewport (3D Scene View)
+    ├── Scene Hierarchy
+    ├── Properties Panel
+    ├── Content Browser
+    └── Menu Bar
 ```
+
+## 📚 Documentation
+
+- [Asset Management System](docs/asset-management.md) - Complete guide to the asset pipeline
+- [Quick Start Guide](docs/getting-started/quick-start.md) - Get up and running
+- [Scene Sharing](docs/getting-started/scene-sharing.md) - Working with scenes
 
 ## 🤝 Contributing
 
@@ -134,4 +186,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
 ---
 
-**Status:** Active Development - Core systems and OpenGL rendering functional
+**Status:** Active Development - Core rendering, ECS, and asset management systems functional. Editor tools operational.

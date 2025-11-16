@@ -31,17 +31,31 @@ in vec3 v_FragPos;
 uniform vec4 u_Color;
 uniform sampler2D u_Texture;
 uniform int u_UseTexture;
+uniform vec3 u_GI;
 
-// Lighting uniforms
-uniform vec3 u_LightDirection; // normalized
-uniform vec3 u_LightColor;
-uniform float u_LightIntensity;
+// Point light uniforms
+struct PointLight {
+	vec3 Position;
+	vec3 Color;
+	float Intensity;
+	float Radius;
+};
+uniform int u_NumPointLights;
+uniform PointLight u_PointLights[4];
 
 void main() {
 	vec4 texColor = u_UseTexture == 1 ? texture(u_Texture, v_TexCoord) : vec4(1.0);
 	vec3 normal = normalize(v_Normal);
-	float diff = max(dot(normal, -u_LightDirection), 0.0);
-	vec3 diffuse = u_LightColor * diff * u_LightIntensity;
 	vec3 baseColor = (u_Color * texColor).rgb;
-	color = vec4(baseColor * diffuse, (u_Color * texColor).a);
+
+	vec3 lighting = u_GI;
+	for (int i = 0; i < u_NumPointLights && i < 4; ++i) {
+		vec3 lightDir = u_PointLights[i].Position - v_FragPos;
+		float distance = length(lightDir);
+		lightDir = normalize(lightDir);
+		float diff = max(dot(normal, lightDir), 0.0);
+		float attenuation = 1.0 / (1.0 + (distance / u_PointLights[i].Radius) * (distance / u_PointLights[i].Radius));
+		lighting += u_PointLights[i].Color * diff * u_PointLights[i].Intensity * attenuation;
+	}
+	color = vec4(baseColor * lighting, (u_Color * texColor).a);
 }

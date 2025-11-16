@@ -30,6 +30,7 @@ namespace Nebula {
 
 	// Color
 	bool NebulaGui::ColorEdit4(const char* label, float* col) { return ImGui::ColorEdit4(label, col); }
+	bool NebulaGui::ColorEdit3(const char* label, float* col) { return ImGui::ColorEdit3(label, col); }
 
 	// Tree/Collapsing
 	bool NebulaGui::CollapsingHeader(const char* label, bool defaultOpen) { return ImGui::CollapsingHeader(label, defaultOpen ? ImGuiTreeNodeFlags_DefaultOpen : 0); }
@@ -77,6 +78,8 @@ namespace Nebula {
 	bool NebulaGui::Image(uint32_t textureID, const glm::vec2& size) { ImGui::Image((void*)(intptr_t)textureID, ImVec2(size.x, size.y)); return false; }
 	bool NebulaGui::Image(uint32_t textureID, const glm::vec2& size, const glm::vec2& uv0, const glm::vec2& uv1) { ImGui::Image((void*)(intptr_t)textureID, ImVec2(size.x, size.y), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y)); return false; }
 	bool NebulaGui::Image(void* textureID, const glm::vec2& size, const glm::vec2& uv0, const glm::vec2& uv1) { ImGui::Image(textureID, ImVec2(size.x, size.y), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y)); return false; }
+	bool NebulaGui::ImageButton(const char* str_id, uint32_t textureID, const glm::vec2& size) { return ImGui::ImageButton(str_id, (void*)(intptr_t)textureID, ImVec2(size.x, size.y)); }
+	bool NebulaGui::ImageButton(const char* str_id, void* textureID, const glm::vec2& size) { return ImGui::ImageButton(str_id, textureID, ImVec2(size.x, size.y)); }
 
 	// Docking
 	void NebulaGui::DockSpaceOverViewport() { ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport()); }

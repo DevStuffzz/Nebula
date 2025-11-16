@@ -5,6 +5,8 @@
 #include <entt/entt.hpp>
 #include <string>
 
+#include "glm/glm.hpp"
+
 namespace Nebula {
 
 	class NEBULA_API Scene
@@ -19,6 +21,9 @@ namespace Nebula {
 		void OnUpdate(float deltaTime);
 		void OnRender();
 
+		void Clear(); // Clear all entities
+		void SetName(const std::string& name) { m_Name = name; }
+
 		std::vector<Entity> GetAllEntities() const;
 
 		const std::string& GetName() const { return m_Name; }		
@@ -28,8 +33,21 @@ namespace Nebula {
 		std::string m_Name;
 		entt::registry m_Registry;
 
+		// Scene-wide list of point lights
+		struct PointLightData {
+			glm::vec3 Position;
+			glm::vec3 Color;
+			float Intensity;
+			float Radius;
+		};
+		std::vector<PointLightData> m_PointLights;
+
+	private:
+		glm::vec3 m_GlobalIllumination;
+
 		friend class Entity;
 		friend class SceneHierarchyPanel;
+		friend class SceneSerializer;
 	};
 
 }

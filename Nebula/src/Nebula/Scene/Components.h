@@ -10,6 +10,19 @@
 #include <memory>
 
 namespace Nebula {
+	// Point Light Component
+	struct NEBULA_API PointLightComponent
+	{
+		glm::vec3 Position = glm::vec3(0.0f); // World position
+		glm::vec3 Color = glm::vec3(1.0f);    // RGB color
+		float Intensity = 1.0f;               // Light intensity
+		float Radius = 5.0f;                  // Light radius (falloff)
+
+		PointLightComponent() = default;
+		PointLightComponent(const PointLightComponent&) = default;
+		PointLightComponent(const glm::vec3& position, const glm::vec3& color, float intensity, float radius)
+			: Position(position), Color(color), Intensity(intensity), Radius(radius) {}
+	};
 
 	class Mesh;
 	class Material;

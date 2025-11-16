@@ -41,7 +41,19 @@ namespace Cosmic {
                     }
                     if (Nebula::NebulaGui::MenuItem("Create Cube"))
                     {
-                        CreateCubeEntity();
+                        CreatePrimitiveEntity("Cube", "Cube.obj");
+                    }
+                    if (Nebula::NebulaGui::MenuItem("Create Cylinder"))
+                    {
+                        CreatePrimitiveEntity("Cylinder", "Cylinder.obj");
+                    }
+                    if (Nebula::NebulaGui::MenuItem("Create Quad"))
+                    {
+                        CreatePrimitiveEntity("Quad", "Quad.obj");
+                    }
+                    if (Nebula::NebulaGui::MenuItem("Create Sphere"))
+                    {
+                        CreatePrimitiveEntity("Sphere", "Sphere.obj");
                     }
                     Nebula::NebulaGui::EndPopup();
                 }
@@ -58,20 +70,16 @@ namespace Cosmic {
         }
 
     private:
-        static void CreateCubeEntity()
+        static void CreatePrimitiveEntity(const std::string& name, const std::string& objFile)
         {
-            auto entity = s_Context->CreateEntity("Cube");
+            auto entity = s_Context->CreateEntity(name);
             auto& meshRenderer = entity.AddComponent<Nebula::MeshRendererComponent>();
-            
-            meshRenderer.Mesh = Nebula::Mesh::CreateCube();
-            
+            meshRenderer.Mesh = Nebula::Mesh::LoadOBJ("assets/models/" + objFile);
             Nebula::Shader* rawShader = Nebula::Shader::Create("assets/shaders/Basic.glsl");
             std::shared_ptr<Nebula::Shader> shader(rawShader);
-            
             auto material = std::make_shared<Nebula::Material>(shader);
             material->SetFloat4("u_Color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
             material->SetInt("u_UseTexture", 0);
-            
             meshRenderer.Material = material;
         }
 

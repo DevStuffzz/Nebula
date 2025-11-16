@@ -34,6 +34,14 @@
 #include "Nebula/Scene/Entity.h"
 #include "Nebula/Scene/Components.h"
 #include "Nebula/Scene/Scene.h"
+#include "Nebula/Scene/SceneSerializer.h"
+
+// Asset System
+#include "Nebula/Asset/Asset.h"
+#include "Nebula/Asset/AssetManager.h"
+#include "Nebula/Asset/AssetManagerRegistry.h"
+#include "Nebula/Asset/TextureImporter.h"
+#include "Nebula/Asset/ShaderImporter.h"
 
 // ------------- Entry Point
 #include "Nebula/EntryPoint.h"

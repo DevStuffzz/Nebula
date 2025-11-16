@@ -37,6 +37,7 @@ namespace Nebula {
 
 		// Color
 		static bool ColorEdit4(const char* label, float* col);
+		static bool ColorEdit3(const char* label, float* col);
 
 		// Tree/Collapsing
 		static bool CollapsingHeader(const char* label, bool defaultOpen = false);
@@ -81,6 +82,8 @@ namespace Nebula {
 		static bool Image(uint32_t textureID, const glm::vec2& size);
 		static bool Image(uint32_t textureID, const glm::vec2& size, const glm::vec2& uv0, const glm::vec2& uv1);
 		static bool Image(void* textureID, const glm::vec2& size, const glm::vec2& uv0 = { 0, 0 }, const glm::vec2& uv1 = { 1, 1 });
+		static bool ImageButton(const char* str_id, uint32_t textureID, const glm::vec2& size);
+		static bool ImageButton(const char* str_id, void* textureID, const glm::vec2& size);
 
 		// Docking
 		static void DockSpaceOverViewport();

@@ -4,6 +4,7 @@
 #include "Nebula/ImGui/NebulaGui.h"
 #include "Nebula/Application.h"
 #include <Nebula/Scene/Components.h>
+#include <Nebula/Scene/SceneSerializer.h>
 
 #include "Nebula/Renderer/Mesh.h"
 #include <Nebula/Renderer/Shader.h>
@@ -20,6 +21,13 @@
 #include "Nebula/Input.h"
 #include "Nebula/Keycodes.h"
 #include "Nebula/MouseButtonCodes.h"
+
+#include <filesystem>
+
+#ifdef NB_PLATFORM_WINDOWS
+#include <Windows.h>
+#include <commdlg.h>
+#endif
 
 namespace Cosmic {
 
@@ -77,7 +85,11 @@ namespace Cosmic {
 		SceneHierarchy::SetContext(m_ActiveScene);
 
 		// Setup content browser
+		ContentBrowser::Initialize();
 		ContentBrowser::SetContentPath("assets");
+		ContentBrowser::SetSceneLoadCallback([this](const std::string& path) {
+			LoadSceneFromPath(path);
+		});
 
 		// Setup menu bar callbacks
 		MenuBar::SetCallbacks(
@@ -229,20 +241,111 @@ namespace Cosmic {
 	void EditorLayer::NewScene()
 	{
 		m_ActiveScene = std::make_shared<Nebula::Scene>("Untitled Scene");
+		m_CurrentScenePath.clear();
 		SceneHierarchy::SetContext(m_ActiveScene);
 		NB_CORE_INFO("Created new scene");
 	}
 
 	void EditorLayer::SaveScene()
 	{
-		NB_CORE_INFO("Save scene functionality not yet implemented");
-		// TODO: Implement scene serialization
+		if (m_CurrentScenePath.empty())
+		{
+#ifdef NB_PLATFORM_WINDOWS
+			// Open save file dialog on Windows
+			OPENFILENAMEA ofn;
+			CHAR szFile[260] = { 0 };
+			ZeroMemory(&ofn, sizeof(OPENFILENAME));
+			ofn.lStructSize = sizeof(OPENFILENAME);
+			ofn.hwndOwner = NULL;
+			ofn.lpstrFile = szFile;
+			ofn.nMaxFile = sizeof(szFile);
+			ofn.lpstrFilter = "Nebula Scene\0*.nebscene\0All Files\0*.*\0";
+			ofn.nFilterIndex = 1;
+			ofn.lpstrFileTitle = NULL;
+			ofn.nMaxFileTitle = 0;
+			ofn.lpstrInitialDir = "assets\\scenes";
+			ofn.lpstrDefExt = "nebscene";
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+
+			if (GetSaveFileNameA(&ofn) == TRUE)
+			{
+				m_CurrentScenePath = ofn.lpstrFile;
+			}
+			else
+			{
+				// User cancelled - don't save
+				return;
+			}
+#else
+			// Fallback for other platforms
+			std::filesystem::create_directories("assets/scenes");
+			m_CurrentScenePath = "assets/scenes/" + m_ActiveScene->GetName() + ".nebscene";
+#endif
+		}
+
+		Nebula::SceneSerializer serializer(m_ActiveScene.get());
+		if (serializer.Serialize(m_CurrentScenePath))
+		{
+			NB_CORE_INFO("Scene saved to: {0}", m_CurrentScenePath);
+		}
+		else
+		{
+			NB_CORE_ERROR("Failed to save scene!");
+		}
 	}
 
 	void EditorLayer::LoadScene()
 	{
-		NB_CORE_INFO("Load scene functionality not yet implemented");
-		// TODO: Implement scene deserialization
+#ifdef NB_PLATFORM_WINDOWS
+		// Open file dialog on Windows
+		OPENFILENAMEA ofn;
+		CHAR szFile[260] = { 0 };
+		ZeroMemory(&ofn, sizeof(OPENFILENAME));
+		ofn.lStructSize = sizeof(OPENFILENAME);
+		ofn.hwndOwner = NULL;
+		ofn.lpstrFile = szFile;
+		ofn.nMaxFile = sizeof(szFile);
+		ofn.lpstrFilter = "Nebula Scene\0*.nebscene\0All Files\0*.*\0";
+		ofn.nFilterIndex = 1;
+		ofn.lpstrFileTitle = NULL;
+		ofn.nMaxFileTitle = 0;
+		ofn.lpstrInitialDir = "assets\\scenes";
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+		if (GetOpenFileNameA(&ofn) == TRUE)
+		{
+			LoadSceneFromPath(ofn.lpstrFile);
+		}
+#else
+		// Fallback for other platforms - use default path
+		LoadSceneFromPath("assets/scenes/Untitled Scene.nebscene");
+#endif
+	}
+
+	void EditorLayer::LoadSceneFromPath(const std::string& filepath)
+	{
+		if (!std::filesystem::exists(filepath))
+		{
+			NB_CORE_WARN("Scene file not found: {0}", filepath);
+			return;
+		}
+
+		if (!m_ActiveScene)
+		{
+			m_ActiveScene = std::make_shared<Nebula::Scene>();
+		}
+
+		Nebula::SceneSerializer serializer(m_ActiveScene.get());
+		if (serializer.Deserialize(filepath))
+		{
+			m_CurrentScenePath = filepath;
+			SceneHierarchy::SetContext(m_ActiveScene);
+			NB_CORE_INFO("Scene loaded from: {0}", filepath);
+		}
+		else
+		{
+			NB_CORE_ERROR("Failed to load scene!");
+		}
 	}
 
 }
