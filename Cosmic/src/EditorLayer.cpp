@@ -82,6 +82,12 @@ namespace Cosmic {
 		}
 	
 
+		// Create a camera entity
+		auto cameraEntity = m_ActiveScene->CreateEntity("Main Camera");
+		auto& cameraComp = cameraEntity.AddComponent<Nebula::CameraComponent>();
+		auto& transform = cameraEntity.GetComponent<Nebula::TransformComponent>();
+		transform.Position = glm::vec3(0.0f, 0.0f, 5.0f);
+
 		SceneHierarchy::SetContext(m_ActiveScene);
 
 		// Setup content browser
@@ -186,6 +192,29 @@ namespace Cosmic {
 			{
 				perspCam->SetPosition(m_CameraPosition);
 				perspCam->SetRotation(m_CameraRotation);
+			}
+		}
+
+		// Update camera from scene if in runtime
+		if (m_RuntimeMode && m_ActiveScene)
+		{
+			auto view = m_ActiveScene->GetRegistry().view<Nebula::CameraComponent, Nebula::TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& cameraComp = view.get<Nebula::CameraComponent>(entity);
+				if (cameraComp.Primary)
+				{
+					auto& transform = view.get<Nebula::TransformComponent>(entity);
+					auto& appCamera = Nebula::Application::Get().GetCamera();
+					if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&appCamera))
+					{
+						perspCam->SetPosition(transform.Position);
+						perspCam->SetRotation(transform.Rotation);
+						float aspect = m_ViewportSize.x / m_ViewportSize.y;
+						perspCam->SetProjection(cameraComp.PerspectiveFOV, aspect, cameraComp.PerspectiveNear, cameraComp.PerspectiveFar);
+					}
+					break;
+				}
 			}
 		}
 
