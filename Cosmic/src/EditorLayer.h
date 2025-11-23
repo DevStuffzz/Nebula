@@ -26,12 +26,14 @@ namespace Cosmic {
 		void SaveScene();
 		void LoadScene();
 		void LoadSceneFromPath(const std::string& filepath);
+		void ToggleRuntime();
 
 	private:
 		Nebula::Framebuffer* m_Framebuffer;
 		std::shared_ptr<Nebula::Scene> m_ActiveScene;
 		std::string m_CurrentScenePath; // Track current scene file path
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
+		bool m_RuntimeMode = false;
 	private:
 		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 5.0f };
 		glm::vec3 m_CameraRotation = { 0.0f, 0.0f, 0.0f }; // pitch (x), yaw (y), roll (z)

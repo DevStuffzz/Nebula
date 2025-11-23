@@ -13,18 +13,23 @@ namespace Cosmic {
 		using SaveSceneCallback = std::function<void()>;
 		using LoadSceneCallback = std::function<void()>;
 		using ExitCallback = std::function<void()>;
+		using RunCallback = std::function<void()>;
 
 		static void SetCallbacks(
 			NewSceneCallback newSceneCallback,
 			SaveSceneCallback saveSceneCallback,
 			LoadSceneCallback loadSceneCallback,
-			ExitCallback exitCallback)
+			ExitCallback exitCallback,
+			RunCallback runCallback)
 		{
 			s_NewSceneCallback = newSceneCallback;
 			s_SaveSceneCallback = saveSceneCallback;
 			s_LoadSceneCallback = loadSceneCallback;
 			s_ExitCallback = exitCallback;
+			s_RunCallback = runCallback;
 		}
+
+		static void SetRuntimeMode(bool runtime) { s_RuntimeMode = runtime; }
 
 		static void OnImGuiRender()
 		{
@@ -48,6 +53,14 @@ namespace Cosmic {
 					{
 						if (s_LoadSceneCallback)
 							s_LoadSceneCallback();
+					}
+
+					Nebula::NebulaGui::Separator();
+
+					if (Nebula::NebulaGui::MenuItem(s_RuntimeMode ? "Stop" : "Run", "F5"))
+					{
+						if (s_RunCallback)
+							s_RunCallback();
 					}
 
 					Nebula::NebulaGui::Separator();
@@ -83,10 +96,14 @@ namespace Cosmic {
 		static SaveSceneCallback s_SaveSceneCallback;
 		static LoadSceneCallback s_LoadSceneCallback;
 		static ExitCallback s_ExitCallback;
+		static RunCallback s_RunCallback;
+		static bool s_RuntimeMode;
 	};
 
-	inline MenuBar::NewSceneCallback MenuBar::s_NewSceneCallback = nullptr;
-	inline MenuBar::SaveSceneCallback MenuBar::s_SaveSceneCallback = nullptr;
-	inline MenuBar::LoadSceneCallback MenuBar::s_LoadSceneCallback = nullptr;
-	inline MenuBar::ExitCallback MenuBar::s_ExitCallback = nullptr;
+inline MenuBar::NewSceneCallback MenuBar::s_NewSceneCallback = nullptr;
+inline MenuBar::SaveSceneCallback MenuBar::s_SaveSceneCallback = nullptr;
+inline MenuBar::LoadSceneCallback MenuBar::s_LoadSceneCallback = nullptr;
+inline MenuBar::ExitCallback MenuBar::s_ExitCallback = nullptr;
+inline MenuBar::RunCallback MenuBar::s_RunCallback = nullptr;
+inline bool MenuBar::s_RuntimeMode = false;
 }

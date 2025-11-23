@@ -96,7 +96,8 @@ namespace Cosmic {
 			[this]() { NewScene(); },
 			[this]() { SaveScene(); },
 			[this]() { LoadScene(); },
-			[]() { /* Exit handled elsewhere */ }
+			[]() { /* Exit handled elsewhere */ },
+			[this]() { ToggleRuntime(); }
 		);
 
 	}
@@ -113,76 +114,79 @@ namespace Cosmic {
 
 	void EditorLayer::OnUpdate(Nebula::Timestep ts)
 	{
-		float moveSpeed = 2.5f * ts;
-
-		// Check if right mouse button held for camera rotation
-		if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2))
+		if (!m_RuntimeMode)
 		{
-			Nebula::Application::Get().GetWindow().SetCursorMode(true); // Lock cursor
+			float moveSpeed = 2.5f * ts;
 
-			auto [mouseX, mouseY] = Nebula::Input::GetMousePos();
-
-			if (m_FirstMouse)
+			// Check if right mouse button held for camera rotation
+			if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2))
 			{
+				Nebula::Application::Get().GetWindow().SetCursorMode(true); // Lock cursor
+
+				auto [mouseX, mouseY] = Nebula::Input::GetMousePos();
+
+				if (m_FirstMouse)
+				{
+					m_LastMouseX = mouseX;
+					m_LastMouseY = mouseY;
+					m_FirstMouse = false;
+				}
+
+				float xOffset = mouseX - m_LastMouseX;
+				float yOffset = m_LastMouseY - mouseY; // Y inverted
+
 				m_LastMouseX = mouseX;
 				m_LastMouseY = mouseY;
-				m_FirstMouse = false;
+
+				float sensitivity = 0.1f;
+				xOffset *= sensitivity;
+				yOffset *= sensitivity;
+
+				m_CameraRotation.y -= xOffset; // yaw
+				m_CameraRotation.x += yOffset; // pitch
+
+				// Clamp pitch
+				if (m_CameraRotation.x > 89.0f) m_CameraRotation.x = 89.0f;
+				if (m_CameraRotation.x < -89.0f) m_CameraRotation.x = -89.0f;
+			}
+			else
+			{
+				Nebula::Application::Get().GetWindow().SetCursorMode(false); // Unlock cursor
+				m_FirstMouse = true;
 			}
 
-			float xOffset = mouseX - m_LastMouseX;
-			float yOffset = m_LastMouseY - mouseY; // Y inverted
+			// Calculate direction vectors based on updated rotation
+			float pitch = glm::radians(m_CameraRotation.x);
+			float yaw = glm::radians(m_CameraRotation.y);
 
-			m_LastMouseX = mouseX;
-			m_LastMouseY = mouseY;
+			glm::mat4 rotation(1.0f);
+			rotation = glm::rotate(rotation, yaw, glm::vec3(0, 1, 0));   // yaw
+			rotation = glm::rotate(rotation, pitch, glm::vec3(1, 0, 0)); // pitch
 
-			float sensitivity = 0.1f;
-			xOffset *= sensitivity;
-			yOffset *= sensitivity;
+			glm::vec3 forward = -glm::vec3(rotation[2]);
+			glm::vec3 right = glm::vec3(rotation[0]);
 
-			m_CameraRotation.y -= xOffset; // yaw
-			m_CameraRotation.x += yOffset; // pitch
+			// Movement input
+			if (Nebula::Input::IsKeyPressed(NB_KEY_W))
+				m_CameraPosition += forward * moveSpeed;
+			if (Nebula::Input::IsKeyPressed(NB_KEY_S))
+				m_CameraPosition -= forward * moveSpeed;
+			if (Nebula::Input::IsKeyPressed(NB_KEY_A))
+				m_CameraPosition -= right * moveSpeed;
+			if (Nebula::Input::IsKeyPressed(NB_KEY_D))
+				m_CameraPosition += right * moveSpeed;
+			if (Nebula::Input::IsKeyPressed(NB_KEY_SPACE))
+				m_CameraPosition.y += moveSpeed;
+			if (Nebula::Input::IsKeyPressed(NB_KEY_Q))
+				m_CameraPosition.y -= moveSpeed;
 
-			// Clamp pitch
-			if (m_CameraRotation.x > 89.0f) m_CameraRotation.x = 89.0f;
-			if (m_CameraRotation.x < -89.0f) m_CameraRotation.x = -89.0f;
-		}
-		else
-		{
-			Nebula::Application::Get().GetWindow().SetCursorMode(false); // Unlock cursor
-			m_FirstMouse = true;
-		}
-
-		// Calculate direction vectors based on updated rotation
-		float pitch = glm::radians(m_CameraRotation.x);
-		float yaw = glm::radians(m_CameraRotation.y);
-
-		glm::mat4 rotation(1.0f);
-		rotation = glm::rotate(rotation, yaw, glm::vec3(0, 1, 0));   // yaw
-		rotation = glm::rotate(rotation, pitch, glm::vec3(1, 0, 0)); // pitch
-
-		glm::vec3 forward = -glm::vec3(rotation[2]);
-		glm::vec3 right = glm::vec3(rotation[0]);
-
-		// Movement input
-		if (Nebula::Input::IsKeyPressed(NB_KEY_W))
-			m_CameraPosition += forward * moveSpeed;
-		if (Nebula::Input::IsKeyPressed(NB_KEY_S))
-			m_CameraPosition -= forward * moveSpeed;
-		if (Nebula::Input::IsKeyPressed(NB_KEY_A))
-			m_CameraPosition -= right * moveSpeed;
-		if (Nebula::Input::IsKeyPressed(NB_KEY_D))
-			m_CameraPosition += right * moveSpeed;
-		if (Nebula::Input::IsKeyPressed(NB_KEY_SPACE))
-			m_CameraPosition.y += moveSpeed;
-		if (Nebula::Input::IsKeyPressed(NB_KEY_Q))
-			m_CameraPosition.y -= moveSpeed;
-
-		// Update camera transform
-		auto& camera = Nebula::Application::Get().GetCamera();
-		if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera))
-		{
-			perspCam->SetPosition(m_CameraPosition);
-			perspCam->SetRotation(m_CameraRotation);
+			// Update camera transform
+			auto& camera = Nebula::Application::Get().GetCamera();
+			if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera))
+			{
+				perspCam->SetPosition(m_CameraPosition);
+				perspCam->SetRotation(m_CameraRotation);
+			}
 		}
 
 		// --- Existing framebuffer bind, render code ---
@@ -345,6 +349,20 @@ namespace Cosmic {
 		else
 		{
 			NB_CORE_ERROR("Failed to load scene!");
+		}
+	}
+
+	void EditorLayer::ToggleRuntime()
+	{
+		m_RuntimeMode = !m_RuntimeMode;
+		MenuBar::SetRuntimeMode(m_RuntimeMode);
+		if (m_RuntimeMode)
+		{
+			NB_CORE_INFO("Runtime started");
+		}
+		else
+		{
+			NB_CORE_INFO("Runtime stopped");
 		}
 	}
 
