@@ -153,6 +153,13 @@ namespace Nebula {
 			
 			entityJson["CameraComponent"] = cameraJson;
 		}
+
+		// Script Component
+		if (entity.HasComponent<ScriptComponent>())
+		{
+			auto& script = entity.GetComponent<ScriptComponent>();
+			entityJson["ScriptComponent"]["ClassName"] = script.ClassName;
+		}
 	}
 
 	static void DeserializeEntity(const json& entityJson, Scene* scene)
@@ -265,6 +272,14 @@ namespace Nebula {
 			camera.OrthographicSize = cameraJson.value("OrthographicSize", 10.0f);
 			camera.OrthographicNear = cameraJson.value("OrthographicNear", -1.0f);
 			camera.OrthographicFar = cameraJson.value("OrthographicFar", 1.0f);
+		}
+
+		// Script Component
+		if (entityJson.contains("ScriptComponent"))
+		{
+			const auto& scriptJson = entityJson["ScriptComponent"];
+			auto& script = entity.AddComponent<ScriptComponent>();
+			script.ClassName = scriptJson["ClassName"];
 		}
 	}
 

@@ -94,4 +94,15 @@ namespace Nebula {
 		CameraComponent(const CameraComponent&) = default;
 	};
 
+	// Script Component
+	struct NEBULA_API ScriptComponent
+	{
+		std::string ClassName;
+
+		ScriptComponent() = default;
+		ScriptComponent(const ScriptComponent&) = default;
+		ScriptComponent(const std::string& className)
+			: ClassName(className) {}
+	};
+
 }

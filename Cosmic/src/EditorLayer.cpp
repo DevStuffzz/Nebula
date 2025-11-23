@@ -56,37 +56,56 @@ namespace Cosmic {
 		// Create a default scene if none is set
 		if (!m_ActiveScene)
 		{
-			m_ActiveScene = std::make_shared<Nebula::Scene>("Editor Scene");
+			m_ActiveScene = std::make_shared<Nebula::Scene>("Top-Down Scene");
 
-			// Create a sample entity
-			auto entity = m_ActiveScene->CreateEntity("Sample Cube");
-			auto& meshRenderer = entity.AddComponent<Nebula::MeshRendererComponent>();
+			// Create ground
+			auto ground = m_ActiveScene->CreateEntity("Ground");
+			auto& groundMeshRenderer = ground.AddComponent<Nebula::MeshRendererComponent>();
+			groundMeshRenderer.Mesh = Nebula::Mesh::CreateCube();
+			auto& groundTransform = ground.GetComponent<Nebula::TransformComponent>();
+			groundTransform.Scale = glm::vec3(20.0f, 0.1f, 20.0f);
+			groundTransform.Position = glm::vec3(0.0f, -0.5f, 0.0f);
 
-			// Create mesh
-			meshRenderer.Mesh = Nebula::Mesh::CreateCube();
-
-			// Create shader and material
+			// Create shader and material for ground
 			Nebula::Shader* rawShader = Nebula::Shader::Create("assets/shaders/Basic.glsl");
 			std::shared_ptr<Nebula::Shader> shader(rawShader);
 
-			auto material = std::make_shared<Nebula::Material>(shader);
-			material->SetFloat4("u_Color", glm::vec4(1.0f, 0.5f, 0.2f, 1.0f)); // Orange color
+			auto groundMaterial = std::make_shared<Nebula::Material>(shader);
+			groundMaterial->SetFloat4("u_Color", glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray color
 
 			std::shared_ptr<Nebula::Texture2D> texture;
 			texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
+			groundMaterial->SetTexture("u_Texture", texture);
+			groundMaterial->SetInt("u_UseTexture", 1);
 
-			material->SetTexture("u_Texture", texture);
-			material->SetInt("u_UseTexture", 1); // No texture for now
+			groundMeshRenderer.Material = groundMaterial;
 
-			meshRenderer.Material = material;
+			// Create a sample object (e.g., a box)
+			auto box = m_ActiveScene->CreateEntity("Box");
+			auto& boxMeshRenderer = box.AddComponent<Nebula::MeshRendererComponent>();
+			boxMeshRenderer.Mesh = Nebula::Mesh::CreateCube();
+			auto& boxTransform = box.GetComponent<Nebula::TransformComponent>();
+			boxTransform.Position = glm::vec3(2.0f, 0.5f, 0.0f);
+			boxTransform.Scale = glm::vec3(1.0f, 1.0f, 1.0f);
+
+			auto boxMaterial = std::make_shared<Nebula::Material>(shader);
+			boxMaterial->SetFloat4("u_Color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color
+			boxMaterial->SetTexture("u_Texture", texture);
+			boxMaterial->SetInt("u_UseTexture", 0); // No texture
+
+			boxMeshRenderer.Material = boxMaterial;
 		}
-	
 
 		// Create a camera entity
 		auto cameraEntity = m_ActiveScene->CreateEntity("Main Camera");
 		auto& cameraComp = cameraEntity.AddComponent<Nebula::CameraComponent>();
-		auto& transform = cameraEntity.GetComponent<Nebula::TransformComponent>();
-		transform.Position = glm::vec3(0.0f, 0.0f, 5.0f);
+		auto& cameraTransform = cameraEntity.GetComponent<Nebula::TransformComponent>();
+		cameraTransform.Position = glm::vec3(0.0f, 15.0f, 10.0f);
+		cameraTransform.Rotation = glm::vec3(-glm::half_pi<float>(), 0.0f, 0.0f); // Look along negative Y (down, since Y is up)
+
+		// Add CameraController script
+		auto& scriptComp = cameraEntity.AddComponent<Nebula::ScriptComponent>();
+		scriptComp.ClassName = "CameraController";
 
 		SceneHierarchy::SetContext(m_ActiveScene);
 

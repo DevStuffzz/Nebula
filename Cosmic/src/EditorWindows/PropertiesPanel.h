@@ -44,6 +44,14 @@ namespace Cosmic {
 				if (s_SelectedEntity.HasComponent<Nebula::PointLightComponent>())
 					DrawPointLightComponent(s_SelectedEntity.GetComponent<Nebula::PointLightComponent>());
 
+				// Camera Component
+				if (s_SelectedEntity.HasComponent<Nebula::CameraComponent>())
+					DrawCameraComponent(s_SelectedEntity.GetComponent<Nebula::CameraComponent>());
+
+				// Script Component
+				if (s_SelectedEntity.HasComponent<Nebula::ScriptComponent>())
+					DrawScriptComponent(s_SelectedEntity.GetComponent<Nebula::ScriptComponent>());
+
 				Nebula::NebulaGui::Separator();
 
 				// Add Component button
@@ -178,6 +186,25 @@ namespace Cosmic {
 				Nebula::NebulaGui::ColorEdit3("Color", &light.Color.x);
 				Nebula::NebulaGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
 				Nebula::NebulaGui::DragFloat("Radius", &light.Radius, 0.1f, 0.0f, 100.0f);
+			}
+		}
+
+		static void DrawCameraComponent(Nebula::CameraComponent& camera)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Camera", true))
+			{
+				Nebula::NebulaGui::Checkbox("Primary", &camera.Primary);
+				Nebula::NebulaGui::DragFloat("FOV", &camera.PerspectiveFOV, 0.1f, 1.0f, 179.0f);
+				Nebula::NebulaGui::DragFloat("Near", &camera.PerspectiveNear, 0.01f, 0.001f, 100.0f);
+				Nebula::NebulaGui::DragFloat("Far", &camera.PerspectiveFar, 0.1f, 0.1f, 10000.0f);
+			}
+		}
+
+		static void DrawScriptComponent(Nebula::ScriptComponent& script)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Script", true))
+			{
+				Nebula::NebulaGui::Text("Class: %s", script.ClassName.c_str());
 			}
 		}
 
