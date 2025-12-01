@@ -1,12 +1,10 @@
 #include "nbpch.h"
 #include "Scene.h"
 #include "Components.h"
-#include "Scripts.h"
 #include "Nebula/Renderer/Renderer.h"
 #include "Nebula/Renderer/Material.h"
 #include "Nebula/Application.h"
-
-#include "Nebula/Application.h"
+#include "Nebula/Scripting/LuaScriptEngine.h"
 
 namespace Nebula {
 
@@ -42,30 +40,31 @@ namespace Nebula {
 
 	void Scene::OnUpdate(float deltaTime)
 	{
-		// Update scripts
+		// Update Lua scripts
 		auto view = m_Registry.view<ScriptComponent>();
-		for (auto entity : view)
+		for (auto entityID : view)
 		{
-			auto& scriptComp = view.get<ScriptComponent>(entity);
-			auto key = std::make_pair(entity, scriptComp.ClassName);
-			if (m_Scripts.find(key) == m_Scripts.end())
+			Entity entity = { entityID, this };
+			auto& scriptComp = view.get<ScriptComponent>(entityID);
+			
+			if (!scriptComp.ScriptPath.empty())
 			{
-				// Create script
-				auto script = CreateScript(scriptComp.ClassName, { entity, this });
-				if (script)
+				// Check if this is a new script that needs to be initialized
+				auto key = std::make_pair(entityID, scriptComp.ScriptPath);
+				if (m_LuaScriptInitialized.find(key) == m_LuaScriptInitialized.end())
 				{
-					script->OnCreate();
-					m_Scripts[key] = std::move(script);
+					// Load and initialize the script
+					LuaScriptEngine::OnCreateEntity(entity, scriptComp.ScriptPath);
+					m_LuaScriptInitialized[key] = true;
 				}
-			}
-			else
-			{
-				m_Scripts[key]->OnUpdate(deltaTime);
+				
+				// Update the script
+				LuaScriptEngine::OnUpdateEntity(entity, deltaTime);
 			}
 		}
 
 		// Update systems here
-		// For now, this is just a placeholder for future scripting/physics systems
+		// For now, this is just a placeholder for future physics systems
 	}
 
 	void Scene::OnRender()
@@ -130,17 +129,6 @@ namespace Nebula {
 			});
 
 		return entities;
-	}
-
-	std::unique_ptr<Script> Scene::CreateScript(const std::string& name, Entity entity)
-	{
-		if (name == "CameraController")
-		{
-			auto script = std::make_unique<CameraController>();
-			script->m_Entity = entity;
-			return script;
-		}
-		return nullptr;
 	}
 
 }

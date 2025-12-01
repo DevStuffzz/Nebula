@@ -7,6 +7,7 @@
 #include "Nebula/Renderer/Renderer.h"
 #include "Nebula/Asset/AssetManager.h"
 #include "Nebula/Asset/AssetManagerRegistry.h"
+#include "Nebula/Scripting/LuaScriptEngine.h"
 
 #include <GLFW/glfw3.h>
 
@@ -44,12 +45,16 @@ namespace Nebula {
 		AssetManager::Init();
 		AssetManagerRegistry::RegisterImporters();
 
+		// Initialize Lua Scripting System
+		LuaScriptEngine::Init();
+
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application()
 	{
+		LuaScriptEngine::Shutdown();
 		AssetManager::Shutdown();
 	}
 

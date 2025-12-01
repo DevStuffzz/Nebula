@@ -34,6 +34,7 @@ namespace Cosmic {
 		std::string m_CurrentScenePath; // Track current scene file path
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
 		bool m_RuntimeMode = false;
+		bool m_ShowScriptEditor = false;
 	private:
 		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 5.0f };
 		glm::vec3 m_CameraRotation = { 0.0f, 0.0f, 0.0f }; // pitch (x), yaw (y), roll (z)

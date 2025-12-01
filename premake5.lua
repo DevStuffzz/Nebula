@@ -22,10 +22,12 @@ IncludeDir["glm"] = "Nebula/vendor/glm"
 IncludeDir["stb_image"] = "Nebula/vendor/stb_image"
 IncludeDir["entt"] = "Nebula/vendor/entt/src"
 IncludeDir["json"] = "Nebula/vendor/json"
+IncludeDir["Lua"] = "Nebula/vendor/lua"
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
 include "Nebula/vendor/glad"
+include "Nebula/vendor/lua"
 
 project "Nebula"
     location "Nebula"
@@ -56,6 +58,7 @@ project "Nebula"
         "%{IncludeDir.stb_image}",
         "%{IncludeDir.entt}",
         "%{IncludeDir.json}",
+        "%{IncludeDir.Lua}",
     }
 
     links
@@ -63,6 +66,7 @@ project "Nebula"
         "GLFW",
         "ImGui",
         "glad",
+        "Lua",
     }
 
     filter "system:windows"
@@ -220,6 +224,7 @@ project "Cosmic"
         "Nebula/vendor/glm",
         "%{IncludeDir.entt}",
         "%{IncludeDir.ImGui}",
+        "%{IncludeDir.Lua}",
     }
     
     links

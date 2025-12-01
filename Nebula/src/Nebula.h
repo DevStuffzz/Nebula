@@ -43,6 +43,10 @@
 #include "Nebula/Asset/TextureImporter.h"
 #include "Nebula/Asset/ShaderImporter.h"
 
+// Scripting System
+#include "Nebula/Scripting/LuaScriptEngine.h"
+#include "Nebula/Scripting/LuaBindings.h"
+
 // ------------- Entry Point
 #include "Nebula/EntryPoint.h"
 // -------------------------

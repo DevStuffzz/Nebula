@@ -97,12 +97,12 @@ namespace Nebula {
 	// Script Component
 	struct NEBULA_API ScriptComponent
 	{
-		std::string ClassName;
+		std::string ScriptPath; // Path to Lua script file
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
-		ScriptComponent(const std::string& className)
-			: ClassName(className) {}
+		ScriptComponent(const std::string& scriptPath)
+			: ScriptPath(scriptPath) {}
 	};
 
 }

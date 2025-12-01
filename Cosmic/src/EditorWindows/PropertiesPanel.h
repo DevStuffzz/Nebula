@@ -204,7 +204,7 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Script", true))
 			{
-				Nebula::NebulaGui::Text("Class: %s", script.ClassName.c_str());
+				Nebula::NebulaGui::Text("Script: %s", script.ScriptPath.c_str());
 			}
 		}
 

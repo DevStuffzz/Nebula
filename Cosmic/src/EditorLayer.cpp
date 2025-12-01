@@ -17,6 +17,7 @@
 #include "EditorWindows/PropertiesPanel.h"
 #include "EditorWindows/MenuBar.h"
 #include "EditorWindows/ContentBrowser.h"
+#include "EditorWindows/ScriptEditor.h"
 
 #include "Nebula/Input.h"
 #include "Nebula/Keycodes.h"
@@ -105,7 +106,7 @@ namespace Cosmic {
 
 		// Add CameraController script
 		auto& scriptComp = cameraEntity.AddComponent<Nebula::ScriptComponent>();
-		scriptComp.ClassName = "CameraController";
+		scriptComp.ScriptPath = "assets/scripts/CameraController.lua";
 
 		SceneHierarchy::SetContext(m_ActiveScene);
 
@@ -122,7 +123,8 @@ namespace Cosmic {
 			[this]() { SaveScene(); },
 			[this]() { LoadScene(); },
 			[]() { /* Exit handled elsewhere */ },
-			[this]() { ToggleRuntime(); }
+			[this]() { ToggleRuntime(); },
+			[]() { ScriptEditor::ToggleVisibility(); }
 		);
 
 	}
@@ -280,6 +282,9 @@ namespace Cosmic {
 		// Properties Panel - sync selection from hierarchy
 		PropertiesPanel::SetSelectedEntity(SceneHierarchy::GetSelectedEntity());
 		PropertiesPanel::OnImGuiRender();
+
+		// Script Editor
+		ScriptEditor::OnImGuiRender();
 
 		// Content Browser
 		ContentBrowser::OnImGuiRender();

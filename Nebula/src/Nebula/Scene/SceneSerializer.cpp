@@ -158,7 +158,7 @@ namespace Nebula {
 		if (entity.HasComponent<ScriptComponent>())
 		{
 			auto& script = entity.GetComponent<ScriptComponent>();
-			entityJson["ScriptComponent"]["ClassName"] = script.ClassName;
+			entityJson["ScriptComponent"]["ScriptPath"] = script.ScriptPath;
 		}
 	}
 
@@ -279,7 +279,11 @@ namespace Nebula {
 		{
 			const auto& scriptJson = entityJson["ScriptComponent"];
 			auto& script = entity.AddComponent<ScriptComponent>();
-			script.ClassName = scriptJson["ClassName"];
+			// Support both old ClassName and new ScriptPath for backward compatibility
+			if (scriptJson.contains("ScriptPath"))
+				script.ScriptPath = scriptJson["ScriptPath"];
+			else if (scriptJson.contains("ClassName"))
+				script.ScriptPath = "assets/scripts/" + std::string(scriptJson["ClassName"]) + ".lua";
 		}
 	}
 

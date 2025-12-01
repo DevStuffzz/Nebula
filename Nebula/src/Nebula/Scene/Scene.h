@@ -2,7 +2,6 @@
 
 #include "Nebula/Core.h"
 #include "Entity.h"
-#include "Script.h"
 #include <entt/entt.hpp>
 #include <string>
 #include <unordered_map>
@@ -41,12 +40,9 @@ namespace Nebula {
 		entt::registry& GetRegistry() { return m_Registry; }
 
 	private:
-		std::unique_ptr<Script> CreateScript(const std::string& name, Entity entity);
-
-	private:
 		std::string m_Name;
 		entt::registry m_Registry;
-		std::unordered_map<std::pair<entt::entity, std::string>, std::unique_ptr<Script>, PairHash> m_Scripts;
+		std::unordered_map<std::pair<entt::entity, std::string>, bool, PairHash> m_LuaScriptInitialized;
 
 		// Scene-wide list of point lights
 		struct PointLightData {

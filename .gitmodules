@@ -7,3 +7,6 @@
 [submodule "Nebula/vendor/imgui"]
 	path = Nebula/vendor/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "Nebula/vendor/lua"]
+	path = Nebula/vendor/lua
+	url = https://github.com/DevStuffzz/lua.git

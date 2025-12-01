@@ -14,19 +14,22 @@ namespace Cosmic {
 		using LoadSceneCallback = std::function<void()>;
 		using ExitCallback = std::function<void()>;
 		using RunCallback = std::function<void()>;
+		using ScriptEditorCallback = std::function<void()>;
 
 		static void SetCallbacks(
 			NewSceneCallback newSceneCallback,
 			SaveSceneCallback saveSceneCallback,
 			LoadSceneCallback loadSceneCallback,
 			ExitCallback exitCallback,
-			RunCallback runCallback)
+			RunCallback runCallback,
+			ScriptEditorCallback scriptEditorCallback)
 		{
 			s_NewSceneCallback = newSceneCallback;
 			s_SaveSceneCallback = saveSceneCallback;
 			s_LoadSceneCallback = loadSceneCallback;
 			s_ExitCallback = exitCallback;
 			s_RunCallback = runCallback;
+			s_ScriptEditorCallback = scriptEditorCallback;
 		}
 
 		static void SetRuntimeMode(bool runtime) { s_RuntimeMode = runtime; }
@@ -83,6 +86,11 @@ namespace Cosmic {
 
 				if (Nebula::NebulaGui::BeginMenu("View"))
 				{
+					if (Nebula::NebulaGui::MenuItem("Script Editor"))
+					{
+						if (s_ScriptEditorCallback)
+							s_ScriptEditorCallback();
+					}
 					if (Nebula::NebulaGui::MenuItem("Reset Layout")) {}
 					Nebula::NebulaGui::EndMenu();
 				}
@@ -97,6 +105,7 @@ namespace Cosmic {
 		static LoadSceneCallback s_LoadSceneCallback;
 		static ExitCallback s_ExitCallback;
 		static RunCallback s_RunCallback;
+		static ScriptEditorCallback s_ScriptEditorCallback;
 		static bool s_RuntimeMode;
 	};
 
@@ -105,5 +114,6 @@ inline MenuBar::SaveSceneCallback MenuBar::s_SaveSceneCallback = nullptr;
 inline MenuBar::LoadSceneCallback MenuBar::s_LoadSceneCallback = nullptr;
 inline MenuBar::ExitCallback MenuBar::s_ExitCallback = nullptr;
 inline MenuBar::RunCallback MenuBar::s_RunCallback = nullptr;
+inline MenuBar::ScriptEditorCallback MenuBar::s_ScriptEditorCallback = nullptr;
 inline bool MenuBar::s_RuntimeMode = false;
 }
