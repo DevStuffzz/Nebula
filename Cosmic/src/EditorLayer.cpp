@@ -25,6 +25,8 @@
 #include "Nebula/MouseButtonCodes.h"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <imgui.h>
 #include <filesystem>
 
@@ -167,6 +169,7 @@ namespace Cosmic {
 					{
 						auto& tc = selectedEntity.GetComponent<Nebula::TransformComponent>();
 						m_GizmoStartPos = tc.Position;
+						m_GizmoStartRot = tc.Rotation;
 						
 						// Calculate initial intersection to use as offset
 						auto& camera = Nebula::Application::Get().GetCamera();
@@ -216,18 +219,38 @@ namespace Cosmic {
 								// Calculate initial intersection based on active axis
 								if (m_ActiveAxis == GizmoAxis::X || m_ActiveAxis == GizmoAxis::Y || m_ActiveAxis == GizmoAxis::Z)
 								{
-									glm::vec3 axis(0.0f);
-									if (m_ActiveAxis == GizmoAxis::X) axis = glm::vec3(1, 0, 0);
-									else if (m_ActiveAxis == GizmoAxis::Y) axis = glm::vec3(0, 1, 0);
-									else if (m_ActiveAxis == GizmoAxis::Z) axis = glm::vec3(0, 0, 1);
-									
-									glm::vec3 cameraRight = glm::normalize(glm::cross(rayDir, axis));
-									glm::vec3 planeNormal = glm::normalize(glm::cross(axis, cameraRight));
-									glm::vec3 intersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-									
-									glm::vec3 toIntersection = intersection - m_GizmoStartPos;
-									float projection = glm::dot(toIntersection, axis);
-									m_DragStartIntersection = m_GizmoStartPos + axis * projection;
+									// For rotation mode, calculate intersection differently
+									if (gizmoMode == Viewport::GizmoMode::Rotate)
+									{
+										// Create rotation matrix from object's rotation using quaternions
+										glm::quat quat = glm::quat(glm::radians(m_GizmoStartRot));
+										glm::mat4 rotationMatrix = glm::toMat4(quat);
+										
+										glm::vec3 planeNormal(0.0f);
+										if (m_ActiveAxis == GizmoAxis::X) planeNormal = glm::vec3(1, 0, 0);
+										else if (m_ActiveAxis == GizmoAxis::Y) planeNormal = glm::vec3(0, 1, 0);
+										else if (m_ActiveAxis == GizmoAxis::Z) planeNormal = glm::vec3(0, 0, 1);
+										
+										// Apply object rotation to the plane normal
+										planeNormal = glm::vec3(rotationMatrix * glm::vec4(planeNormal, 0.0f));
+										
+										m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
+									}
+									else // Translate mode
+									{
+										glm::vec3 axis(0.0f);
+										if (m_ActiveAxis == GizmoAxis::X) axis = glm::vec3(1, 0, 0);
+										else if (m_ActiveAxis == GizmoAxis::Y) axis = glm::vec3(0, 1, 0);
+										else if (m_ActiveAxis == GizmoAxis::Z) axis = glm::vec3(0, 0, 1);
+										
+										glm::vec3 cameraRight = glm::normalize(glm::cross(rayDir, axis));
+										glm::vec3 planeNormal = glm::normalize(glm::cross(axis, cameraRight));
+										glm::vec3 intersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
+										
+										glm::vec3 toIntersection = intersection - m_GizmoStartPos;
+										float projection = glm::dot(toIntersection, axis);
+										m_DragStartIntersection = m_GizmoStartPos + axis * projection;
+									}
 								}
 								else if (m_ActiveAxis == GizmoAxis::XY)
 								{
@@ -243,6 +266,12 @@ namespace Cosmic {
 								{
 									glm::vec3 planeNormal(1, 0, 0);
 									m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
+								}
+								else if (m_ActiveAxis == GizmoAxis::Screen && gizmoMode == Viewport::GizmoMode::Rotate)
+								{
+									// Screen-space rotation - use camera's view direction as plane normal
+									glm::vec3 toCamera = glm::normalize(perspCam->GetPosition() - m_GizmoStartPos);
+									m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, toCamera);
 								}
 							}
 						}
@@ -347,6 +376,144 @@ namespace Cosmic {
 						// Apply offset from initial drag point
 						glm::vec3 delta = currentIntersection - m_DragStartIntersection;
 						tc.Position = m_GizmoStartPos + delta;
+					}
+					else if (gizmoMode == Viewport::GizmoMode::Rotate)
+					{
+						if (m_ActiveAxis == GizmoAxis::Screen)
+						{
+							// Screen-space rotation - rotate around camera's view direction
+							glm::vec3 toCamera = glm::normalize(perspCam->GetPosition() - m_GizmoStartPos);
+							
+							// Project current and start positions onto screen plane
+							glm::vec3 currentPoint = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, toCamera);
+							
+							// Calculate vectors from origin to intersection points
+							glm::vec3 startVec = m_DragStartIntersection - m_GizmoStartPos;
+							glm::vec3 currentVec = currentPoint - m_GizmoStartPos;
+							
+							// Remove component along view direction
+							startVec = startVec - glm::dot(startVec, toCamera) * toCamera;
+							currentVec = currentVec - glm::dot(currentVec, toCamera) * toCamera;
+							
+							float startLen = glm::length(startVec);
+							float currentLen = glm::length(currentVec);
+							
+							if (startLen > 0.001f && currentLen > 0.001f)
+							{
+								startVec = glm::normalize(startVec);
+								currentVec = glm::normalize(currentVec);
+								
+								// Calculate angle between vectors (in radians)
+								float cosAngle = glm::clamp(glm::dot(startVec, currentVec), -1.0f, 1.0f);
+								float angle = glm::acos(cosAngle);
+								
+								// Determine sign using cross product
+								glm::vec3 cross = glm::cross(startVec, currentVec);
+								if (glm::dot(cross, toCamera) < 0.0f)
+									angle = -angle;
+								
+								// Apply rotation around camera view direction using quaternions
+								glm::quat startQuat = glm::quat(glm::radians(m_GizmoStartRot));
+								
+								glm::quat deltaQuat = glm::angleAxis(angle, toCamera);
+								glm::quat finalQuat = deltaQuat * startQuat;
+								
+								// Convert back to Euler angles
+								glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(finalQuat));
+								
+								// Normalize angles to [-180, 180] range
+								auto normalizeAngle = [](float angle) {
+									while (angle > 180.0f) angle -= 360.0f;
+									while (angle < -180.0f) angle += 360.0f;
+									return angle;
+								};
+								
+								eulerAngles.x = normalizeAngle(eulerAngles.x);
+								eulerAngles.y = normalizeAngle(eulerAngles.y);
+								eulerAngles.z = normalizeAngle(eulerAngles.z);
+								
+								tc.Rotation = eulerAngles;
+							}
+						}
+						else
+						{
+							// Create rotation matrix from object's initial rotation (convert degrees to radians)
+							// Match TransformComponent's approach
+							glm::quat startQuat = glm::quat(glm::radians(m_GizmoStartRot));
+							glm::mat4 rotationMatrix = glm::toMat4(startQuat);
+							
+							// Calculate rotation based on mouse movement around the axis
+							glm::vec3 localAxis(0.0f);
+							glm::vec3 planeNormal(0.0f);
+							
+							if (m_ActiveAxis == GizmoAxis::X) {
+								localAxis = glm::vec3(1, 0, 0);
+								planeNormal = glm::vec3(1, 0, 0);
+							} else if (m_ActiveAxis == GizmoAxis::Y) {
+								localAxis = glm::vec3(0, 1, 0);
+								planeNormal = glm::vec3(0, 1, 0);
+							} else if (m_ActiveAxis == GizmoAxis::Z) {
+								localAxis = glm::vec3(0, 0, 1);
+								planeNormal = glm::vec3(0, 0, 1);
+							}
+							
+							// Apply object rotation to get world-space axis and plane normal
+							glm::vec3 worldAxis = glm::vec3(rotationMatrix * glm::vec4(localAxis, 0.0f));
+							planeNormal = glm::vec3(rotationMatrix * glm::vec4(planeNormal, 0.0f));
+							
+							// Project current and start mouse positions onto the rotation plane
+							glm::vec3 currentPoint = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
+							
+							// Calculate vectors from origin to intersection points
+							glm::vec3 startVec = m_DragStartIntersection - m_GizmoStartPos;
+							glm::vec3 currentVec = currentPoint - m_GizmoStartPos;
+							
+							// Remove component along plane normal to ensure vectors are in plane
+							startVec = startVec - glm::dot(startVec, planeNormal) * planeNormal;
+							currentVec = currentVec - glm::dot(currentVec, planeNormal) * planeNormal;
+							
+							float startLen = glm::length(startVec);
+							float currentLen = glm::length(currentVec);
+							
+							if (startLen > 0.001f && currentLen > 0.001f)
+							{
+								startVec = glm::normalize(startVec);
+								currentVec = glm::normalize(currentVec);
+								
+								// Calculate angle between vectors (in radians)
+								float cosAngle = glm::clamp(glm::dot(startVec, currentVec), -1.0f, 1.0f);
+								float angle = glm::acos(cosAngle);
+								
+								// Determine sign using cross product
+								glm::vec3 cross = glm::cross(startVec, currentVec);
+								if (glm::dot(cross, planeNormal) < 0.0f)
+									angle = -angle;
+								
+								// Apply rotation around the world-space axis (which is the local axis transformed by current rotation)
+								// Use quaternions to properly handle the rotation
+								// Match TransformComponent's quaternion construction: glm::quat(glm::radians(Rotation))
+								glm::quat startQuat = glm::quat(glm::radians(m_GizmoStartRot));
+								
+								glm::quat deltaQuat = glm::angleAxis(angle, worldAxis);
+								glm::quat finalQuat = deltaQuat * startQuat;
+								
+								// Convert back to Euler angles matching TransformComponent's convention
+								glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(finalQuat));
+								
+								// Normalize angles to [-180, 180] range
+								auto normalizeAngle = [](float angle) {
+									while (angle > 180.0f) angle -= 360.0f;
+									while (angle < -180.0f) angle += 360.0f;
+									return angle;
+								};
+								
+								eulerAngles.x = normalizeAngle(eulerAngles.x);
+								eulerAngles.y = normalizeAngle(eulerAngles.y);
+								eulerAngles.z = normalizeAngle(eulerAngles.z);
+								
+								tc.Rotation = eulerAngles;
+							}
+						}
 					}
 				}
 			}
@@ -814,7 +981,95 @@ namespace Cosmic {
 				yzColor
 			);
 		}
-	}	// Restore clip rect
+	}
+	else if (gizmoMode == Viewport::GizmoMode::Rotate)
+	{
+		float radius = 1.2f; // Radius of rotation circles
+		int numSegments = 64; // Number of segments for circles
+		float thickness = 2.5f;
+		
+		// Create rotation matrix from object's rotation using quaternions
+		glm::quat quat = glm::quat(glm::radians(tc.Rotation));
+		glm::mat4 rotationMatrix = glm::toMat4(quat);
+		
+		// Helper to draw a 3D circle with rotation applied
+		auto drawCircle = [&](const glm::vec3& center, const glm::vec3& normal, float radius, ImU32 color, float thickness) {
+			// Apply object rotation to the normal
+			glm::vec3 rotatedNormal = glm::vec3(rotationMatrix * glm::vec4(normal, 0.0f));
+			
+			// Create perpendicular vectors to the rotated normal
+			glm::vec3 tangent, bitangent;
+			if (glm::abs(rotatedNormal.y) < 0.9f) {
+				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(0, 1, 0)));
+			} else {
+				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(1, 0, 0)));
+			}
+			bitangent = glm::cross(rotatedNormal, tangent);
+			
+			// Draw circle as line segments
+			for (int i = 0; i < numSegments; i++) {
+				float angle1 = (float)i / numSegments * glm::two_pi<float>();
+				float angle2 = (float)(i + 1) / numSegments * glm::two_pi<float>();
+				
+				glm::vec3 p1 = center + radius * (glm::cos(angle1) * tangent + glm::sin(angle1) * bitangent);
+				glm::vec3 p2 = center + radius * (glm::cos(angle2) * tangent + glm::sin(angle2) * bitangent);
+				
+				glm::vec2 s1 = project(p1);
+				glm::vec2 s2 = project(p2);
+				
+				drawList->AddLine(ImVec2(s1.x, s1.y), ImVec2(s2.x, s2.y), color, thickness);
+			}
+		};
+		
+		// Draw X rotation circle (red) - rotates around object's local X axis
+		drawCircle(origin, glm::vec3(1, 0, 0), radius, xColor, thickness);
+		
+		// Draw Y rotation circle (green) - rotates around object's local Y axis
+		drawCircle(origin, glm::vec3(0, 1, 0), radius, yColor, thickness);
+		
+		// Draw Z rotation circle (blue) - rotates around object's local Z axis
+		drawCircle(origin, glm::vec3(0, 0, 1), radius, zColor, thickness);
+		
+		// Draw center quad for screen-space rotation
+		float quadSize = 0.15f;
+		ImU32 screenColor = (hoveredAxis == GizmoAxis::Screen) ? IM_COL32(255, 255, 255, 255) : IM_COL32(200, 200, 200, 150);
+		
+		// Get camera forward vector
+		glm::vec3 cameraPos = perspCam->GetPosition();
+		glm::vec3 toCamera = glm::normalize(cameraPos - origin);
+		
+		// Calculate camera up and right vectors from rotation
+		glm::vec3 cameraRot = perspCam->GetRotation();
+		float pitch = glm::radians(cameraRot.x);
+		float yaw = glm::radians(cameraRot.y);
+		
+		glm::mat4 camRotMatrix = glm::mat4(1.0f);
+		camRotMatrix = glm::rotate(camRotMatrix, yaw, glm::vec3(0, 1, 0));
+		camRotMatrix = glm::rotate(camRotMatrix, pitch, glm::vec3(1, 0, 0));
+		
+		glm::vec3 up = glm::vec3(camRotMatrix * glm::vec4(0, 1, 0, 0));
+		glm::vec3 right = glm::normalize(glm::cross(up, toCamera));
+		up = glm::normalize(glm::cross(toCamera, right));
+		
+		// Create quad vertices
+		glm::vec3 p1 = origin + (-right - up) * quadSize;
+		glm::vec3 p2 = origin + (right - up) * quadSize;
+		glm::vec3 p3 = origin + (right + up) * quadSize;
+		glm::vec3 p4 = origin + (-right + up) * quadSize;
+		
+		glm::vec2 s1 = project(p1);
+		glm::vec2 s2 = project(p2);
+		glm::vec2 s3 = project(p3);
+		glm::vec2 s4 = project(p4);
+		
+		drawList->AddQuadFilled(
+			ImVec2(s1.x, s1.y), ImVec2(s2.x, s2.y),
+			ImVec2(s3.x, s3.y), ImVec2(s4.x, s4.y),
+			screenColor
+		);
+	}
+	
+	// Restore clip rect
 	drawList->PopClipRect();
 }	EditorLayer::GizmoAxis EditorLayer::GetHoveredAxis(const glm::vec2& mousePos)
 	{
@@ -949,6 +1204,88 @@ namespace Cosmic {
 		
 		if (isInsideQuad(mousePos, s1, s2, s3, s4))
 			return GizmoAxis::YZ;
+	}
+	
+	// Check for rotation circles if in rotate mode
+	auto gizmoMode = Viewport::GetGizmoMode();
+	if (gizmoMode == Viewport::GizmoMode::Rotate)
+	{
+		float radius = 1.2f;
+		int numSegments = 64;
+		float hitThreshold = 10.0f;
+		
+		// Create rotation matrix from object's rotation using quaternions
+		glm::quat quat = glm::quat(glm::radians(tc.Rotation));
+		glm::mat4 rotationMatrix = glm::toMat4(quat);
+		
+		// Helper to check distance to 3D circle with rotation applied
+		auto distanceToCircle = [&](const glm::vec3& center, const glm::vec3& normal, float radius) -> float {
+			// Apply object rotation to the normal
+			glm::vec3 rotatedNormal = glm::vec3(rotationMatrix * glm::vec4(normal, 0.0f));
+			
+			glm::vec3 tangent, bitangent;
+			if (glm::abs(rotatedNormal.y) < 0.9f) {
+				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(0, 1, 0)));
+			} else {
+				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(1, 0, 0)));
+			}
+			bitangent = glm::cross(rotatedNormal, tangent);
+			
+			float minDist = FLT_MAX;
+			for (int i = 0; i < numSegments; i++) {
+				float angle1 = (float)i / numSegments * glm::two_pi<float>();
+				float angle2 = (float)(i + 1) / numSegments * glm::two_pi<float>();
+				
+				glm::vec3 p1 = center + radius * (glm::cos(angle1) * tangent + glm::sin(angle1) * bitangent);
+				glm::vec3 p2 = center + radius * (glm::cos(angle2) * tangent + glm::sin(angle2) * bitangent);
+				
+				glm::vec2 s1 = project(p1);
+				glm::vec2 s2 = project(p2);
+				
+				float dist = distanceToLineSegment(mousePos, s1, s2);
+				minDist = glm::min(minDist, dist);
+			}
+			return minDist;
+		};
+		
+		// Check each rotation circle (now with rotation applied)
+		if (distanceToCircle(origin, glm::vec3(1, 0, 0), radius) < hitThreshold)
+			return GizmoAxis::X;
+		if (distanceToCircle(origin, glm::vec3(0, 1, 0), radius) < hitThreshold)
+			return GizmoAxis::Y;
+		if (distanceToCircle(origin, glm::vec3(0, 0, 1), radius) < hitThreshold)
+			return GizmoAxis::Z;
+		
+		// Check center quad for screen-space rotation
+		float quadSize = 0.15f;
+		glm::vec3 cameraPos = perspCam->GetPosition();
+		glm::vec3 toCamera = glm::normalize(cameraPos - origin);
+		
+		// Calculate camera up and right vectors from rotation
+		glm::vec3 cameraRot = perspCam->GetRotation();
+		float pitch = glm::radians(cameraRot.x);
+		float yaw = glm::radians(cameraRot.y);
+		
+		glm::mat4 camRotMatrix = glm::mat4(1.0f);
+		camRotMatrix = glm::rotate(camRotMatrix, yaw, glm::vec3(0, 1, 0));
+		camRotMatrix = glm::rotate(camRotMatrix, pitch, glm::vec3(1, 0, 0));
+		
+		glm::vec3 up = glm::vec3(camRotMatrix * glm::vec4(0, 1, 0, 0));
+		glm::vec3 right = glm::normalize(glm::cross(up, toCamera));
+		up = glm::normalize(glm::cross(toCamera, right));
+		
+		glm::vec3 qp1 = origin + (-right - up) * quadSize;
+		glm::vec3 qp2 = origin + (right - up) * quadSize;
+		glm::vec3 qp3 = origin + (right + up) * quadSize;
+		glm::vec3 qp4 = origin + (-right + up) * quadSize;
+		
+		glm::vec2 qs1 = project(qp1);
+		glm::vec2 qs2 = project(qp2);
+		glm::vec2 qs3 = project(qp3);
+		glm::vec2 qs4 = project(qp4);
+		
+		if (isInsideQuad(mousePos, qs1, qs2, qs3, qs4))
+			return GizmoAxis::Screen;
 	}
 	
 	// Check distance to each axis line (prioritize Z, then Y, then X for overlap)

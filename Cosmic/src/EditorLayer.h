@@ -46,10 +46,11 @@ namespace Cosmic {
 	// Gizmo state
 	enum class GizmoOperation { None = -1, Translate = 0, Rotate = 1, Scale = 2 };
 	GizmoOperation m_GizmoOperation = GizmoOperation::None;
-	enum class GizmoAxis { None = -1, X = 0, Y = 1, Z = 2, XY = 3, XZ = 4, YZ = 5 };
+	enum class GizmoAxis { None = -1, X = 0, Y = 1, Z = 2, XY = 3, XZ = 4, YZ = 5, Screen = 6 };
 	GizmoAxis m_ActiveAxis = GizmoAxis::None;
 		bool m_IsUsingGizmo = false;
 		glm::vec3 m_GizmoStartPos;
+		glm::vec3 m_GizmoStartRot;
 		glm::vec2 m_MouseStartPos;
 		glm::vec3 m_DragStartIntersection;
 
