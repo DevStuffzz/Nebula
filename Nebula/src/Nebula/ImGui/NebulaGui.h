@@ -90,6 +90,20 @@ namespace Nebula {
 
 		// Utility
 		static glm::vec2 GetContentRegionAvail();
+		static glm::vec2 GetWindowPos();
+		static glm::vec2 GetContentRegionMin();
+		static glm::vec2 GetContentRegionMax();
+		static bool IsWindowHovered();
+		static bool IsWindowFocused();
+		static glm::vec2 GetItemRectMin();
+		static glm::vec2 GetItemRectMax();
+		static void* GetWindowDrawList();
+		static void* GetForegroundDrawList();
+		static glm::vec2 GetMousePos();
+		
+		// Style
+		static void PushStyleVar(int idx, const glm::vec2& val);
+		static void PopStyleVar(int count = 1);
 	};
 
 }

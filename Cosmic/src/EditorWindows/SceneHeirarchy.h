@@ -4,9 +4,11 @@
 #include "Nebula/Scene/Entity.h"
 #include "Nebula/Scene/Components.h"
 #include "Nebula/ImGui/NebulaGui.h"
+#include "Nebula/Log.h"
 #include "Nebula/Renderer/Mesh.h"
 #include "Nebula/Renderer/Shader.h"
 #include "Nebula/Renderer/Material.h"
+#include "Nebula/Log.h"
 #include <string>
 #include <glm/glm.hpp>
 

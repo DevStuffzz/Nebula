@@ -86,5 +86,19 @@ namespace Nebula {
 
 	// Utility
 	glm::vec2 NebulaGui::GetContentRegionAvail() { auto avail = ImGui::GetContentRegionAvail(); return glm::vec2(avail.x, avail.y); }
+	glm::vec2 NebulaGui::GetWindowPos() { auto pos = ImGui::GetWindowPos(); return glm::vec2(pos.x, pos.y); }
+	glm::vec2 NebulaGui::GetContentRegionMin() { auto min = ImGui::GetWindowContentRegionMin(); return glm::vec2(min.x, min.y); }
+	glm::vec2 NebulaGui::GetContentRegionMax() { auto max = ImGui::GetWindowContentRegionMax(); return glm::vec2(max.x, max.y); }
+	bool NebulaGui::IsWindowHovered() { return ImGui::IsWindowHovered(); }
+	bool NebulaGui::IsWindowFocused() { return ImGui::IsWindowFocused(); }
+	glm::vec2 NebulaGui::GetItemRectMin() { auto min = ImGui::GetItemRectMin(); return glm::vec2(min.x, min.y); }
+	glm::vec2 NebulaGui::GetItemRectMax() { auto max = ImGui::GetItemRectMax(); return glm::vec2(max.x, max.y); }
+	void* NebulaGui::GetWindowDrawList() { return ImGui::GetWindowDrawList(); }
+	void* NebulaGui::GetForegroundDrawList() { return ImGui::GetForegroundDrawList(); }
+	glm::vec2 NebulaGui::GetMousePos() { auto pos = ImGui::GetMousePos(); return glm::vec2(pos.x, pos.y); }
+
+	// Style
+	void NebulaGui::PushStyleVar(int idx, const glm::vec2& val) { ImGui::PushStyleVar(idx, ImVec2(val.x, val.y)); }
+	void NebulaGui::PopStyleVar(int count) { ImGui::PopStyleVar(count); }
 
 }

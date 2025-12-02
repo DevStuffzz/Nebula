@@ -230,7 +230,7 @@ project "Cosmic"
     links
     {
         "Nebula",
-        "ImGui"
+        "ImGui",
     }
 
     filter "system:windows"

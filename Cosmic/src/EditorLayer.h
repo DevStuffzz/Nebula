@@ -5,6 +5,7 @@
 #include "Nebula/Events/Event.h"
 #include "Nebula/Renderer/Framebuffer.h"
 #include "Nebula/Scene/Scene.h"
+#include "Nebula/Scene/Entity.h"
 #include <glm/glm.hpp>
 
 namespace Cosmic {
@@ -41,6 +42,20 @@ namespace Cosmic {
 		float m_LastMouseX = 0.0f;
 		float m_LastMouseY = 0.0f;
 		bool m_FirstMouse = true;
+
+	// Gizmo state
+	enum class GizmoOperation { None = -1, Translate = 0, Rotate = 1, Scale = 2 };
+	GizmoOperation m_GizmoOperation = GizmoOperation::None;
+	enum class GizmoAxis { None = -1, X = 0, Y = 1, Z = 2, XY = 3, XZ = 4, YZ = 5 };
+	GizmoAxis m_ActiveAxis = GizmoAxis::None;
+		bool m_IsUsingGizmo = false;
+		glm::vec3 m_GizmoStartPos;
+		glm::vec2 m_MouseStartPos;
+		glm::vec3 m_DragStartIntersection;
+
+	private:
+		void RenderGizmo();
+		GizmoAxis GetHoveredAxis(const glm::vec2& mousePos);
 
 	public:
 		// Allow setting a scene from outside
