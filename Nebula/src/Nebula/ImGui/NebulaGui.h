@@ -104,6 +104,8 @@ namespace Nebula {
 		// Style
 		static void PushStyleVar(int idx, const glm::vec2& val);
 		static void PopStyleVar(int count = 1);
+		static void PushStyleColor(int idx, const glm::vec4& col);
+		static void PopStyleColor(int count = 1);
 	};
 
 }

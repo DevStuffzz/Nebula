@@ -4,6 +4,12 @@
 #include <glm/gtc/constants.hpp>
 
 namespace Nebula {
+
+	// Initialize static members
+	std::unordered_map<MeshID, std::shared_ptr<Mesh>> Mesh::s_MeshRegistry;
+	std::unordered_map<std::string, MeshID> Mesh::s_PathToID;
+	MeshID Mesh::s_NextID = 1; // Start at 1, 0 is invalid
+
 	std::shared_ptr<Mesh> Mesh::LoadOBJ(const std::string& path)
 	{
 		std::vector<Vertex> vertices;
@@ -15,7 +21,13 @@ namespace Nebula {
 
 		std::ifstream file(path);
 		if (!file.is_open())
+		{
+			NB_CORE_ERROR("Failed to load OBJ file: {0}", path);
+			NB_CORE_ERROR("Check if the file exists and the path is correct");
 			return nullptr;
+		}
+		
+		NB_CORE_INFO("Loading OBJ file: {0}", path);
 
 		std::string line;
 		while (std::getline(file, line))
@@ -67,7 +79,16 @@ namespace Nebula {
 			}
 		}
 		file.close();
-		return std::make_shared<Mesh>(vertices, indices);
+		
+		auto mesh = std::make_shared<Mesh>(vertices, indices);
+		mesh->SetSourcePath(path);
+		
+		// Register mesh with ID based on path
+		MeshID id = GetOrCreateID(path);
+		mesh->m_ID = id;
+		RegisterMesh(id, mesh);
+		
+		return mesh;
 	}
 
 	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
@@ -106,6 +127,34 @@ namespace Nebula {
 	std::shared_ptr<Mesh> Mesh::CreateSphere()
 	{
 		return LoadOBJ("assets/models/Sphere.obj");
+	}
+
+	// Mesh Registry Methods
+	std::shared_ptr<Mesh> Mesh::GetByID(MeshID id)
+	{
+		auto it = s_MeshRegistry.find(id);
+		if (it != s_MeshRegistry.end())
+			return it->second;
+		return nullptr;
+	}
+
+	MeshID Mesh::GetOrCreateID(const std::string& sourcePath)
+	{
+		// Check if we already have an ID for this path
+		auto it = s_PathToID.find(sourcePath);
+		if (it != s_PathToID.end())
+			return it->second;
+
+		// Create new ID
+		MeshID newID = s_NextID++;
+		s_PathToID[sourcePath] = newID;
+		NB_CORE_INFO("Assigned Mesh ID {0} to: {1}", newID, sourcePath);
+		return newID;
+	}
+
+	void Mesh::RegisterMesh(MeshID id, std::shared_ptr<Mesh> mesh)
+	{
+		s_MeshRegistry[id] = mesh;
 	}
 
 }

@@ -35,6 +35,7 @@
 #include "Nebula/Scene/Components.h"
 #include "Nebula/Scene/Scene.h"
 #include "Nebula/Scene/SceneSerializer.h"
+#include "Nebula/Scene/SceneManager.h"
 
 // Asset System
 #include "Nebula/Asset/Asset.h"

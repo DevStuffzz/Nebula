@@ -83,6 +83,13 @@ namespace Nebula {
 			meshRendererJson["HasMesh"] = (meshRenderer.Mesh != nullptr);
 			meshRendererJson["HasMaterial"] = (meshRenderer.Material != nullptr);
 			
+			// Serialize mesh ID and source path
+			if (meshRenderer.Mesh)
+			{
+				meshRendererJson["MeshID"] = meshRenderer.Mesh->GetID();
+				meshRendererJson["MeshSource"] = meshRenderer.Mesh->GetSourcePath();
+			}
+			
 			// Serialize material properties if material exists
 			if (meshRenderer.Material)
 			{
@@ -108,25 +115,20 @@ namespace Nebula {
                     // Only works for OpenGLTexture2D currently
 					const auto* oglTexture = dynamic_cast<Nebula::OpenGLTexture2D*>(texture.get());
 					if (oglTexture)
+					{
 						meshRendererJson["Material"]["TexturePath"] = oglTexture->GetPath();
+						meshRendererJson["Material"]["TextureFilterNearest"] = oglTexture->GetUseNearest();
+						meshRendererJson["Material"]["TextureRepeat"] = oglTexture->GetRepeat();
+					}
+					
+					// Save texture tiling if set
+					glm::vec2 tiling = material->GetFloat2("u_TextureTiling");
+					meshRendererJson["Material"]["TextureTiling"] = {tiling.x, tiling.y};
 				}
 				else
 				{
 					meshRendererJson["Material"]["HasTexture"] = false;
 				}
-
-			// Serialize mesh filename
-			std::string meshFile = "";
-			if (entity.HasComponent<TagComponent>()) {
-				std::string tag = entity.GetComponent<TagComponent>().Tag;
-				if (tag.find("Cube") != std::string::npos)
-					meshFile = "Cube.obj";
-				else if (tag.find("Sphere") != std::string::npos)
-					meshFile = "Sphere.obj";
-				else if (tag.find("Quad") != std::string::npos)
-					meshFile = "Quad.obj";
-			}
-			meshRendererJson["MeshFile"] = meshFile;
 			}
 			
 			entityJson["MeshRendererComponent"] = meshRendererJson;
@@ -202,8 +204,26 @@ namespace Nebula {
 			bool hasMesh = meshRendererJson.value("HasMesh", false);
 			if (hasMesh)
 			{
-				std::string meshFile = meshRendererJson.value("MeshFile", "Cube.obj");
-				meshRenderer.Mesh = Mesh::LoadOBJ("assets/models/" + meshFile);
+				// Try to load by MeshID first (new system)
+				if (meshRendererJson.contains("MeshID"))
+				{
+					MeshID meshID = meshRendererJson["MeshID"];
+					meshRenderer.Mesh = Mesh::GetByID(meshID);
+					
+					// If not in registry, load from source path
+					if (!meshRenderer.Mesh && meshRendererJson.contains("MeshSource"))
+					{
+						std::string meshSource = meshRendererJson["MeshSource"];
+						meshRenderer.Mesh = Mesh::LoadOBJ(meshSource);
+					}
+				}
+				// Fallback to old MeshFile system for backward compatibility
+				else if (meshRendererJson.contains("MeshFile"))
+				{
+					std::string meshFile = meshRendererJson["MeshFile"];
+					if (!meshFile.empty())
+						meshRenderer.Mesh = Mesh::LoadOBJ("assets/models/" + meshFile);
+				}
 			}
 			
 			// Restore material if it existed
@@ -242,8 +262,22 @@ namespace Nebula {
 				if (matJson.contains("TexturePath"))
 				{
 					std::string texturePath = matJson["TexturePath"];
-					auto texture = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create(texturePath));
+					bool useNearest = matJson.value("TextureFilterNearest", false);
+					bool repeat = matJson.value("TextureRepeat", true);
+					auto texture = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create(texturePath, useNearest, repeat));
 					material->SetTexture("u_Texture", texture);
+					
+					// Restore texture tiling if set
+					if (matJson.contains("TextureTiling"))
+					{
+						auto tiling = matJson["TextureTiling"];
+						material->SetFloat2("u_TextureTiling", glm::vec2(tiling[0], tiling[1]));
+					}
+					else
+					{
+						// Default tiling to 1.0, 1.0
+						material->SetFloat2("u_TextureTiling", glm::vec2(1.0f, 1.0f));
+					}
 				}
 				
 				meshRenderer.Material = material;

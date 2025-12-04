@@ -31,6 +31,7 @@ in vec3 v_FragPos;
 uniform vec4 u_Color;
 uniform sampler2D u_Texture;
 uniform int u_UseTexture;
+uniform vec2 u_TextureTiling;
 uniform vec3 u_GI;
 
 // Point light uniforms
@@ -44,7 +45,8 @@ uniform int u_NumPointLights;
 uniform PointLight u_PointLights[4];
 
 void main() {
-	vec4 texColor = u_UseTexture == 1 ? texture(u_Texture, v_TexCoord) : vec4(1.0);
+	vec2 tiledTexCoord = v_TexCoord * u_TextureTiling;
+	vec4 texColor = u_UseTexture == 1 ? texture(u_Texture, tiledTexCoord) : vec4(1.0);
 	vec3 normal = normalize(v_Normal);
 	vec3 baseColor = (u_Color * texColor).rgb;
 

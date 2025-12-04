@@ -1,0 +1,128 @@
+{
+    "Entities": [
+        {
+            "CameraComponent": {
+                "OrthographicFar": 1.0,
+                "OrthographicNear": -1.0,
+                "OrthographicSize": 10.0,
+                "PerspectiveFOV": 45.0,
+                "PerspectiveFar": 1000.0,
+                "PerspectiveNear": 0.10000000149011612,
+                "Primary": true,
+                "ProjectionType": "Perspective"
+            },
+            "ID": 2,
+            "ScriptComponent": {
+                "ScriptPath": "assets/scripts/CameraController.lua"
+            },
+            "TagComponent": {
+                "Tag": "Main Camera"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    15.0,
+                    0.0
+                ],
+                "Rotation": [
+                    -90.0,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "ID": 1,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "HasTexture": true,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "TexturePath": "assets/textures/Checkerboard.png",
+                    "UseTexture": 0
+                },
+                "MeshID": 1,
+                "MeshSource": "assets/models/Cube.obj"
+            },
+            "TagComponent": {
+                "Tag": "Box"
+            },
+            "TransformComponent": {
+                "Position": [
+                    2.0,
+                    0.5,
+                    0.0
+                ],
+                "Rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "ID": 0,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        0.5,
+                        0.5,
+                        0.5,
+                        1.0
+                    ],
+                    "HasTexture": true,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "TexturePath": "assets/textures/Checkerboard.png",
+                    "UseTexture": 1
+                },
+                "MeshID": 1,
+                "MeshSource": "assets/models/Cube.obj"
+            },
+            "TagComponent": {
+                "Tag": "Ground"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    -0.5,
+                    0.0
+                ],
+                "Rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    20.0,
+                    0.10000000149011612,
+                    20.0
+                ]
+            }
+        }
+    ],
+    "Scene": {
+        "Name": "Top-Down Scene",
+        "Version": "1.0"
+    }
+}

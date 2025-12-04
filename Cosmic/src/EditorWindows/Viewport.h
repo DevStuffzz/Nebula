@@ -21,19 +21,43 @@ namespace Cosmic {
         {
         Nebula::NebulaGui::Begin("Viewport");
 
-        // Gizmo mode toolbar - simple buttons without styling for now
+        // Gizmo mode toolbar with visual feedback for selected mode
         Nebula::NebulaGui::PushID("GizmoToolbar");
         
-        bool btnQ = Nebula::NebulaGui::Button("Q", { 30.0f, 30.0f });
+        // Helper to push button colors based on selection
+        auto pushButtonStyle = [](bool isSelected) {
+            if (isSelected) {
+                Nebula::NebulaGui::PushStyleColor(21, { 0.3f, 0.5f, 0.8f, 1.0f }); // Button
+                Nebula::NebulaGui::PushStyleColor(22, { 0.4f, 0.6f, 0.9f, 1.0f }); // ButtonHovered
+                Nebula::NebulaGui::PushStyleColor(23, { 0.2f, 0.4f, 0.7f, 1.0f }); // ButtonActive
+            }
+        };
+        
+        // None/Exit mode (X)
+        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::None);
+        bool btnQ = Nebula::NebulaGui::Button("X", { 30.0f, 30.0f });
+        if (s_CurrentGizmoMode == GizmoMode::None) Nebula::NebulaGui::PopStyleColor(3);
         
         Nebula::NebulaGui::SameLine();
-        bool btnW = Nebula::NebulaGui::Button("W", { 30.0f, 30.0f });
+        
+        // Translate mode (T)
+        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Translate);
+        bool btnW = Nebula::NebulaGui::Button("T", { 30.0f, 30.0f });
+        if (s_CurrentGizmoMode == GizmoMode::Translate) Nebula::NebulaGui::PopStyleColor(3);
 
         Nebula::NebulaGui::SameLine();
-        bool btnE = Nebula::NebulaGui::Button("E", { 30.0f, 30.0f });
+        
+        // Rotate mode (R)
+        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Rotate);
+        bool btnE = Nebula::NebulaGui::Button("R", { 30.0f, 30.0f });
+        if (s_CurrentGizmoMode == GizmoMode::Rotate) Nebula::NebulaGui::PopStyleColor(3);
 
         Nebula::NebulaGui::SameLine();
-        bool btnR = Nebula::NebulaGui::Button("R", { 30.0f, 30.0f });
+        
+        // Scale mode (S)
+        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Scale);
+        bool btnR = Nebula::NebulaGui::Button("S", { 30.0f, 30.0f });
+        if (s_CurrentGizmoMode == GizmoMode::Scale) Nebula::NebulaGui::PopStyleColor(3);
         
         Nebula::NebulaGui::PopID();
 

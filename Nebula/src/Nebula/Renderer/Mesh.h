@@ -4,8 +4,13 @@
 #include "VertexArray.h"
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
+#include <unordered_map>
+#include <memory>
 
 namespace Nebula {
+
+	using MeshID = uint32_t;
 
 	struct Vertex
 	{
@@ -28,16 +33,33 @@ namespace Nebula {
 
 		const std::shared_ptr<VertexArray>& GetVertexArray() const { return m_VertexArray; }
 
+		// Mesh ID and source tracking
+		MeshID GetID() const { return m_ID; }
+		const std::string& GetSourcePath() const { return m_SourcePath; }
+		void SetSourcePath(const std::string& path) { m_SourcePath = path; }
+
 		// Primitive mesh creation helpers
 		static std::shared_ptr<Mesh> LoadOBJ(const std::string& path);
 		static std::shared_ptr<Mesh> CreateCube();
 		static std::shared_ptr<Mesh> CreateQuad();
 		static std::shared_ptr<Mesh> CreateSphere();
 
+		// Mesh registry for serialization
+		static std::shared_ptr<Mesh> GetByID(MeshID id);
+		static MeshID GetOrCreateID(const std::string& sourcePath);
+		static void RegisterMesh(MeshID id, std::shared_ptr<Mesh> mesh);
+
 	private:
 		std::shared_ptr<VertexArray> m_VertexArray;
 		std::vector<Vertex> m_Vertices;
 		std::vector<uint32_t> m_Indices;
+		MeshID m_ID = 0;
+		std::string m_SourcePath;
+
+		// Static registry
+		static std::unordered_map<MeshID, std::shared_ptr<Mesh>> s_MeshRegistry;
+		static std::unordered_map<std::string, MeshID> s_PathToID;
+		static MeshID s_NextID;
 	};
 
 }

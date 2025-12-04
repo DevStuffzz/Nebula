@@ -10,7 +10,7 @@ workspace "Nebula"
 
     outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
-    startproject "Sandbox"
+    startproject "Runtime"
 
 
 
@@ -89,7 +89,7 @@ project "Nebula"
 
         postbuildcommands
         {
-            "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Sandbox/\"",
+            "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Runtime/\"",
             "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Cosmic/\"",
             "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Nebula/assets"
         }
@@ -131,8 +131,8 @@ project "Nebula"
         defines "NB_DIST"
         optimize "On"
 
-project "Sandbox"
-    location "Sandbox"
+project "Runtime"
+    location "Runtime"
     kind "ConsoleApp"
     language "C++"
     
@@ -152,11 +152,13 @@ project "Sandbox"
         "%{prj.name}/src",
         "Nebula/vendor/glm",
         "%{IncludeDir.entt}",
+        "%{IncludeDir.Lua}",
     }
     
     links
     {
-        "Nebula"
+        "Nebula",
+        "Lua",
     }
 
     filter "system:windows"
@@ -170,12 +172,11 @@ project "Sandbox"
             "NB_PLATFORM_WINDOWS",
         }
 
-        debugdir ("bin/" .. outputdir .. "/Sandbox")
+        debugdir ("bin/" .. outputdir .. "/Runtime")
 
         postbuildcommands
         {
-            "{COPYDIR} \"%{prj.location}/assets\" \"../bin/" .. outputdir .. "/Sandbox/assets\"",
-            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Sandbox/assets"
+            "{COPYDIR} ../bin/" .. outputdir .. "/Cosmic/assets ../bin/" .. outputdir .. "/Runtime/assets"
         }
 
 
@@ -246,12 +247,6 @@ project "Cosmic"
         }
 
         debugdir ("bin/" .. outputdir .. "/Cosmic")
-
-        postbuildcommands
-        {
-            "{COPYDIR} %{prj.location}/assets ../bin/" .. outputdir .. "/Cosmic/assets",
-            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Cosmic/assets"
-        }
 
     filter "system:macosx"
         cppdialect "C++17"

@@ -6,12 +6,12 @@
 
 namespace Nebula {
 
-	Texture2D* Texture2D::Create(const std::string& path)
+	Texture2D* Texture2D::Create(const std::string& path, bool useNearest, bool repeat)
 	{
 		switch (Renderer::GetAPI())
 		{
 			case RendererAPI::API::None:    NEB_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::API::OpenGL:  return new OpenGLTexture2D(path);
+			case RendererAPI::API::OpenGL:  return new OpenGLTexture2D(path, useNearest, repeat);
 		}
 
 		NEB_CORE_ASSERT(false, "Unknown RendererAPI!");

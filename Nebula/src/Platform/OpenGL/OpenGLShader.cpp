@@ -39,10 +39,12 @@ namespace Nebula {
 			in.seekg(0, std::ios::beg);
 			in.read(&result[0], result.size());
 			in.close();
+			NB_CORE_INFO("Loaded shader file: {0}", filepath);
 		}
 		else
 		{
-			NB_CORE_ERROR("Could not open file '{0}'", filepath);
+			NB_CORE_ERROR("Failed to open shader file: {0}", filepath);
+			NB_CORE_ERROR("Check if the file exists and the path is correct");
 		}
 
 		return result;
@@ -141,6 +143,8 @@ namespace Nebula {
 
 		for (auto id : glShaderIDs)
 			glDetachShader(program, id);
+		
+		NB_CORE_INFO("Shader compiled and linked successfully");
 	}
 
 	void OpenGLShader::Bind() const

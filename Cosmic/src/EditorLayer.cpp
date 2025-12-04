@@ -6,6 +6,7 @@
 #include "Nebula/Application.h"
 #include <Nebula/Scene/Components.h>
 #include <Nebula/Scene/SceneSerializer.h>
+#include <Nebula/Scene/SceneManager.h>
 
 #include "Nebula/Renderer/Mesh.h"
 #include <Nebula/Renderer/Shader.h>
@@ -46,6 +47,9 @@ namespace Cosmic {
 	{
 		NB_CORE_INFO("EditorLayer attached");
 
+		// Load the scene list at startup
+		Nebula::SceneManager::Get().LoadSceneList();
+
 		// Create framebuffer with initial fixed size (can be resized later)
 		Nebula::FramebufferSpecification fbSpec;
 		fbSpec.Width = (uint32_t)m_ViewportSize.x;
@@ -76,17 +80,16 @@ namespace Cosmic {
 			Nebula::Shader* rawShader = Nebula::Shader::Create("assets/shaders/Basic.glsl");
 			std::shared_ptr<Nebula::Shader> shader(rawShader);
 
-			auto groundMaterial = std::make_shared<Nebula::Material>(shader);
-			groundMaterial->SetFloat4("u_Color", glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray color
+		auto groundMaterial = std::make_shared<Nebula::Material>(shader);
+		groundMaterial->SetFloat4("u_Color", glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray color
 
-			std::shared_ptr<Nebula::Texture2D> texture;
-			texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
-			groundMaterial->SetTexture("u_Texture", texture);
-			groundMaterial->SetInt("u_UseTexture", 1);
+		std::shared_ptr<Nebula::Texture2D> texture;
+		texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
+		groundMaterial->SetTexture("u_Texture", texture);
+		groundMaterial->SetInt("u_UseTexture", 1);
+		groundMaterial->SetFloat2("u_TextureTiling", glm::vec2(1.0f, 1.0f));
 
-			groundMeshRenderer.Material = groundMaterial;
-
-			// Create a sample object (e.g., a box)
+		groundMeshRenderer.Material = groundMaterial;			// Create a sample object (e.g., a box)
 			auto box = m_ActiveScene->CreateEntity("Box");
 			auto& boxMeshRenderer = box.AddComponent<Nebula::MeshRendererComponent>();
 			boxMeshRenderer.Mesh = Nebula::Mesh::CreateCube();
@@ -94,12 +97,13 @@ namespace Cosmic {
 			boxTransform.Position = glm::vec3(2.0f, 0.5f, 0.0f);
 			boxTransform.Scale = glm::vec3(1.0f, 1.0f, 1.0f);
 
-			auto boxMaterial = std::make_shared<Nebula::Material>(shader);
-			boxMaterial->SetFloat4("u_Color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color
-			boxMaterial->SetTexture("u_Texture", texture);
-			boxMaterial->SetInt("u_UseTexture", 0); // No texture
+		auto boxMaterial = std::make_shared<Nebula::Material>(shader);
+		boxMaterial->SetFloat4("u_Color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color
+		boxMaterial->SetTexture("u_Texture", texture);
+		boxMaterial->SetInt("u_UseTexture", 0); // No texture
+		boxMaterial->SetFloat2("u_TextureTiling", glm::vec2(1.0f, 1.0f));
 
-			boxMeshRenderer.Material = boxMaterial;
+		boxMeshRenderer.Material = boxMaterial;
 		}
 
 		// Create a camera entity
@@ -129,7 +133,8 @@ namespace Cosmic {
 			[this]() { LoadScene(); },
 			[]() { /* Exit handled elsewhere */ },
 			[this]() { ToggleRuntime(); },
-			[]() { ScriptEditor::ToggleVisibility(); }
+			[]() { ScriptEditor::ToggleVisibility(); },
+			[this]() { m_SceneListWindow.SetOpen(true); }
 		);
 
 	}
@@ -148,391 +153,37 @@ namespace Cosmic {
 	{
 	if (!m_RuntimeMode)
 	{
-		// Handle gizmo dragging
+		// Handle gizmo interaction
 		auto gizmoMode = Viewport::GetGizmoMode();
 		Nebula::Entity selectedEntity = SceneHierarchy::GetSelectedEntity();
 		
 		if (selectedEntity && gizmoMode != Viewport::GizmoMode::None)
 		{
-			// Use ImGui's mouse position for accurate coordinates
 			glm::vec2 currentMousePos = Nebula::NebulaGui::GetMousePos();
+			bool mousePressed = Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_1);
+			auto bounds = Viewport::GetViewportBounds();
 			
-			// Start dragging (only when viewport is hovered)
-			if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_1) && !m_IsUsingGizmo && Viewport::IsViewportHovered())
+			// Only allow gizmo interaction when viewport is hovered or already using gizmo
+			if (Viewport::IsViewportHovered() || m_Gizmo.IsInUse())
 			{
-				m_ActiveAxis = GetHoveredAxis(currentMousePos);
-				if (m_ActiveAxis != GizmoAxis::None)
-				{
-					m_IsUsingGizmo = true;
-					m_MouseStartPos = currentMousePos;
-					if (selectedEntity.HasComponent<Nebula::TransformComponent>())
-					{
-						auto& tc = selectedEntity.GetComponent<Nebula::TransformComponent>();
-						m_GizmoStartPos = tc.Position;
-						m_GizmoStartRot = tc.Rotation;
-						
-						// Calculate initial intersection to use as offset
-						auto& camera = Nebula::Application::Get().GetCamera();
-						auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera);
-						if (perspCam)
-						{
-							auto bounds = Viewport::GetViewportBounds();
-							if (bounds)
-							{
-								auto screenToRay = [&](const glm::vec2& mousePos) -> std::pair<glm::vec3, glm::vec3> {
-									float viewportWidth = bounds[1].x - bounds[0].x;
-									float viewportHeight = bounds[1].y - bounds[0].y;
-									
-									float ndcX = ((mousePos.x - bounds[0].x) / viewportWidth) * 2.0f - 1.0f;
-									float ndcY = 1.0f - ((mousePos.y - bounds[0].y) / viewportHeight) * 2.0f;
-									
-									glm::mat4 invViewProj = glm::inverse(perspCam->GetProjectionMatrix() * perspCam->GetViewMatrix());
-									glm::vec4 rayClipNear = glm::vec4(ndcX, ndcY, -1.0f, 1.0f);
-									glm::vec4 rayClipFar = glm::vec4(ndcX, ndcY, 1.0f, 1.0f);
-									
-									glm::vec4 rayWorldNear = invViewProj * rayClipNear;
-									glm::vec4 rayWorldFar = invViewProj * rayClipFar;
-									
-									rayWorldNear /= rayWorldNear.w;
-									rayWorldFar /= rayWorldFar.w;
-									
-									glm::vec3 rayOrigin = glm::vec3(rayWorldNear);
-									glm::vec3 rayDir = glm::normalize(glm::vec3(rayWorldFar) - glm::vec3(rayWorldNear));
-									
-									return {rayOrigin, rayDir};
-								};
-								
-								auto rayPlaneIntersect = [](const glm::vec3& rayOrigin, const glm::vec3& rayDir,
-															const glm::vec3& planePoint, const glm::vec3& planeNormal) -> glm::vec3 {
-									float denom = glm::dot(planeNormal, rayDir);
-									if (glm::abs(denom) > 0.0001f) {
-										float t = glm::dot(planePoint - rayOrigin, planeNormal) / denom;
-										if (t >= 0) {
-											return rayOrigin + rayDir * t;
-										}
-									}
-									return rayOrigin;
-								};
-								
-								auto [rayOrigin, rayDir] = screenToRay(currentMousePos);
-								
-								// Calculate initial intersection based on active axis
-								if (m_ActiveAxis == GizmoAxis::X || m_ActiveAxis == GizmoAxis::Y || m_ActiveAxis == GizmoAxis::Z)
-								{
-									// For rotation mode, calculate intersection differently
-									if (gizmoMode == Viewport::GizmoMode::Rotate)
-									{
-										// Create rotation matrix from object's rotation using quaternions
-										glm::quat quat = glm::quat(glm::radians(m_GizmoStartRot));
-										glm::mat4 rotationMatrix = glm::toMat4(quat);
-										
-										glm::vec3 planeNormal(0.0f);
-										if (m_ActiveAxis == GizmoAxis::X) planeNormal = glm::vec3(1, 0, 0);
-										else if (m_ActiveAxis == GizmoAxis::Y) planeNormal = glm::vec3(0, 1, 0);
-										else if (m_ActiveAxis == GizmoAxis::Z) planeNormal = glm::vec3(0, 0, 1);
-										
-										// Apply object rotation to the plane normal
-										planeNormal = glm::vec3(rotationMatrix * glm::vec4(planeNormal, 0.0f));
-										
-										m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-									}
-									else // Translate mode
-									{
-										glm::vec3 axis(0.0f);
-										if (m_ActiveAxis == GizmoAxis::X) axis = glm::vec3(1, 0, 0);
-										else if (m_ActiveAxis == GizmoAxis::Y) axis = glm::vec3(0, 1, 0);
-										else if (m_ActiveAxis == GizmoAxis::Z) axis = glm::vec3(0, 0, 1);
-										
-										glm::vec3 cameraRight = glm::normalize(glm::cross(rayDir, axis));
-										glm::vec3 planeNormal = glm::normalize(glm::cross(axis, cameraRight));
-										glm::vec3 intersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-										
-										glm::vec3 toIntersection = intersection - m_GizmoStartPos;
-										float projection = glm::dot(toIntersection, axis);
-										m_DragStartIntersection = m_GizmoStartPos + axis * projection;
-									}
-								}
-								else if (m_ActiveAxis == GizmoAxis::XY)
-								{
-									glm::vec3 planeNormal(0, 0, 1);
-									m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-								}
-								else if (m_ActiveAxis == GizmoAxis::XZ)
-								{
-									glm::vec3 planeNormal(0, 1, 0);
-									m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-								}
-								else if (m_ActiveAxis == GizmoAxis::YZ)
-								{
-									glm::vec3 planeNormal(1, 0, 0);
-									m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-								}
-								else if (m_ActiveAxis == GizmoAxis::Screen && gizmoMode == Viewport::GizmoMode::Rotate)
-								{
-									// Screen-space rotation - use camera's view direction as plane normal
-									glm::vec3 toCamera = glm::normalize(perspCam->GetPosition() - m_GizmoStartPos);
-									m_DragStartIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, toCamera);
-								}
-							}
-						}
-					}
-				}
+				Gizmo::Mode mode = Gizmo::Mode::None;
+				if (gizmoMode == Viewport::GizmoMode::Translate) mode = Gizmo::Mode::Translate;
+				else if (gizmoMode == Viewport::GizmoMode::Rotate) mode = Gizmo::Mode::Rotate;
+				else if (gizmoMode == Viewport::GizmoMode::Scale) mode = Gizmo::Mode::Scale;
+				
+				m_Gizmo.HandleInput(selectedEntity, mode, currentMousePos, mousePressed, bounds);
 			}
-			
-			// Update during drag (continue even if not hovering viewport)
-			if (m_IsUsingGizmo && Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_1))
-			{
-				if (selectedEntity.HasComponent<Nebula::TransformComponent>())
-				{
-					auto& tc = selectedEntity.GetComponent<Nebula::TransformComponent>();
-					
-					// Get camera for ray casting
-					auto& camera = Nebula::Application::Get().GetCamera();
-					auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera);
-					if (!perspCam) return;
-					
-					auto bounds = Viewport::GetViewportBounds();
-					if (!bounds) return;
-					
-				// Helper to cast ray from mouse position
-				auto screenToRay = [&](const glm::vec2& mousePos) -> std::pair<glm::vec3, glm::vec3> {
-					float viewportWidth = bounds[1].x - bounds[0].x;
-					float viewportHeight = bounds[1].y - bounds[0].y;
-					
-					float ndcX = ((mousePos.x - bounds[0].x) / viewportWidth) * 2.0f - 1.0f;
-					float ndcY = 1.0f - ((mousePos.y - bounds[0].y) / viewportHeight) * 2.0f;						glm::mat4 invViewProj = glm::inverse(perspCam->GetProjectionMatrix() * perspCam->GetViewMatrix());
-						glm::vec4 rayClipNear = glm::vec4(ndcX, ndcY, -1.0f, 1.0f);
-						glm::vec4 rayClipFar = glm::vec4(ndcX, ndcY, 1.0f, 1.0f);
-						
-						glm::vec4 rayWorldNear = invViewProj * rayClipNear;
-						glm::vec4 rayWorldFar = invViewProj * rayClipFar;
-						
-						rayWorldNear /= rayWorldNear.w;
-						rayWorldFar /= rayWorldFar.w;
-						
-						glm::vec3 rayOrigin = glm::vec3(rayWorldNear);
-						glm::vec3 rayDir = glm::normalize(glm::vec3(rayWorldFar) - glm::vec3(rayWorldNear));
-						
-						return {rayOrigin, rayDir};
-					};
-					
-					// Helper to intersect ray with plane
-					auto rayPlaneIntersect = [](const glm::vec3& rayOrigin, const glm::vec3& rayDir,
-												const glm::vec3& planePoint, const glm::vec3& planeNormal) -> glm::vec3 {
-						float denom = glm::dot(planeNormal, rayDir);
-						if (glm::abs(denom) > 0.0001f) {
-							float t = glm::dot(planePoint - rayOrigin, planeNormal) / denom;
-							if (t >= 0) {
-								return rayOrigin + rayDir * t;
-							}
-						}
-						return rayOrigin; // Fallback
-					};
-					
-					auto [rayOrigin, rayDir] = screenToRay(currentMousePos);
-					
-					if (gizmoMode == Viewport::GizmoMode::Translate)
-					{
-						glm::vec3 currentIntersection = m_GizmoStartPos;
-						
-						// Single axis movement - project to axis line
-						if (m_ActiveAxis == GizmoAxis::X || m_ActiveAxis == GizmoAxis::Y || m_ActiveAxis == GizmoAxis::Z)
-						{
-							glm::vec3 axis(0.0f);
-							if (m_ActiveAxis == GizmoAxis::X) axis = glm::vec3(1, 0, 0);
-							else if (m_ActiveAxis == GizmoAxis::Y) axis = glm::vec3(0, 1, 0);
-							else if (m_ActiveAxis == GizmoAxis::Z) axis = glm::vec3(0, 0, 1);
-							
-							// Find closest point on axis line to ray
-							glm::vec3 cameraRight = glm::normalize(glm::cross(rayDir, axis));
-							glm::vec3 planeNormal = glm::normalize(glm::cross(axis, cameraRight));
-							glm::vec3 intersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-							
-							// Project intersection onto axis
-							glm::vec3 toIntersection = intersection - m_GizmoStartPos;
-							float projection = glm::dot(toIntersection, axis);
-							currentIntersection = m_GizmoStartPos + axis * projection;
-						}
-						// Plane movement - intersect with actual plane
-						else if (m_ActiveAxis == GizmoAxis::XY)
-						{
-							glm::vec3 planeNormal(0, 0, 1); // XY plane faces Z
-							currentIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-							currentIntersection.z = m_GizmoStartPos.z; // Constrain to XY plane
-						}
-						else if (m_ActiveAxis == GizmoAxis::XZ)
-						{
-							glm::vec3 planeNormal(0, 1, 0); // XZ plane faces Y
-							currentIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-							currentIntersection.y = m_GizmoStartPos.y; // Constrain to XZ plane
-						}
-						else if (m_ActiveAxis == GizmoAxis::YZ)
-						{
-							glm::vec3 planeNormal(1, 0, 0); // YZ plane faces X
-							currentIntersection = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-							currentIntersection.x = m_GizmoStartPos.x; // Constrain to YZ plane
-						}
-						
-						// Apply offset from initial drag point
-						glm::vec3 delta = currentIntersection - m_DragStartIntersection;
-						tc.Position = m_GizmoStartPos + delta;
-					}
-					else if (gizmoMode == Viewport::GizmoMode::Rotate)
-					{
-						if (m_ActiveAxis == GizmoAxis::Screen)
-						{
-							// Screen-space rotation - rotate around camera's view direction
-							glm::vec3 toCamera = glm::normalize(perspCam->GetPosition() - m_GizmoStartPos);
-							
-							// Project current and start positions onto screen plane
-							glm::vec3 currentPoint = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, toCamera);
-							
-							// Calculate vectors from origin to intersection points
-							glm::vec3 startVec = m_DragStartIntersection - m_GizmoStartPos;
-							glm::vec3 currentVec = currentPoint - m_GizmoStartPos;
-							
-							// Remove component along view direction
-							startVec = startVec - glm::dot(startVec, toCamera) * toCamera;
-							currentVec = currentVec - glm::dot(currentVec, toCamera) * toCamera;
-							
-							float startLen = glm::length(startVec);
-							float currentLen = glm::length(currentVec);
-							
-							if (startLen > 0.001f && currentLen > 0.001f)
-							{
-								startVec = glm::normalize(startVec);
-								currentVec = glm::normalize(currentVec);
-								
-								// Calculate angle between vectors (in radians)
-								float cosAngle = glm::clamp(glm::dot(startVec, currentVec), -1.0f, 1.0f);
-								float angle = glm::acos(cosAngle);
-								
-								// Determine sign using cross product
-								glm::vec3 cross = glm::cross(startVec, currentVec);
-								if (glm::dot(cross, toCamera) < 0.0f)
-									angle = -angle;
-								
-								// Apply rotation around camera view direction using quaternions
-								glm::quat startQuat = glm::quat(glm::radians(m_GizmoStartRot));
-								
-								glm::quat deltaQuat = glm::angleAxis(angle, toCamera);
-								glm::quat finalQuat = deltaQuat * startQuat;
-								
-								// Convert back to Euler angles
-								glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(finalQuat));
-								
-								// Normalize angles to [-180, 180] range
-								auto normalizeAngle = [](float angle) {
-									while (angle > 180.0f) angle -= 360.0f;
-									while (angle < -180.0f) angle += 360.0f;
-									return angle;
-								};
-								
-								eulerAngles.x = normalizeAngle(eulerAngles.x);
-								eulerAngles.y = normalizeAngle(eulerAngles.y);
-								eulerAngles.z = normalizeAngle(eulerAngles.z);
-								
-								tc.Rotation = eulerAngles;
-							}
-						}
-						else
-						{
-							// Create rotation matrix from object's initial rotation (convert degrees to radians)
-							// Match TransformComponent's approach
-							glm::quat startQuat = glm::quat(glm::radians(m_GizmoStartRot));
-							glm::mat4 rotationMatrix = glm::toMat4(startQuat);
-							
-							// Calculate rotation based on mouse movement around the axis
-							glm::vec3 localAxis(0.0f);
-							glm::vec3 planeNormal(0.0f);
-							
-							if (m_ActiveAxis == GizmoAxis::X) {
-								localAxis = glm::vec3(1, 0, 0);
-								planeNormal = glm::vec3(1, 0, 0);
-							} else if (m_ActiveAxis == GizmoAxis::Y) {
-								localAxis = glm::vec3(0, 1, 0);
-								planeNormal = glm::vec3(0, 1, 0);
-							} else if (m_ActiveAxis == GizmoAxis::Z) {
-								localAxis = glm::vec3(0, 0, 1);
-								planeNormal = glm::vec3(0, 0, 1);
-							}
-							
-							// Apply object rotation to get world-space axis and plane normal
-							glm::vec3 worldAxis = glm::vec3(rotationMatrix * glm::vec4(localAxis, 0.0f));
-							planeNormal = glm::vec3(rotationMatrix * glm::vec4(planeNormal, 0.0f));
-							
-							// Project current and start mouse positions onto the rotation plane
-							glm::vec3 currentPoint = rayPlaneIntersect(rayOrigin, rayDir, m_GizmoStartPos, planeNormal);
-							
-							// Calculate vectors from origin to intersection points
-							glm::vec3 startVec = m_DragStartIntersection - m_GizmoStartPos;
-							glm::vec3 currentVec = currentPoint - m_GizmoStartPos;
-							
-							// Remove component along plane normal to ensure vectors are in plane
-							startVec = startVec - glm::dot(startVec, planeNormal) * planeNormal;
-							currentVec = currentVec - glm::dot(currentVec, planeNormal) * planeNormal;
-							
-							float startLen = glm::length(startVec);
-							float currentLen = glm::length(currentVec);
-							
-							if (startLen > 0.001f && currentLen > 0.001f)
-							{
-								startVec = glm::normalize(startVec);
-								currentVec = glm::normalize(currentVec);
-								
-								// Calculate angle between vectors (in radians)
-								float cosAngle = glm::clamp(glm::dot(startVec, currentVec), -1.0f, 1.0f);
-								float angle = glm::acos(cosAngle);
-								
-								// Determine sign using cross product
-								glm::vec3 cross = glm::cross(startVec, currentVec);
-								if (glm::dot(cross, planeNormal) < 0.0f)
-									angle = -angle;
-								
-								// Apply rotation around the world-space axis (which is the local axis transformed by current rotation)
-								// Use quaternions to properly handle the rotation
-								// Match TransformComponent's quaternion construction: glm::quat(glm::radians(Rotation))
-								glm::quat startQuat = glm::quat(glm::radians(m_GizmoStartRot));
-								
-								glm::quat deltaQuat = glm::angleAxis(angle, worldAxis);
-								glm::quat finalQuat = deltaQuat * startQuat;
-								
-								// Convert back to Euler angles matching TransformComponent's convention
-								glm::vec3 eulerAngles = glm::degrees(glm::eulerAngles(finalQuat));
-								
-								// Normalize angles to [-180, 180] range
-								auto normalizeAngle = [](float angle) {
-									while (angle > 180.0f) angle -= 360.0f;
-									while (angle < -180.0f) angle += 360.0f;
-									return angle;
-								};
-								
-								eulerAngles.x = normalizeAngle(eulerAngles.x);
-								eulerAngles.y = normalizeAngle(eulerAngles.y);
-								eulerAngles.z = normalizeAngle(eulerAngles.z);
-								
-								tc.Rotation = eulerAngles;
-							}
-						}
-					}
-				}
-			}
-			
-			// End dragging
-			if (!Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_1))
-			{
-				m_IsUsingGizmo = false;
-				m_ActiveAxis = GizmoAxis::None;
-			}
-		}			float moveSpeed = 2.5f * ts;
-			
-			// Speed up camera when shift is held
-			if (Nebula::Input::IsKeyPressed(NB_KEY_LEFT_SHIFT) || Nebula::Input::IsKeyPressed(NB_KEY_RIGHT_SHIFT))
-				moveSpeed *= 3.0f;
+		}
 
-			// Check if right mouse button held for camera rotation (only if not using gizmo)
-			if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2) && !m_IsUsingGizmo)
-			{
+		float moveSpeed = 2.5f * ts;
+		
+		// Speed up camera when shift is held
+		if (Nebula::Input::IsKeyPressed(NB_KEY_LEFT_SHIFT) || Nebula::Input::IsKeyPressed(NB_KEY_RIGHT_SHIFT))
+			moveSpeed *= 3.0f;
+
+		// Check if right mouse button held for camera rotation (only if not using gizmo)
+		if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2) && !m_Gizmo.IsInUse())
+		{
 				Nebula::Application::Get().GetWindow().SetCursorMode(true); // Lock cursor
 
 				auto [mouseX, mouseY] = Nebula::Input::GetMousePos();
@@ -682,6 +333,9 @@ namespace Cosmic {
 
 		// Content Browser
 		ContentBrowser::OnImGuiRender();
+
+		// Scene List Window
+		m_SceneListWindow.OnImGuiRender();
 	}
 
 	void EditorLayer::OnEvent(Nebula::Event& e)
@@ -816,485 +470,18 @@ namespace Cosmic {
 	void EditorLayer::RenderGizmo()
 	{
 		Nebula::Entity selectedEntity = SceneHierarchy::GetSelectedEntity();
-		
-		// Get gizmo mode from viewport toolbar
 		auto gizmoMode = Viewport::GetGizmoMode();
 		
-		// Early exit if conditions not met
 		if (!selectedEntity || gizmoMode == Viewport::GizmoMode::None || m_RuntimeMode)
 			return;
-			
-		if (!selectedEntity.GetScene())
-			return;
-			
-		if (!selectedEntity.HasComponent<Nebula::TransformComponent>())
-			return;
 		
-		auto& tc = selectedEntity.GetComponent<Nebula::TransformComponent>();
-		glm::vec3 origin = tc.Position;
+		Gizmo::Mode mode = Gizmo::Mode::None;
+		if (gizmoMode == Viewport::GizmoMode::Translate) mode = Gizmo::Mode::Translate;
+		else if (gizmoMode == Viewport::GizmoMode::Rotate) mode = Gizmo::Mode::Rotate;
+		else if (gizmoMode == Viewport::GizmoMode::Scale) mode = Gizmo::Mode::Scale;
 		
-		// Get camera for projection
-		auto& camera = Nebula::Application::Get().GetCamera();
-		auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera);
-		if (!perspCam) return;
-		
-	glm::mat4 viewProj = perspCam->GetProjectionMatrix() * perspCam->GetViewMatrix();
-	
-	auto bounds = Viewport::GetViewportBounds();
-	if (!bounds)
-		return;
-		
-	// Validate viewport bounds
-	float viewportWidth = bounds[1].x - bounds[0].x;
-	float viewportHeight = bounds[1].y - bounds[0].y;
-	if (viewportWidth <= 0.0f || viewportHeight <= 0.0f)
-		return;
-	
-	// Draw list for rendering - use window draw list to clip to viewport
-	void* drawListPtr = Nebula::NebulaGui::GetWindowDrawList();
-	if (!drawListPtr)
-		return;
-	
-	// Cast to ImDrawList for drawing operations
-	ImDrawList* drawList = static_cast<ImDrawList*>(drawListPtr);
-	
-	// Clip drawing to viewport bounds
-	drawList->PushClipRect(ImVec2(bounds[0].x, bounds[0].y), ImVec2(bounds[1].x, bounds[1].y), true);
-	
-	float axisLength = 1.0f;
-	float lineThickness = 3.0f;
-	
-	// Get hovered axis for highlighting
-	auto [mouseX, mouseY] = Nebula::Input::GetMousePos();
-	GizmoAxis hoveredAxis = m_IsUsingGizmo ? m_ActiveAxis : GetHoveredAxis(glm::vec2(mouseX, mouseY));
-	
-	// Colors for axes (highlight if hovered or active)
-	ImU32 xColor = (hoveredAxis == GizmoAxis::X) ? IM_COL32(255, 255, 0, 255) : IM_COL32(255, 0, 0, 255);   // Yellow when active, Red otherwise
-	ImU32 yColor = (hoveredAxis == GizmoAxis::Y) ? IM_COL32(255, 255, 0, 255) : IM_COL32(0, 255, 0, 255);   // Yellow when active, Green otherwise
-	ImU32 zColor = (hoveredAxis == GizmoAxis::Z) ? IM_COL32(255, 255, 0, 255) : IM_COL32(0, 0, 255, 255);   // Yellow when active, Blue otherwise		// Function to project 3D point to 2D screen space
-		auto project = [&](const glm::vec3& worldPos) -> glm::vec2 {
-			glm::vec4 clip = viewProj * glm::vec4(worldPos, 1.0f);
-			if (clip.w == 0.0f) clip.w = 0.001f;
-			glm::vec3 ndc = glm::vec3(clip) / clip.w;
-			
-			float viewportWidth = bounds[1].x - bounds[0].x;
-			float viewportHeight = bounds[1].y - bounds[0].y;
-			
-			float x = bounds[0].x + (ndc.x + 1.0f) * 0.5f * viewportWidth;
-			float y = bounds[0].y + (1.0f - ndc.y) * 0.5f * viewportHeight;
-			
-			return glm::vec2(x, y);
-		};
-		
-		// Project origin and axis endpoints
-		glm::vec2 originScreen = project(origin);
-		glm::vec2 xScreen = project(origin + glm::vec3(axisLength, 0, 0));
-		glm::vec2 yScreen = project(origin + glm::vec3(0, axisLength, 0));
-		glm::vec2 zScreen = project(origin + glm::vec3(0, 0, axisLength));
-		
-	// Draw axes based on operation type
-	if (gizmoMode == Viewport::GizmoMode::Translate)
-	{
-		float planeSize = 0.25f; // Size of plane dragging squares in world units
-		float planeOffset = 0.3f; // Position along axis (0-1)
-		
-		// Draw X axis (red)
-		drawList->AddLine(ImVec2(originScreen.x, originScreen.y), 
-						  ImVec2(xScreen.x, xScreen.y), 
-						  xColor, lineThickness);
-		drawList->AddCircleFilled(ImVec2(xScreen.x, xScreen.y), 6.0f, xColor);
-		
-		// Draw Y axis (green)
-		drawList->AddLine(ImVec2(originScreen.x, originScreen.y), 
-						  ImVec2(yScreen.x, yScreen.y), 
-						  yColor, lineThickness);
-		drawList->AddCircleFilled(ImVec2(yScreen.x, yScreen.y), 6.0f, yColor);
-		
-		// Draw Z axis (blue)
-		drawList->AddLine(ImVec2(originScreen.x, originScreen.y), 
-						  ImVec2(zScreen.x, zScreen.y), 
-						  zColor, lineThickness);
-		drawList->AddCircleFilled(ImVec2(zScreen.x, zScreen.y), 6.0f, zColor);
-		
-		// Determine colors based on hover/active state
-		ImU32 xyColor = (hoveredAxis == GizmoAxis::XY) ? IM_COL32(255, 255, 0, 180) : IM_COL32(255, 255, 0, 100);
-		ImU32 xzColor = (hoveredAxis == GizmoAxis::XZ) ? IM_COL32(255, 0, 255, 180) : IM_COL32(255, 0, 255, 100);
-		ImU32 yzColor = (hoveredAxis == GizmoAxis::YZ) ? IM_COL32(0, 255, 255, 180) : IM_COL32(0, 255, 255, 100);
-		
-		// Draw plane dragging squares as actual planes facing the correct direction
-		// XY plane (yellow) - square on the XY plane, facing Z direction
-		{
-			glm::vec3 center = origin + glm::vec3(planeOffset, planeOffset, 0) * axisLength;
-			glm::vec3 p1 = center + glm::vec3(-planeSize, -planeSize, 0) * 0.5f;
-			glm::vec3 p2 = center + glm::vec3(planeSize, -planeSize, 0) * 0.5f;
-			glm::vec3 p3 = center + glm::vec3(planeSize, planeSize, 0) * 0.5f;
-			glm::vec3 p4 = center + glm::vec3(-planeSize, planeSize, 0) * 0.5f;
-			
-			glm::vec2 s1 = project(p1);
-			glm::vec2 s2 = project(p2);
-			glm::vec2 s3 = project(p3);
-			glm::vec2 s4 = project(p4);
-			
-			drawList->AddQuadFilled(
-				ImVec2(s1.x, s1.y), ImVec2(s2.x, s2.y),
-				ImVec2(s3.x, s3.y), ImVec2(s4.x, s4.y),
-				xyColor
-			);
-		}
-		
-		// XZ plane (magenta) - square on the XZ plane, facing Y direction
-		{
-			glm::vec3 center = origin + glm::vec3(planeOffset, 0, planeOffset) * axisLength;
-			glm::vec3 p1 = center + glm::vec3(-planeSize, 0, -planeSize) * 0.5f;
-			glm::vec3 p2 = center + glm::vec3(planeSize, 0, -planeSize) * 0.5f;
-			glm::vec3 p3 = center + glm::vec3(planeSize, 0, planeSize) * 0.5f;
-			glm::vec3 p4 = center + glm::vec3(-planeSize, 0, planeSize) * 0.5f;
-			
-			glm::vec2 s1 = project(p1);
-			glm::vec2 s2 = project(p2);
-			glm::vec2 s3 = project(p3);
-			glm::vec2 s4 = project(p4);
-			
-			drawList->AddQuadFilled(
-				ImVec2(s1.x, s1.y), ImVec2(s2.x, s2.y),
-				ImVec2(s3.x, s3.y), ImVec2(s4.x, s4.y),
-				xzColor
-			);
-		}
-		
-		// YZ plane (cyan) - square on the YZ plane, facing X direction
-		{
-			glm::vec3 center = origin + glm::vec3(0, planeOffset, planeOffset) * axisLength;
-			glm::vec3 p1 = center + glm::vec3(0, -planeSize, -planeSize) * 0.5f;
-			glm::vec3 p2 = center + glm::vec3(0, planeSize, -planeSize) * 0.5f;
-			glm::vec3 p3 = center + glm::vec3(0, planeSize, planeSize) * 0.5f;
-			glm::vec3 p4 = center + glm::vec3(0, -planeSize, planeSize) * 0.5f;
-			
-			glm::vec2 s1 = project(p1);
-			glm::vec2 s2 = project(p2);
-			glm::vec2 s3 = project(p3);
-			glm::vec2 s4 = project(p4);
-			
-			drawList->AddQuadFilled(
-				ImVec2(s1.x, s1.y), ImVec2(s2.x, s2.y),
-				ImVec2(s3.x, s3.y), ImVec2(s4.x, s4.y),
-				yzColor
-			);
-		}
-	}
-	else if (gizmoMode == Viewport::GizmoMode::Rotate)
-	{
-		float radius = 1.2f; // Radius of rotation circles
-		int numSegments = 64; // Number of segments for circles
-		float thickness = 2.5f;
-		
-		// Create rotation matrix from object's rotation using quaternions
-		glm::quat quat = glm::quat(glm::radians(tc.Rotation));
-		glm::mat4 rotationMatrix = glm::toMat4(quat);
-		
-		// Helper to draw a 3D circle with rotation applied
-		auto drawCircle = [&](const glm::vec3& center, const glm::vec3& normal, float radius, ImU32 color, float thickness) {
-			// Apply object rotation to the normal
-			glm::vec3 rotatedNormal = glm::vec3(rotationMatrix * glm::vec4(normal, 0.0f));
-			
-			// Create perpendicular vectors to the rotated normal
-			glm::vec3 tangent, bitangent;
-			if (glm::abs(rotatedNormal.y) < 0.9f) {
-				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(0, 1, 0)));
-			} else {
-				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(1, 0, 0)));
-			}
-			bitangent = glm::cross(rotatedNormal, tangent);
-			
-			// Draw circle as line segments
-			for (int i = 0; i < numSegments; i++) {
-				float angle1 = (float)i / numSegments * glm::two_pi<float>();
-				float angle2 = (float)(i + 1) / numSegments * glm::two_pi<float>();
-				
-				glm::vec3 p1 = center + radius * (glm::cos(angle1) * tangent + glm::sin(angle1) * bitangent);
-				glm::vec3 p2 = center + radius * (glm::cos(angle2) * tangent + glm::sin(angle2) * bitangent);
-				
-				glm::vec2 s1 = project(p1);
-				glm::vec2 s2 = project(p2);
-				
-				drawList->AddLine(ImVec2(s1.x, s1.y), ImVec2(s2.x, s2.y), color, thickness);
-			}
-		};
-		
-		// Draw X rotation circle (red) - rotates around object's local X axis
-		drawCircle(origin, glm::vec3(1, 0, 0), radius, xColor, thickness);
-		
-		// Draw Y rotation circle (green) - rotates around object's local Y axis
-		drawCircle(origin, glm::vec3(0, 1, 0), radius, yColor, thickness);
-		
-		// Draw Z rotation circle (blue) - rotates around object's local Z axis
-		drawCircle(origin, glm::vec3(0, 0, 1), radius, zColor, thickness);
-		
-		// Draw center quad for screen-space rotation
-		float quadSize = 0.15f;
-		ImU32 screenColor = (hoveredAxis == GizmoAxis::Screen) ? IM_COL32(255, 255, 255, 255) : IM_COL32(200, 200, 200, 150);
-		
-		// Get camera forward vector
-		glm::vec3 cameraPos = perspCam->GetPosition();
-		glm::vec3 toCamera = glm::normalize(cameraPos - origin);
-		
-		// Calculate camera up and right vectors from rotation
-		glm::vec3 cameraRot = perspCam->GetRotation();
-		float pitch = glm::radians(cameraRot.x);
-		float yaw = glm::radians(cameraRot.y);
-		
-		glm::mat4 camRotMatrix = glm::mat4(1.0f);
-		camRotMatrix = glm::rotate(camRotMatrix, yaw, glm::vec3(0, 1, 0));
-		camRotMatrix = glm::rotate(camRotMatrix, pitch, glm::vec3(1, 0, 0));
-		
-		glm::vec3 up = glm::vec3(camRotMatrix * glm::vec4(0, 1, 0, 0));
-		glm::vec3 right = glm::normalize(glm::cross(up, toCamera));
-		up = glm::normalize(glm::cross(toCamera, right));
-		
-		// Create quad vertices
-		glm::vec3 p1 = origin + (-right - up) * quadSize;
-		glm::vec3 p2 = origin + (right - up) * quadSize;
-		glm::vec3 p3 = origin + (right + up) * quadSize;
-		glm::vec3 p4 = origin + (-right + up) * quadSize;
-		
-		glm::vec2 s1 = project(p1);
-		glm::vec2 s2 = project(p2);
-		glm::vec2 s3 = project(p3);
-		glm::vec2 s4 = project(p4);
-		
-		drawList->AddQuadFilled(
-			ImVec2(s1.x, s1.y), ImVec2(s2.x, s2.y),
-			ImVec2(s3.x, s3.y), ImVec2(s4.x, s4.y),
-			screenColor
-		);
-	}
-	
-	// Restore clip rect
-	drawList->PopClipRect();
-}	EditorLayer::GizmoAxis EditorLayer::GetHoveredAxis(const glm::vec2& mousePos)
-	{
-		Nebula::Entity selectedEntity = SceneHierarchy::GetSelectedEntity();
-		if (!selectedEntity || !selectedEntity.HasComponent<Nebula::TransformComponent>())
-			return GizmoAxis::None;
-		
-		auto& tc = selectedEntity.GetComponent<Nebula::TransformComponent>();
-		glm::vec3 origin = tc.Position;
-		
-		// Get camera for projection
-		auto& camera = Nebula::Application::Get().GetCamera();
-		auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera);
-		if (!perspCam) return GizmoAxis::None;
-		
-		glm::mat4 viewProj = perspCam->GetProjectionMatrix() * perspCam->GetViewMatrix();
 		auto bounds = Viewport::GetViewportBounds();
-		if (!bounds) return GizmoAxis::None;
-		
-		float axisLength = 1.0f;
-		float hitRadius = 15.0f; // Pixels
-		
-		// Function to project 3D point to 2D screen space
-		auto project = [&](const glm::vec3& worldPos) -> glm::vec2 {
-			glm::vec4 clip = viewProj * glm::vec4(worldPos, 1.0f);
-			if (clip.w == 0.0f) clip.w = 0.001f;
-			glm::vec3 ndc = glm::vec3(clip) / clip.w;
-			
-			float viewportWidth = bounds[1].x - bounds[0].x;
-			float viewportHeight = bounds[1].y - bounds[0].y;
-			
-			float x = bounds[0].x + (ndc.x + 1.0f) * 0.5f * viewportWidth;
-			float y = bounds[0].y + (1.0f - ndc.y) * 0.5f * viewportHeight;
-			
-			return glm::vec2(x, y);
-		};
-		
-	// Project axis endpoints
-	glm::vec2 originScreen = project(origin);
-	glm::vec2 xScreen = project(origin + glm::vec3(axisLength, 0, 0));
-	glm::vec2 yScreen = project(origin + glm::vec3(0, axisLength, 0));
-	glm::vec2 zScreen = project(origin + glm::vec3(0, 0, axisLength));
-	
-	// Helper function to calculate distance from point to line segment
-	auto distanceToLineSegment = [](const glm::vec2& p, const glm::vec2& a, const glm::vec2& b) -> float {
-		glm::vec2 ab = b - a;
-		glm::vec2 ap = p - a;
-		float abLenSq = glm::dot(ab, ab);
-		if (abLenSq == 0.0f) return glm::length(ap);
-		
-		float t = glm::clamp(glm::dot(ap, ab) / abLenSq, 0.0f, 1.0f);
-		glm::vec2 projection = a + t * ab;
-		return glm::distance(p, projection);
-	};
-	
-	// Helper function to check if point is inside a square
-	auto isInsideSquare = [](const glm::vec2& p, const glm::vec2& center, float size) -> bool {
-		float halfSize = size * 0.5f;
-		return (p.x >= center.x - halfSize && p.x <= center.x + halfSize &&
-				p.y >= center.y - halfSize && p.y <= center.y + halfSize);
-	};
-	
-	// Helper function to check if point is inside a quad
-	auto isInsideQuad = [](const glm::vec2& p, const glm::vec2& p1, const glm::vec2& p2, 
-						   const glm::vec2& p3, const glm::vec2& p4) -> bool {
-		// Use cross product to check if point is on the same side of all edges
-		auto sign = [](const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& p3) -> float {
-			return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-		};
-		
-		float d1 = sign(p, p1, p2);
-		float d2 = sign(p, p2, p3);
-		float d3 = sign(p, p3, p4);
-		float d4 = sign(p, p4, p1);
-		
-		bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0) || (d4 < 0);
-		bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0) || (d4 > 0);
-		
-		return !(hasNeg && hasPos);
-	};
-	
-	float planeSize = 0.25f;
-	float planeOffset = 0.3f;
-	
-	// Calculate plane quad vertices (same as in rendering)
-	// XY plane
-	{
-		glm::vec3 center = origin + glm::vec3(planeOffset, planeOffset, 0) * axisLength;
-		glm::vec3 p1 = center + glm::vec3(-planeSize, -planeSize, 0) * 0.5f;
-		glm::vec3 p2 = center + glm::vec3(planeSize, -planeSize, 0) * 0.5f;
-		glm::vec3 p3 = center + glm::vec3(planeSize, planeSize, 0) * 0.5f;
-		glm::vec3 p4 = center + glm::vec3(-planeSize, planeSize, 0) * 0.5f;
-		
-		glm::vec2 s1 = project(p1);
-		glm::vec2 s2 = project(p2);
-		glm::vec2 s3 = project(p3);
-		glm::vec2 s4 = project(p4);
-		
-		if (isInsideQuad(mousePos, s1, s2, s3, s4))
-			return GizmoAxis::XY;
-	}
-	
-	// XZ plane
-	{
-		glm::vec3 center = origin + glm::vec3(planeOffset, 0, planeOffset) * axisLength;
-		glm::vec3 p1 = center + glm::vec3(-planeSize, 0, -planeSize) * 0.5f;
-		glm::vec3 p2 = center + glm::vec3(planeSize, 0, -planeSize) * 0.5f;
-		glm::vec3 p3 = center + glm::vec3(planeSize, 0, planeSize) * 0.5f;
-		glm::vec3 p4 = center + glm::vec3(-planeSize, 0, planeSize) * 0.5f;
-		
-		glm::vec2 s1 = project(p1);
-		glm::vec2 s2 = project(p2);
-		glm::vec2 s3 = project(p3);
-		glm::vec2 s4 = project(p4);
-		
-		if (isInsideQuad(mousePos, s1, s2, s3, s4))
-			return GizmoAxis::XZ;
-	}
-	
-	// YZ plane
-	{
-		glm::vec3 center = origin + glm::vec3(0, planeOffset, planeOffset) * axisLength;
-		glm::vec3 p1 = center + glm::vec3(0, -planeSize, -planeSize) * 0.5f;
-		glm::vec3 p2 = center + glm::vec3(0, planeSize, -planeSize) * 0.5f;
-		glm::vec3 p3 = center + glm::vec3(0, planeSize, planeSize) * 0.5f;
-		glm::vec3 p4 = center + glm::vec3(0, -planeSize, planeSize) * 0.5f;
-		
-		glm::vec2 s1 = project(p1);
-		glm::vec2 s2 = project(p2);
-		glm::vec2 s3 = project(p3);
-		glm::vec2 s4 = project(p4);
-		
-		if (isInsideQuad(mousePos, s1, s2, s3, s4))
-			return GizmoAxis::YZ;
-	}
-	
-	// Check for rotation circles if in rotate mode
-	auto gizmoMode = Viewport::GetGizmoMode();
-	if (gizmoMode == Viewport::GizmoMode::Rotate)
-	{
-		float radius = 1.2f;
-		int numSegments = 64;
-		float hitThreshold = 10.0f;
-		
-		// Create rotation matrix from object's rotation using quaternions
-		glm::quat quat = glm::quat(glm::radians(tc.Rotation));
-		glm::mat4 rotationMatrix = glm::toMat4(quat);
-		
-		// Helper to check distance to 3D circle with rotation applied
-		auto distanceToCircle = [&](const glm::vec3& center, const glm::vec3& normal, float radius) -> float {
-			// Apply object rotation to the normal
-			glm::vec3 rotatedNormal = glm::vec3(rotationMatrix * glm::vec4(normal, 0.0f));
-			
-			glm::vec3 tangent, bitangent;
-			if (glm::abs(rotatedNormal.y) < 0.9f) {
-				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(0, 1, 0)));
-			} else {
-				tangent = glm::normalize(glm::cross(rotatedNormal, glm::vec3(1, 0, 0)));
-			}
-			bitangent = glm::cross(rotatedNormal, tangent);
-			
-			float minDist = FLT_MAX;
-			for (int i = 0; i < numSegments; i++) {
-				float angle1 = (float)i / numSegments * glm::two_pi<float>();
-				float angle2 = (float)(i + 1) / numSegments * glm::two_pi<float>();
-				
-				glm::vec3 p1 = center + radius * (glm::cos(angle1) * tangent + glm::sin(angle1) * bitangent);
-				glm::vec3 p2 = center + radius * (glm::cos(angle2) * tangent + glm::sin(angle2) * bitangent);
-				
-				glm::vec2 s1 = project(p1);
-				glm::vec2 s2 = project(p2);
-				
-				float dist = distanceToLineSegment(mousePos, s1, s2);
-				minDist = glm::min(minDist, dist);
-			}
-			return minDist;
-		};
-		
-		// Check each rotation circle (now with rotation applied)
-		if (distanceToCircle(origin, glm::vec3(1, 0, 0), radius) < hitThreshold)
-			return GizmoAxis::X;
-		if (distanceToCircle(origin, glm::vec3(0, 1, 0), radius) < hitThreshold)
-			return GizmoAxis::Y;
-		if (distanceToCircle(origin, glm::vec3(0, 0, 1), radius) < hitThreshold)
-			return GizmoAxis::Z;
-		
-		// Check center quad for screen-space rotation
-		float quadSize = 0.15f;
-		glm::vec3 cameraPos = perspCam->GetPosition();
-		glm::vec3 toCamera = glm::normalize(cameraPos - origin);
-		
-		// Calculate camera up and right vectors from rotation
-		glm::vec3 cameraRot = perspCam->GetRotation();
-		float pitch = glm::radians(cameraRot.x);
-		float yaw = glm::radians(cameraRot.y);
-		
-		glm::mat4 camRotMatrix = glm::mat4(1.0f);
-		camRotMatrix = glm::rotate(camRotMatrix, yaw, glm::vec3(0, 1, 0));
-		camRotMatrix = glm::rotate(camRotMatrix, pitch, glm::vec3(1, 0, 0));
-		
-		glm::vec3 up = glm::vec3(camRotMatrix * glm::vec4(0, 1, 0, 0));
-		glm::vec3 right = glm::normalize(glm::cross(up, toCamera));
-		up = glm::normalize(glm::cross(toCamera, right));
-		
-		glm::vec3 qp1 = origin + (-right - up) * quadSize;
-		glm::vec3 qp2 = origin + (right - up) * quadSize;
-		glm::vec3 qp3 = origin + (right + up) * quadSize;
-		glm::vec3 qp4 = origin + (-right + up) * quadSize;
-		
-		glm::vec2 qs1 = project(qp1);
-		glm::vec2 qs2 = project(qp2);
-		glm::vec2 qs3 = project(qp3);
-		glm::vec2 qs4 = project(qp4);
-		
-		if (isInsideQuad(mousePos, qs1, qs2, qs3, qs4))
-			return GizmoAxis::Screen;
-	}
-	
-	// Check distance to each axis line (prioritize Z, then Y, then X for overlap)
-	if (distanceToLineSegment(mousePos, originScreen, zScreen) < hitRadius)
-		return GizmoAxis::Z;
-	if (distanceToLineSegment(mousePos, originScreen, yScreen) < hitRadius)
-		return GizmoAxis::Y;
-	if (distanceToLineSegment(mousePos, originScreen, xScreen) < hitRadius)
-		return GizmoAxis::X;		return GizmoAxis::None;
+		m_Gizmo.Render(selectedEntity, mode, bounds);
 	}
 
 }

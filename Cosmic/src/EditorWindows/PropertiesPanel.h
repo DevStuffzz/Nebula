@@ -5,6 +5,7 @@
 #include "Nebula/ImGui/NebulaGui.h"
 #include "Nebula/Renderer/Material.h"
 #include "Nebula/Renderer/Texture.h"
+#include "Platform/OpenGL/OpenGLTexture.h"
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -174,6 +175,42 @@ namespace Cosmic {
 					if (Nebula::NebulaGui::Checkbox("Use Texture", &useTextureBool))
 					{
 						meshRenderer.Material->SetInt("u_UseTexture", useTextureBool ? 1 : 0);
+					}
+					
+					// Texture Tiling
+					if (texture)
+					{
+						glm::vec2 tiling = meshRenderer.Material->GetFloat2("u_TextureTiling");
+						if (Nebula::NebulaGui::DragFloat2("Texture Tiling", &tiling.x, 0.1f, 0.01f, 100.0f))
+						{
+							meshRenderer.Material->SetFloat2("u_TextureTiling", tiling);
+						}
+						
+						// Texture Filtering and Wrapping
+						const auto* oglTexture = dynamic_cast<Nebula::OpenGLTexture2D*>(texture.get());
+						if (oglTexture)
+						{
+							bool useNearest = oglTexture->GetUseNearest();
+							bool repeat = oglTexture->GetRepeat();
+							
+							bool filterChanged = false;
+							bool wrapChanged = false;
+							
+							if (Nebula::NebulaGui::Checkbox("Nearest Filter", &useNearest))
+								filterChanged = true;
+							
+							if (Nebula::NebulaGui::Checkbox("Repeat Wrap", &repeat))
+								wrapChanged = true;
+							
+							// Reload texture if settings changed
+							if (filterChanged || wrapChanged)
+							{
+								std::string texturePath = oglTexture->GetPath();
+								std::shared_ptr<Nebula::Texture2D> newTexture;
+								newTexture.reset(Nebula::Texture2D::Create(texturePath, useNearest, repeat));
+								meshRenderer.Material->SetTexture("u_Texture", newTexture);
+							}
+						}
 					}
 				}
 			}

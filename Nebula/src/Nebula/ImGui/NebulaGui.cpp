@@ -100,5 +100,7 @@ namespace Nebula {
 	// Style
 	void NebulaGui::PushStyleVar(int idx, const glm::vec2& val) { ImGui::PushStyleVar(idx, ImVec2(val.x, val.y)); }
 	void NebulaGui::PopStyleVar(int count) { ImGui::PopStyleVar(count); }
+	void NebulaGui::PushStyleColor(int idx, const glm::vec4& col) { ImGui::PushStyleColor(idx, ImVec4(col.x, col.y, col.z, col.w)); }
+	void NebulaGui::PopStyleColor(int count) { ImGui::PopStyleColor(count); }
 
 }

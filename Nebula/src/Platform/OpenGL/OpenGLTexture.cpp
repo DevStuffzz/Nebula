@@ -7,12 +7,17 @@
 
 namespace Nebula {
 
-	OpenGLTexture2D::OpenGLTexture2D(const std::string& path)
-		: m_Path(path)
+	OpenGLTexture2D::OpenGLTexture2D(const std::string& path, bool useNearest, bool repeat)
+		: m_Path(path), m_UseNearest(useNearest), m_Repeat(repeat)
 	{
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(1);
 		stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+		if (!data)
+		{
+			NB_CORE_ERROR("Failed to load texture: {0}", path);
+			NB_CORE_ERROR("STB Image Error: {0}", stbi_failure_reason());
+		}
 		NEB_CORE_ASSERT(data, "Failed to load image!");
 		m_Width = width;
 		m_Height = height;
@@ -34,8 +39,15 @@ namespace Nebula {
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
 		glTextureStorage2D(m_RendererID, 1, internalFormat, m_Width, m_Height);
 
-		glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		// Set filtering
+		GLenum filter = useNearest ? GL_NEAREST : GL_LINEAR;
+		glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, filter);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, filter);
+
+		// Set wrapping mode
+		GLenum wrapMode = repeat ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, wrapMode);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, wrapMode);
 
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, dataFormat, GL_UNSIGNED_BYTE, data);
 

@@ -20,7 +20,7 @@ namespace Nebula {
 	class NEBULA_API Texture2D : public Texture
 	{
 	public:
-		static Texture2D* Create(const std::string& path);
+		static Texture2D* Create(const std::string& path, bool useNearest = false, bool repeat = true);
 	};
 
 }
