@@ -34,4 +34,9 @@ namespace Nebula {
 		glDrawElements(GL_TRIANGLES, vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
+	void OpenGLRendererAPI::BindTexture(uint32_t slot, uint32_t textureID)
+	{
+		glBindTextureUnit(slot, textureID);
+	}
+
 }

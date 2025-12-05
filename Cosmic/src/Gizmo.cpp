@@ -19,7 +19,7 @@ namespace Cosmic {
 
 	void Gizmo::Render(Nebula::Entity& entity, Mode mode, const glm::vec2 viewportBounds[2])
 	{
-		if (!entity || mode == Mode::None)
+		if (!entity)
 			return;
 
 		if (!entity.HasComponent<Nebula::TransformComponent>())
@@ -67,6 +67,22 @@ namespace Cosmic {
 			return glm::vec2(x, y);
 		};
 
+		// If mode is None, just render a small grey circle at the origin
+		if (mode == Mode::None)
+		{
+			glm::vec2 originScreen = project(origin);
+			float circleRadius = 5.0f;
+			ImU32 greyColor = IM_COL32(128, 128, 128, 255);
+			
+			drawList->AddCircleFilled(ImVec2(originScreen.x, originScreen.y), circleRadius, greyColor);
+			
+			// Draw directional indicators for lights and cameras
+			RenderDirectionIndicators(entity, origin, drawList, viewportBounds, project);
+			
+			drawList->PopClipRect();
+			return;
+		}
+
 		// Get hovered axis
 		auto [mouseX, mouseY] = Nebula::Input::GetMousePos();
 		Axis hoveredAxis = m_IsUsingGizmo ? m_ActiveAxis : GetHoveredAxis(entity, mode, glm::vec2(mouseX, mouseY), viewportBounds);
@@ -84,6 +100,9 @@ namespace Cosmic {
 			RenderScaleGizmo(origin, hoveredAxis, drawList, viewportBounds, project);
 			break;
 		}
+
+		// Draw directional indicators for lights and cameras
+		RenderDirectionIndicators(entity, origin, drawList, viewportBounds, project);
 
 		// Restore clip rect
 		drawList->PopClipRect();
@@ -892,4 +911,126 @@ namespace Cosmic {
 		return Axis::None;
 	}
 
+	void Gizmo::RenderDirectionIndicators(Nebula::Entity& entity, const glm::vec3& origin,
+										  void* drawList, const glm::vec2 viewportBounds[2],
+										  std::function<glm::vec2(const glm::vec3&)> project)
+	{
+		ImDrawList* dl = static_cast<ImDrawList*>(drawList);
+		
+		auto& tc = entity.GetComponent<Nebula::TransformComponent>();
+		glm::quat quat = glm::quat(glm::radians(tc.Rotation));
+		glm::vec3 forward = glm::normalize(quat * glm::vec3(0.0f, 0.0f, -1.0f));
+		
+		// Directional Light Indicator
+		if (entity.HasComponent<Nebula::DirectionalLightComponent>())
+		{
+			auto& dirLight = entity.GetComponent<Nebula::DirectionalLightComponent>();
+			
+			// Draw arrow showing light direction
+			float arrowLength = 2.0f;
+			glm::vec3 arrowEnd = origin + forward * arrowLength;
+			
+			glm::vec2 originScreen = project(origin);
+			glm::vec2 endScreen = project(arrowEnd);
+			
+			// Draw main line
+			ImU32 lightColor = IM_COL32(255, 255, 0, 200); // Yellow
+			dl->AddLine(ImVec2(originScreen.x, originScreen.y), ImVec2(endScreen.x, endScreen.y), lightColor, 3.0f);
+			
+			// Draw arrow head
+			glm::vec2 dir = glm::normalize(endScreen - originScreen);
+			glm::vec2 perpendicular(-dir.y, dir.x);
+			
+			float arrowHeadSize = 12.0f;
+			glm::vec2 arrowTip = endScreen;
+			glm::vec2 arrowBase = endScreen - dir * arrowHeadSize;
+			glm::vec2 arrowLeft = arrowBase + perpendicular * (arrowHeadSize * 0.4f);
+			glm::vec2 arrowRight = arrowBase - perpendicular * (arrowHeadSize * 0.4f);
+			
+			dl->AddTriangleFilled(
+				ImVec2(arrowTip.x, arrowTip.y),
+				ImVec2(arrowLeft.x, arrowLeft.y),
+				ImVec2(arrowRight.x, arrowRight.y),
+				lightColor
+			);
+			
+			// Draw additional rays to show it's a directional light
+			for (int i = 0; i < 3; i++)
+			{
+				float offset = (i - 1) * 0.15f;
+				glm::vec3 up = glm::normalize(quat * glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::vec3 right = glm::normalize(quat * glm::vec3(1.0f, 0.0f, 0.0f));
+				glm::vec3 rayStart = origin + (up * offset * 0.3f) + (right * offset * 0.3f);
+				glm::vec3 rayEnd = rayStart + forward * (arrowLength * 0.7f);
+				
+				glm::vec2 rayStartScreen = project(rayStart);
+				glm::vec2 rayEndScreen = project(rayEnd);
+				
+				dl->AddLine(ImVec2(rayStartScreen.x, rayStartScreen.y), 
+						   ImVec2(rayEndScreen.x, rayEndScreen.y), 
+						   IM_COL32(255, 255, 0, 120), 1.5f);
+			}
+		}
+		
+		// Camera Indicator
+		if (entity.HasComponent<Nebula::CameraComponent>())
+		{
+			// Draw camera frustum visualization
+			float frustumLength = 1.5f;
+			float frustumSize = 0.6f;
+			
+			glm::vec3 up = glm::normalize(quat * glm::vec3(0.0f, 1.0f, 0.0f));
+			glm::vec3 right = glm::normalize(quat * glm::vec3(1.0f, 0.0f, 0.0f));
+			
+			// Frustum far corners
+			glm::vec3 farCenter = origin + forward * frustumLength;
+			glm::vec3 farTL = farCenter + up * frustumSize - right * frustumSize;
+			glm::vec3 farTR = farCenter + up * frustumSize + right * frustumSize;
+			glm::vec3 farBL = farCenter - up * frustumSize - right * frustumSize;
+			glm::vec3 farBR = farCenter - up * frustumSize + right * frustumSize;
+			
+			// Project to screen
+			glm::vec2 originScreen = project(origin);
+			glm::vec2 farTLScreen = project(farTL);
+			glm::vec2 farTRScreen = project(farTR);
+			glm::vec2 farBLScreen = project(farBL);
+			glm::vec2 farBRScreen = project(farBR);
+			
+			ImU32 cameraColor = IM_COL32(0, 200, 255, 200); // Cyan
+			
+			// Draw frustum lines from camera to far corners
+			dl->AddLine(ImVec2(originScreen.x, originScreen.y), ImVec2(farTLScreen.x, farTLScreen.y), cameraColor, 2.0f);
+			dl->AddLine(ImVec2(originScreen.x, originScreen.y), ImVec2(farTRScreen.x, farTRScreen.y), cameraColor, 2.0f);
+			dl->AddLine(ImVec2(originScreen.x, originScreen.y), ImVec2(farBLScreen.x, farBLScreen.y), cameraColor, 2.0f);
+			dl->AddLine(ImVec2(originScreen.x, originScreen.y), ImVec2(farBRScreen.x, farBRScreen.y), cameraColor, 2.0f);
+			
+			// Draw far rectangle
+			dl->AddLine(ImVec2(farTLScreen.x, farTLScreen.y), ImVec2(farTRScreen.x, farTRScreen.y), cameraColor, 2.0f);
+			dl->AddLine(ImVec2(farTRScreen.x, farTRScreen.y), ImVec2(farBRScreen.x, farBRScreen.y), cameraColor, 2.0f);
+			dl->AddLine(ImVec2(farBRScreen.x, farBRScreen.y), ImVec2(farBLScreen.x, farBLScreen.y), cameraColor, 2.0f);
+			dl->AddLine(ImVec2(farBLScreen.x, farBLScreen.y), ImVec2(farTLScreen.x, farTLScreen.y), cameraColor, 2.0f);
+			
+			// Draw camera body (small rectangle at origin)
+			float bodySize = 0.15f;
+			glm::vec3 bodyTL = origin + up * bodySize - right * bodySize;
+			glm::vec3 bodyTR = origin + up * bodySize + right * bodySize;
+			glm::vec3 bodyBL = origin - up * bodySize - right * bodySize;
+			glm::vec3 bodyBR = origin - up * bodySize + right * bodySize;
+			
+			glm::vec2 bodyTLScreen = project(bodyTL);
+			glm::vec2 bodyTRScreen = project(bodyTR);
+			glm::vec2 bodyBLScreen = project(bodyBL);
+			glm::vec2 bodyBRScreen = project(bodyBR);
+			
+			dl->AddQuadFilled(
+				ImVec2(bodyTLScreen.x, bodyTLScreen.y),
+				ImVec2(bodyTRScreen.x, bodyTRScreen.y),
+				ImVec2(bodyBRScreen.x, bodyBRScreen.y),
+				ImVec2(bodyBLScreen.x, bodyBLScreen.y),
+				IM_COL32(0, 200, 255, 150)
+			);
+		}
+	}
+
 }
+

@@ -45,6 +45,10 @@ namespace Cosmic {
 				if (s_SelectedEntity.HasComponent<Nebula::PointLightComponent>())
 					DrawPointLightComponent(s_SelectedEntity.GetComponent<Nebula::PointLightComponent>());
 
+				// Directional Light Component
+				if (s_SelectedEntity.HasComponent<Nebula::DirectionalLightComponent>())
+					DrawDirectionalLightComponent(s_SelectedEntity.GetComponent<Nebula::DirectionalLightComponent>());
+
 				// Camera Component
 				if (s_SelectedEntity.HasComponent<Nebula::CameraComponent>())
 					DrawCameraComponent(s_SelectedEntity.GetComponent<Nebula::CameraComponent>());
@@ -73,6 +77,24 @@ namespace Cosmic {
 					{
 						if (!s_SelectedEntity.HasComponent<Nebula::PointLightComponent>())
 							s_SelectedEntity.AddComponent<Nebula::PointLightComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Directional Light"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::DirectionalLightComponent>())
+							s_SelectedEntity.AddComponent<Nebula::DirectionalLightComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Camera"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::CameraComponent>())
+							s_SelectedEntity.AddComponent<Nebula::CameraComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Script"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::ScriptComponent>())
+							s_SelectedEntity.AddComponent<Nebula::ScriptComponent>();
 						Nebula::NebulaGui::CloseCurrentPopup();
 					}
 					Nebula::NebulaGui::EndPopup();
@@ -223,6 +245,16 @@ namespace Cosmic {
 				Nebula::NebulaGui::ColorEdit3("Color", &light.Color.x);
 				Nebula::NebulaGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
 				Nebula::NebulaGui::DragFloat("Radius", &light.Radius, 0.1f, 0.0f, 100.0f);
+			}
+		}
+
+		static void DrawDirectionalLightComponent(Nebula::DirectionalLightComponent& light)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Directional Light", true))
+			{
+				Nebula::NebulaGui::Text("Direction is controlled by entity rotation");
+				Nebula::NebulaGui::ColorEdit3("Color", &light.Color.x);
+				Nebula::NebulaGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
 			}
 		}
 

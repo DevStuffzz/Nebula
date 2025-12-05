@@ -58,6 +58,17 @@ namespace Nebula {
 			lightJson["Radius"] = light.Radius;
 			entityJson["PointLightComponent"] = lightJson;
 		}
+
+		// Directional Light Component
+		if (entity.HasComponent<DirectionalLightComponent>())
+		{
+			auto& dirLight = entity.GetComponent<DirectionalLightComponent>();
+			json dirLightJson;
+			dirLightJson["Color"] = SerializeVec3(dirLight.Color);
+			dirLightJson["Intensity"] = dirLight.Intensity;
+			entityJson["DirectionalLightComponent"] = dirLightJson;
+		}
+
 		// Tag Component (always present)
 		if (entity.HasComponent<TagComponent>())
 		{
@@ -183,6 +194,15 @@ namespace Nebula {
 			light.Color = DeserializeVec3(lightJson["Color"]);
 			light.Intensity = lightJson.value("Intensity", 1.0f);
 			light.Radius = lightJson.value("Radius", 5.0f);
+		}
+
+		// Directional Light Component
+		if (entityJson.contains("DirectionalLightComponent"))
+		{
+			const auto& dirLightJson = entityJson["DirectionalLightComponent"];
+			auto& dirLight = entity.AddComponent<DirectionalLightComponent>();
+			dirLight.Color = DeserializeVec3(dirLightJson["Color"]);
+			dirLight.Intensity = dirLightJson.value("Intensity", 1.0f);
 		}
 
 		// Transform Component

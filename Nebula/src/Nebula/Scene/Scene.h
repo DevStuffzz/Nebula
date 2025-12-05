@@ -19,6 +19,9 @@ struct PairHash {
 
 namespace Nebula {
 
+	class Framebuffer;
+	class Shader;
+
 	class NEBULA_API Scene
 	{
 	public:
@@ -53,7 +56,20 @@ namespace Nebula {
 		};
 		std::vector<PointLightData> m_PointLights;
 
-	private:
+	// Scene-wide list of directional lights
+	struct DirectionalLightData {
+		glm::vec3 Direction;
+		glm::vec3 Color;
+		float Intensity;
+		glm::mat4 LightSpaceMatrix;
+		uint32_t ShadowMapTexture;
+	};
+	std::vector<DirectionalLightData> m_DirectionalLights;
+
+	// Shadow mapping
+	std::vector<std::shared_ptr<Framebuffer>> m_ShadowMapFramebuffers;
+	std::shared_ptr<Shader> m_ShadowShader;
+	void RenderShadowMaps();	private:
 		glm::vec3 m_GlobalIllumination;
 
 		friend class Entity;

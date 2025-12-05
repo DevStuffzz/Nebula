@@ -3,14 +3,42 @@
 #include "Components.h"
 #include "Nebula/Renderer/Renderer.h"
 #include "Nebula/Renderer/Material.h"
+#include "Nebula/Renderer/Framebuffer.h"
+#include "Nebula/Renderer/Shader.h"
+#include "Nebula/Renderer/RenderCommand.h"
+#include "Nebula/Renderer/Mesh.h"
 #include "Nebula/Application.h"
 #include "Nebula/Scripting/LuaScriptEngine.h"
-
+#include <glm/gtc/matrix_transform.hpp>
+#include <glad/glad.h> // TODO: Move viewport save/restore to platform-agnostic RenderCommand
 namespace Nebula {
 
 	Scene::Scene(const std::string& name)
 		: m_Name(name), m_GlobalIllumination(0.1f, 0.1f, 0.1f)
 	{
+		// Initialize shadow shader
+		NB_CORE_INFO("Creating scene: {0}", name);
+		try
+		{
+			Shader* rawShader = Shader::Create("assets/shaders/Shadow.glsl");
+			if (rawShader)
+			{
+				m_ShadowShader = std::shared_ptr<Shader>(rawShader);
+				NB_CORE_INFO("Shadow shader loaded successfully");
+			}
+			else
+			{
+				NB_CORE_WARN("Failed to create shadow shader - shadows will be disabled");
+			}
+		}
+		catch (const std::exception& e)
+		{
+			NB_CORE_ERROR("Exception loading shadow shader: {0} - shadows will be disabled", e.what());
+		}
+		catch (...)
+		{
+			NB_CORE_ERROR("Unknown exception loading shadow shader - shadows will be disabled");
+		}
 	}
 
 	Scene::~Scene()
@@ -67,6 +95,90 @@ namespace Nebula {
 		// For now, this is just a placeholder for future physics systems
 	}
 
+	void Scene::RenderShadowMaps()
+	{
+		// Early return if no directional lights or no shadow shader
+		size_t numDirLights = m_DirectionalLights.size();
+		if (numDirLights == 0 || !m_ShadowShader)
+			return;
+
+		const uint32_t SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+
+		// Save current viewport to restore after shadow rendering
+		int viewport[4];
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		
+		// Save current framebuffer binding
+		GLint currentFramebuffer;
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &currentFramebuffer);
+
+		// Ensure we have enough shadow map framebuffers
+		if (m_ShadowMapFramebuffers.size() < numDirLights)
+		{
+			FramebufferSpecification shadowSpec;
+			shadowSpec.Width = SHADOW_WIDTH;
+			shadowSpec.Height = SHADOW_HEIGHT;
+			shadowSpec.SwapChainTarget = false;
+
+			while (m_ShadowMapFramebuffers.size() < numDirLights)
+			{
+				m_ShadowMapFramebuffers.push_back(std::shared_ptr<Framebuffer>(Framebuffer::Create(shadowSpec)));
+			}
+		}
+
+		// Render shadow map for each directional light
+		auto meshView = m_Registry.view<TransformComponent, MeshRendererComponent>();
+
+		for (size_t i = 0; i < numDirLights && i < 4; ++i)
+		{
+			auto& light = m_DirectionalLights[i];
+			auto& shadowFB = m_ShadowMapFramebuffers[i];
+
+			// Calculate light space matrix
+			float orthoSize = 20.0f;
+			float nearPlane = 1.0f, farPlane = 50.0f;
+			glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, nearPlane, farPlane);
+
+			// Position light looking at origin from direction
+			glm::vec3 lightPos = -light.Direction * 25.0f;
+			glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+			light.LightSpaceMatrix = lightProjection * lightView;
+
+			// Render to shadow map
+			shadowFB->Bind();
+			RenderCommand::Clear();
+
+			m_ShadowShader->Bind();
+			m_ShadowShader->SetMat4("u_LightSpaceMatrix", light.LightSpaceMatrix);
+
+			// Render all mesh renderers from light's perspective
+			int meshCount = 0;
+			for (auto entity : meshView)
+			{
+				auto [transform, meshRenderer] = meshView.get<TransformComponent, MeshRendererComponent>(entity);
+
+				if (meshRenderer.Mesh)
+				{
+					m_ShadowShader->SetMat4("u_Transform", transform.GetTransform());
+					meshRenderer.Mesh->GetVertexArray()->Bind();
+					RenderCommand::DrawIndexed(meshRenderer.Mesh->GetVertexArray());
+					meshCount++;
+				}
+			}
+
+			// Store shadow map texture ID (don't unbind - let next framebuffer bind handle it)
+			light.ShadowMapTexture = shadowFB->GetDepthAttachmentRendererID();
+			NB_CORE_TRACE("Rendered shadow map {0}: {1} meshes, texture ID: {2}", i, meshCount, light.ShadowMapTexture);
+		}
+
+		// Restore viewport to what it was before shadow rendering
+		glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+		
+		// Restore framebuffer binding to what it was before shadow rendering
+		glBindFramebuffer(GL_FRAMEBUFFER, currentFramebuffer);
+	}
+
 	void Scene::OnRender()
 	{
 		// Begin the scene with the application camera
@@ -90,11 +202,39 @@ namespace Nebula {
 				});
 		}
 
+		// Update scene-wide directional lights list
+		m_DirectionalLights.clear();
+
+		auto dirLightView = m_Registry.view<DirectionalLightComponent, TransformComponent>();
+
+		for (auto entity : dirLightView)
+		{
+			auto& dirLight = dirLightView.get<DirectionalLightComponent>(entity);
+			auto& transform = dirLightView.get<TransformComponent>(entity);
+
+			// Calculate direction from entity's rotation (forward vector)
+			glm::quat quat = glm::quat(glm::radians(transform.Rotation));
+			glm::vec3 forward = glm::normalize(quat * glm::vec3(0.0f, 0.0f, -1.0f));
+
+			m_DirectionalLights.push_back({
+				forward,
+				dirLight.Color,
+				dirLight.Intensity,
+				glm::mat4(1.0f), // LightSpaceMatrix (filled by RenderShadowMaps)
+				0 // ShadowMapTexture (filled by RenderShadowMaps)
+				});
+		}
+
+		// Render shadow maps for directional lights
+		RenderShadowMaps();
+
 
 
 		// Render all entities with mesh renderer components
 		auto view = m_Registry.view<TransformComponent, MeshRendererComponent>();
 		int numLights = (int)m_PointLights.size();
+		int numDirLights = (int)m_DirectionalLights.size();
+		
 		for (auto entity : view)
 		{
 			auto [transform, meshRenderer] = view.get<TransformComponent, MeshRendererComponent>(entity);
@@ -102,7 +242,12 @@ namespace Nebula {
 			if (meshRenderer.Mesh && meshRenderer.Material)
 			{
 				std::shared_ptr<Nebula::Shader> shader = meshRenderer.Material->GetShader();
+				shader->Bind();
+				
+				// Set global illumination
 				shader->SetFloat3("u_GI", m_GlobalIllumination);
+				
+				// Set point lights
 				shader->SetInt("u_NumPointLights", numLights);
 				for (int i = 0; i < numLights && i < 4; ++i)
 				{
@@ -112,9 +257,28 @@ namespace Nebula {
 					shader->SetFloat("u_PointLights[" + idx + "].Intensity", m_PointLights[i].Intensity);
 					shader->SetFloat("u_PointLights[" + idx + "].Radius", m_PointLights[i].Radius);
 				}
-				Renderer::Submit(meshRenderer.Material, meshRenderer.Mesh, transform.GetTransform());
+
+			// Set directional lights
+			shader->SetInt("u_NumDirectionalLights", numDirLights);
+			for (int i = 0; i < numDirLights && i < 4; ++i)
+			{
+				std::string idx = std::to_string(i);
+				shader->SetFloat3("u_DirectionalLights[" + idx + "].Direction", m_DirectionalLights[i].Direction);
+				shader->SetFloat3("u_DirectionalLights[" + idx + "].Color", m_DirectionalLights[i].Color);
+				shader->SetFloat("u_DirectionalLights[" + idx + "].Intensity", m_DirectionalLights[i].Intensity);
+				shader->SetMat4("u_DirectionalLights[" + idx + "].LightSpaceMatrix", m_DirectionalLights[i].LightSpaceMatrix);
+				
+				// Only bind shadow map if it was successfully created
+				if (m_DirectionalLights[i].ShadowMapTexture != 0)
+				{
+					RenderCommand::BindTexture(1 + i, m_DirectionalLights[i].ShadowMapTexture);
+					shader->SetInt("u_ShadowMaps[" + idx + "]", 1 + i);
+				}
 			}
+			
+			Renderer::Submit(meshRenderer.Material, meshRenderer.Mesh, transform.GetTransform());
 		}
+	}
 
 		// End the scene
 		Renderer::EndScene();

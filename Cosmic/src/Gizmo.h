@@ -44,6 +44,9 @@ namespace Cosmic {
 		void RenderScaleGizmo(const glm::vec3& origin, Axis hoveredAxis,
 							 void* drawList, const glm::vec2 viewportBounds[2],
 							 std::function<glm::vec2(const glm::vec3&)> project);
+		void RenderDirectionIndicators(Nebula::Entity& entity, const glm::vec3& origin,
+									   void* drawList, const glm::vec2 viewportBounds[2],
+									   std::function<glm::vec2(const glm::vec3&)> project);
 
 		// State
 		bool m_IsUsingGizmo = false;

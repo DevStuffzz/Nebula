@@ -23,6 +23,7 @@ namespace Nebula {
 	virtual void Clear() = 0;
 
 	virtual void DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray) = 0;
+	virtual void BindTexture(uint32_t slot, uint32_t textureID) = 0;
 
 	inline static API GetAPI() { return s_API; }
 	private:

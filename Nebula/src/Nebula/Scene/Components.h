@@ -24,6 +24,18 @@ namespace Nebula {
 			: Position(position), Color(color), Intensity(intensity), Radius(radius) {}
 	};
 
+	// Directional Light Component
+	struct NEBULA_API DirectionalLightComponent
+	{
+		glm::vec3 Color = glm::vec3(1.0f);                  // RGB color
+		float Intensity = 1.0f;                             // Light intensity
+
+		DirectionalLightComponent() = default;
+		DirectionalLightComponent(const DirectionalLightComponent&) = default;
+		DirectionalLightComponent(const glm::vec3& color, float intensity)
+			: Color(color), Intensity(intensity) {}
+	};
+
 	class Mesh;
 	class Material;
 

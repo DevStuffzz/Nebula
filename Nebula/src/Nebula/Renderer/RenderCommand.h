@@ -30,6 +30,12 @@ namespace Nebula {
 		{
 			s_RendererAPI->DrawIndexed(vertexArray);
 		}
+
+		inline static void BindTexture(uint32_t slot, uint32_t textureID)
+		{
+			s_RendererAPI->BindTexture(slot, textureID);
+		}
+
 	private:
 		static RendererAPI* s_RendererAPI;
 	};
