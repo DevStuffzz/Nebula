@@ -1,15 +1,15 @@
-[submodule "Nebula/vendor/spdlog"]
-	path = Nebula/vendor/spdlog
-	url = https://github.com/gabime/spdlog
-[submodule "Nebula/vendor/GLFW"]
-	path = Nebula/vendor/GLFW
-	url = https://github.com/TheCherno/GLFW
-[submodule "Nebula/vendor/imgui"]
-	path = Nebula/vendor/imgui
-	url = https://github.com/ocornut/imgui
 [submodule "Nebula/vendor/lua"]
 	path = Nebula/vendor/lua
 	url = https://github.com/DevStuffzz/lua.git
 [submodule "Nebula/vendor/bullet3"]
 	path = Nebula/vendor/bullet3
 	url = https://github.com/DevStuffzz/bullet3
+[submodule "Nebula/vendor/glad"]
+	path = Nebula/vendor/glad
+	url = https://github.com/DevStuffzz/glad
+[submodule "Nebula/vendor/GLFW"]
+	path = Nebula/vendor/GLFW
+	url = https://github.com/DevStuffzz/glfw
+[submodule "Nebula/vendor/imgui"]
+	path = Nebula/vendor/imgui
+	url = https://github.com/DevStuffzz/imgui
