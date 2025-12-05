@@ -10,3 +10,6 @@
 [submodule "Nebula/vendor/lua"]
 	path = Nebula/vendor/lua
 	url = https://github.com/DevStuffzz/lua.git
+[submodule "Nebula/vendor/bullet3"]
+	path = Nebula/vendor/bullet3
+	url = https://github.com/DevStuffzz/bullet3
