@@ -4,9 +4,6 @@
 [submodule "Nebula/vendor/bullet3"]
 	path = Nebula/vendor/bullet3
 	url = https://github.com/DevStuffzz/bullet3
-[submodule "Nebula/vendor/glad"]
-	path = Nebula/vendor/glad
-	url = https://github.com/DevStuffzz/glad
 [submodule "Nebula/vendor/GLFW"]
 	path = Nebula/vendor/GLFW
 	url = https://github.com/DevStuffzz/glfw
@@ -20,3 +17,6 @@
 [submodule "Nebula/vendor/glm"]
 	path = Nebula/vendor/glm
 	url = https://github.com/DevStuffzz/glm
+[submodule "Nebula/vendor/glad"]
+	path = Nebula/vendor/glad
+	url = https://github.com/DevStuffzz/glad

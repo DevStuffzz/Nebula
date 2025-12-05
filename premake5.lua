@@ -47,6 +47,12 @@ project "Nebula"
         "%{prj.name}/src/**.cpp"
     }
 
+    removefiles
+    {
+        "%{prj.name}/src/Platform/Windows/**",
+        "%{prj.name}/src/Platform/MacOS/**"
+    }
+
     includedirs
     {
         "%{prj.name}/vendor/spdlog/include",
@@ -75,6 +81,12 @@ project "Nebula"
         systemversion "latest"
         buildoptions { "/utf-8" }
 
+        files
+        {
+            "%{prj.name}/src/Platform/Windows/**.h",
+            "%{prj.name}/src/Platform/Windows/**.cpp"
+        }
+
         defines
         {
             "NB_PLATFORM_WINDOWS",
@@ -97,6 +109,12 @@ project "Nebula"
     filter "system:macosx"
         cppdialect "C++17"
         systemversion "10.15"
+
+        files
+        {
+            "%{prj.name}/src/Platform/MacOS/**.h",
+            "%{prj.name}/src/Platform/MacOS/**.cpp"
+        }
 
         defines
         {
