@@ -13,3 +13,10 @@
 [submodule "Nebula/vendor/imgui"]
 	path = Nebula/vendor/imgui
 	url = https://github.com/DevStuffzz/imgui
+	branch = master
+[submodule "Nebula/vendor/entt"]
+	path = Nebula/vendor/entt
+	url = https://github.com/DevStuffzz/entt
+[submodule "Nebula/vendor/glm"]
+	path = Nebula/vendor/glm
+	url = https://github.com/DevStuffzz/glm
