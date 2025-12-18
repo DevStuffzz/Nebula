@@ -13,10 +13,12 @@ namespace Nebula {
 		static void Init();
 
 		inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
-		inline static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+		inline static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_CosmicLogger; }
+		inline static std::shared_ptr<spdlog::logger>& GetCosmicLogger() { return s_ClientLogger; }
 
 	private:
 		static std::shared_ptr<spdlog::logger> s_CoreLogger;
+		static std::shared_ptr<spdlog::logger> s_CosmicLogger;
 		static std::shared_ptr<spdlog::logger> s_ClientLogger;
 	};
 }
@@ -33,3 +35,10 @@ namespace Nebula {
 #define NB_INFO(...)		::Nebula::Log::GetClientLogger()->info(__VA_ARGS__)
 #define NB_TRACE(...)		::Nebula::Log::GetClientLogger()->trace(__VA_ARGS__)
 #define NB_fatal(...)		::Nebula::Log::GetClientLogger()->fatal(__VA_ARGS__)
+
+
+#define COSMIC_ERROR(...)		::Nebula::Log::GetCosmicLogger()->error(__VA_ARGS__)
+#define COSMIC_WARN(...)		::Nebula::Log::GetCosmicLogger()->warn(__VA_ARGS__)
+#define COSMIC_INFO(...)		::Nebula::Log::GetCosmicLogger()->info(__VA_ARGS__)
+#define COSMIC_TRACE(...)		::Nebula::Log::GetCosmicLogger()->trace(__VA_ARGS__)
+#define COSMIC_fatal(...)		::Nebula::Log::GetCosmicLogger()->fatal(__VA_ARGS__)

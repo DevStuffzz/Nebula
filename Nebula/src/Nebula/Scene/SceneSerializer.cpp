@@ -352,19 +352,20 @@ namespace Nebula {
 		// Serialize all entities
 		json entitiesJson = json::array();
 		
-		m_Scene->m_Registry.each([&](auto entityID)
+		auto view = m_Scene->m_Registry.view<entt::entity>();
+		for (auto entityID : view)
 		{
 			Entity entity{ entityID, m_Scene };
 			
 			if (!entity)
-				return;
+				continue;
 			
 			json entityJson;
 			entityJson["ID"] = (uint32_t)entityID;
 			
 			SerializeEntity(entityJson, entity);
 			entitiesJson.push_back(entityJson);
-		});
+		}
 		
 		sceneJson["Entities"] = entitiesJson;
 		
@@ -438,19 +439,20 @@ namespace Nebula {
 		
 		json entitiesJson = json::array();
 		
-		m_Scene->m_Registry.each([&](auto entityID)
+		auto view = m_Scene->m_Registry.view<entt::entity>();
+		for (auto entityID : view)
 		{
 			Entity entity{ entityID, m_Scene };
 			
 			if (!entity)
-				return;
+				continue;
 			
 			json entityJson;
 			entityJson["ID"] = (uint32_t)entityID;
 			
 			SerializeEntity(entityJson, entity);
 			entitiesJson.push_back(entityJson);
-		});
+		}
 		
 		sceneJson["Entities"] = entitiesJson;
 		

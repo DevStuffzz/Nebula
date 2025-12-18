@@ -288,9 +288,11 @@ namespace Nebula {
 	{
 		std::vector<Entity> entities;
 
-		m_Registry.each([&](auto entityID) {
+		auto view = m_Registry.view<entt::entity>();
+		for (auto entityID : view)
+		{
 			entities.emplace_back(entityID, const_cast<Scene*>(this));
-			});
+		}
 
 		return entities;
 	}

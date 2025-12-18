@@ -23,6 +23,8 @@ IncludeDir["stb_image"] = "Nebula/vendor/stb_image"
 IncludeDir["entt"] = "Nebula/vendor/entt/src"
 IncludeDir["json"] = "Nebula/vendor/json"
 IncludeDir["Lua"] = "Nebula/vendor/lua"
+IncludeDir["spdlog"] = "Nebula/vendor/spdlog"
+
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
@@ -50,13 +52,14 @@ project "Nebula"
     removefiles
     {
         "%{prj.name}/src/Platform/Windows/**",
-        "%{prj.name}/src/Platform/MacOS/**"
+        "%{prj.name}/src/Platform/MacOS/**",
+        "%{prj.name}/src/Nebula/Physics/**"
     }
 
     includedirs
     {
-        "%{prj.name}/vendor/spdlog/include",
         "%{prj.name}/src",
+        "%{IncludeDir.spdlog}",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.ImGui}",
         "%{IncludeDir.glm}",
@@ -79,7 +82,7 @@ project "Nebula"
         cppdialect "C++17"
         staticruntime "Off"
         systemversion "latest"
-        buildoptions { "/utf-8" }
+        buildoptions { "/utf-8", "/FS" }
 
         files
         {
@@ -165,7 +168,6 @@ project "Runtime"
     
     includedirs
     {
-        "Nebula/vendor/spdlog/include",
         "Nebula/src",
         "%{prj.name}/src",
         "Nebula/vendor/glm",
@@ -183,7 +185,7 @@ project "Runtime"
         cppdialect "C++17"
         staticruntime "Off"
         systemversion "latest"
-        buildoptions { "/utf-8" }
+        buildoptions { "/utf-8", "/FS" }
 
         defines
         {
@@ -237,13 +239,13 @@ project "Cosmic"
     
     includedirs
     {
-        "Nebula/vendor/spdlog/include",
         "Nebula/src",
         "%{prj.name}/src",
         "Nebula/vendor/glm",
         "%{IncludeDir.entt}",
         "%{IncludeDir.ImGui}",
         "%{IncludeDir.Lua}",
+        "%{IncludeDir.spdlog}",
     }
     
     links
@@ -256,7 +258,7 @@ project "Cosmic"
         cppdialect "C++17"
         staticruntime "Off"
         systemversion "latest"
-        buildoptions { "/utf-8" }
+        buildoptions { "/utf-8", "/FS" }
 
         defines
         {

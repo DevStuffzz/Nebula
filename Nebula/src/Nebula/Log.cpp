@@ -6,6 +6,7 @@
 namespace Nebula {
 	std::shared_ptr<spdlog::logger> Log::s_CoreLogger;
 	std::shared_ptr<spdlog::logger> Log::s_ClientLogger;
+	std::shared_ptr<spdlog::logger> Log::s_CosmicLogger;
 
 
 
@@ -18,5 +19,8 @@ namespace Nebula {
 		s_ClientLogger = spdlog::stdout_color_mt("CLIENT");
 		s_ClientLogger->set_level(spdlog::level::trace);
 
+
+		s_CosmicLogger = spdlog::stdout_color_mt("COSMIC");
+		s_CosmicLogger->set_level(spdlog::level::trace);
 	}
 }
