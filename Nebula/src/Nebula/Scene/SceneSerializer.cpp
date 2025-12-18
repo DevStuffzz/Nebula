@@ -7,6 +7,7 @@
 #include "Nebula/Renderer/Mesh.h"
 #include "Nebula/Renderer/Shader.h"
 #include "Nebula/Renderer/Camera.h"
+#include "Nebula/Physics/PhysicsWorld.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 
@@ -173,6 +174,35 @@ namespace Nebula {
 			auto& script = entity.GetComponent<ScriptComponent>();
 			entityJson["ScriptComponent"]["ScriptPath"] = script.ScriptPath;
 		}
+
+		// Box Collider Component
+		if (entity.HasComponent<BoxColliderComponent>())
+		{
+			auto& collider = entity.GetComponent<BoxColliderComponent>();
+			entityJson["BoxColliderComponent"]["Size"] = { collider.Size.x, collider.Size.y, collider.Size.z };
+			entityJson["BoxColliderComponent"]["Offset"] = { collider.Offset.x, collider.Offset.y, collider.Offset.z };
+		}
+
+		// Sphere Collider Component
+		if (entity.HasComponent<SphereColliderComponent>())
+		{
+			auto& collider = entity.GetComponent<SphereColliderComponent>();
+			entityJson["SphereColliderComponent"]["Radius"] = collider.Radius;
+			entityJson["SphereColliderComponent"]["Offset"] = { collider.Offset.x, collider.Offset.y, collider.Offset.z };
+		}
+
+		// RigidBody Component
+		if (entity.HasComponent<RigidBodyComponent>())
+		{
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			entityJson["RigidBodyComponent"]["Type"] = (int)rb.Type;
+			entityJson["RigidBodyComponent"]["Mass"] = rb.Mass;
+			entityJson["RigidBodyComponent"]["LinearDrag"] = rb.LinearDrag;
+			entityJson["RigidBodyComponent"]["AngularDrag"] = rb.AngularDrag;
+			entityJson["RigidBodyComponent"]["UseGravity"] = rb.UseGravity;
+			entityJson["RigidBodyComponent"]["IsKinematic"] = rb.IsKinematic;
+			entityJson["RigidBodyComponent"]["FreezeRotation"] = rb.FreezeRotation;
+		}
 	}
 
 	static void DeserializeEntity(const json& entityJson, Scene* scene)
@@ -338,6 +368,86 @@ namespace Nebula {
 				script.ScriptPath = scriptJson["ScriptPath"];
 			else if (scriptJson.contains("ClassName"))
 				script.ScriptPath = "assets/scripts/" + std::string(scriptJson["ClassName"]) + ".lua";
+		}
+
+		// Box Collider Component
+		if (entityJson.contains("BoxColliderComponent"))
+		{
+			const auto& colliderJson = entityJson["BoxColliderComponent"];
+			auto& collider = entity.AddComponent<BoxColliderComponent>();
+			if (colliderJson.contains("Size"))
+			{
+				collider.Size = glm::vec3(
+					colliderJson["Size"][0],
+					colliderJson["Size"][1],
+					colliderJson["Size"][2]
+				);
+			}
+			if (colliderJson.contains("Offset"))
+			{
+				collider.Offset = glm::vec3(
+					colliderJson["Offset"][0],
+					colliderJson["Offset"][1],
+					colliderJson["Offset"][2]
+				);
+			}
+
+			// Initialize collider in physics world
+			if (entity.GetScene()->GetPhysicsWorld())
+			{
+				entity.GetScene()->GetPhysicsWorld()->AddBoxCollider(entity);
+			}
+		}
+
+		// Sphere Collider Component
+		if (entityJson.contains("SphereColliderComponent"))
+		{
+			const auto& colliderJson = entityJson["SphereColliderComponent"];
+			auto& collider = entity.AddComponent<SphereColliderComponent>();
+			if (colliderJson.contains("Radius"))
+				collider.Radius = colliderJson["Radius"];
+			if (colliderJson.contains("Offset"))
+			{
+				collider.Offset = glm::vec3(
+					colliderJson["Offset"][0],
+					colliderJson["Offset"][1],
+					colliderJson["Offset"][2]
+				);
+			}
+
+			// Initialize collider in physics world
+			if (entity.GetScene()->GetPhysicsWorld())
+			{
+				entity.GetScene()->GetPhysicsWorld()->AddSphereCollider(entity);
+			}
+		}
+
+		// RigidBody Component
+		if (entityJson.contains("RigidBodyComponent"))
+		{
+			const auto& rbJson = entityJson["RigidBodyComponent"];
+			auto& rb = entity.AddComponent<RigidBodyComponent>();
+			
+			if (rbJson.contains("Type"))
+				rb.Type = (RigidBodyComponent::BodyType)(int)rbJson["Type"];
+			if (rbJson.contains("Mass"))
+				rb.Mass = rbJson["Mass"];
+			if (rbJson.contains("LinearDrag"))
+				rb.LinearDrag = rbJson["LinearDrag"];
+			if (rbJson.contains("AngularDrag"))
+				rb.AngularDrag = rbJson["AngularDrag"];
+			if (rbJson.contains("UseGravity"))
+				rb.UseGravity = rbJson["UseGravity"];
+			if (rbJson.contains("IsKinematic"))
+				rb.IsKinematic = rbJson["IsKinematic"];
+			if (rbJson.contains("FreezeRotation"))
+				rb.FreezeRotation = rbJson["FreezeRotation"];
+
+			// Initialize rigidbody in physics world
+			if (entity.GetScene()->GetPhysicsWorld())
+			{
+				entity.GetScene()->GetPhysicsWorld()->AddRigidBody(entity);
+			}
 		}
 	}
 

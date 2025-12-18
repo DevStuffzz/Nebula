@@ -1,5 +1,6 @@
 #include "nbpch.h"
 #include "PhysicsWorld.h"
+#include "PhysicsDebugDraw.h"
 #include "Nebula/Scene/Scene.h"
 #include "Nebula/Scene/Entity.h"
 #include "Nebula/Scene/Components.h"
@@ -29,6 +30,11 @@ namespace Nebula {
 
 		// Set gravity
 		m_DynamicsWorld->setGravity(btVector3(m_Gravity.x, m_Gravity.y, m_Gravity.z));
+
+		// Create debug drawer
+		m_DebugDrawer = std::make_unique<PhysicsDebugDraw>();
+		m_DebugDrawer->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
+		m_DynamicsWorld->setDebugDrawer(m_DebugDrawer.get());
 
 		NB_INFO("Physics World initialized");
 	}
@@ -69,6 +75,22 @@ namespace Nebula {
 		if (m_DynamicsWorld)
 		{
 			m_DynamicsWorld->stepSimulation(deltaTime, 10);
+			
+			// Debug: Check for collisions
+			int numManifolds = m_DynamicsWorld->getDispatcher()->getNumManifolds();
+			if (numManifolds > 0)
+			{
+				NB_INFO("Physics: {0} collision manifolds detected", numManifolds);
+				for (int i = 0; i < numManifolds; i++)
+				{
+					btPersistentManifold* contactManifold = m_DynamicsWorld->getDispatcher()->getManifoldByIndexInternal(i);
+					int numContacts = contactManifold->getNumContacts();
+					if (numContacts > 0)
+					{
+						NB_INFO("  Manifold {0}: {1} contact points", i, numContacts);
+					}
+				}
+			}
 		}
 	}
 
@@ -86,8 +108,35 @@ namespace Nebula {
 		return m_Gravity;
 	}
 
+	void PhysicsWorld::SetDebugDrawEnabled(bool enabled)
+	{
+		m_DebugDrawEnabled = enabled;
+	}
+
+	void PhysicsWorld::DebugDraw()
+	{
+		if (m_DynamicsWorld && m_DebugDrawer && m_DebugDrawEnabled)
+		{
+			m_DebugDrawer->ClearLines();
+			m_DynamicsWorld->debugDrawWorld();
+		}
+	}
+
+	const std::vector<glm::vec3>& PhysicsWorld::GetDebugLineVertices() const
+	{
+		static std::vector<glm::vec3> empty;
+		return m_DebugDrawer ? m_DebugDrawer->GetLineVertices() : empty;
+	}
+
+	const std::vector<glm::vec3>& PhysicsWorld::GetDebugLineColors() const
+	{
+		static std::vector<glm::vec3> empty;
+		return m_DebugDrawer ? m_DebugDrawer->GetLineColors() : empty;
+	}
+
 	btCollisionShape* PhysicsWorld::CreateBoxShape(const glm::vec3& size)
 	{
+		// Bullet btBoxShape takes half-extents, so divide full size by 2
 		return new btBoxShape(btVector3(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f));
 	}
 
@@ -109,8 +158,26 @@ namespace Nebula {
 			delete collider.RuntimeShape;
 		}
 
+		// Apply entity scale to collision shape
+		glm::vec3 finalSize = collider.Size;
+		if (entity.HasComponent<TransformComponent>())
+		{
+			auto& transform = entity.GetComponent<TransformComponent>();
+			finalSize *= transform.Scale;
+			collider.LastScale = transform.Scale; // Track current scale
+			collider.LastSize = collider.Size;     // Track current size
+			NB_INFO("Creating BoxCollider - Size: ({0}, {1}, {2}), Scale: ({3}, {4}, {5}), Final: ({6}, {7}, {8})",
+				collider.Size.x, collider.Size.y, collider.Size.z,
+				transform.Scale.x, transform.Scale.y, transform.Scale.z,
+				finalSize.x, finalSize.y, finalSize.z);
+		}
+		else
+		{
+			collider.LastSize = collider.Size; // Track current size even without transform
+		}
+
 		// Create new box shape
-		collider.RuntimeShape = CreateBoxShape(collider.Size);
+		collider.RuntimeShape = CreateBoxShape(finalSize);
 	}
 
 	void PhysicsWorld::AddSphereCollider(Entity entity)
@@ -126,8 +193,23 @@ namespace Nebula {
 			delete collider.RuntimeShape;
 		}
 
+		// Apply entity scale to collision shape (use max component for uniform sphere scaling)
+		float finalRadius = collider.Radius;
+		if (entity.HasComponent<TransformComponent>())
+		{
+			auto& transform = entity.GetComponent<TransformComponent>();
+			float maxScale = glm::max(glm::max(transform.Scale.x, transform.Scale.y), transform.Scale.z);
+			finalRadius *= maxScale;
+			collider.LastScale = transform.Scale; // Track current scale
+			collider.LastRadius = collider.Radius; // Track current radius
+		}
+		else
+		{
+			collider.LastRadius = collider.Radius; // Track current radius even without transform
+		}
+
 		// Create new sphere shape
-		collider.RuntimeShape = CreateSphereShape(collider.Radius);
+		collider.RuntimeShape = CreateSphereShape(finalRadius);
 	}
 
 	void PhysicsWorld::RemoveCollider(Entity entity)
@@ -184,6 +266,9 @@ namespace Nebula {
 			return;
 		}
 
+		NB_INFO("Creating RigidBody at position ({0}, {1}, {2})", 
+			transform.Position.x, transform.Position.y, transform.Position.z);
+
 		// Calculate mass and inertia
 		btScalar mass = (rb.Type == RigidBodyComponent::BodyType::Dynamic) ? rb.Mass : 0.0f;
 		btVector3 localInertia(0, 0, 0);
@@ -209,16 +294,25 @@ namespace Nebula {
 
 		btRigidBody* body = new btRigidBody(rbInfo);
 
-		// Set kinematic flag
-		if (rb.IsKinematic || rb.Type == RigidBodyComponent::BodyType::Kinematic)
+		// Set flags based on body type
+		if (rb.Type == RigidBodyComponent::BodyType::Static)
 		{
+			// Static bodies should have the static flag set
+			body->setCollisionFlags(body->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT);
+		}
+		else if (rb.IsKinematic || rb.Type == RigidBodyComponent::BodyType::Kinematic)
+		{
+			// Kinematic bodies can be moved but aren't affected by forces
 			body->setCollisionFlags(body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 			body->setActivationState(DISABLE_DEACTIVATION);
 		}
 
-		// Set initial velocity
-		body->setLinearVelocity(btVector3(rb.LinearVelocity.x, rb.LinearVelocity.y, rb.LinearVelocity.z));
-		body->setAngularVelocity(btVector3(rb.AngularVelocity.x, rb.AngularVelocity.y, rb.AngularVelocity.z));
+		// Set initial velocity (only relevant for dynamic bodies)
+		if (rb.Type == RigidBodyComponent::BodyType::Dynamic)
+		{
+			body->setLinearVelocity(btVector3(rb.LinearVelocity.x, rb.LinearVelocity.y, rb.LinearVelocity.z));
+			body->setAngularVelocity(btVector3(rb.AngularVelocity.x, rb.AngularVelocity.y, rb.AngularVelocity.z));
+		}
 
 		// Freeze rotation if needed
 		if (rb.FreezeRotation)
@@ -232,6 +326,10 @@ namespace Nebula {
 			body->setGravity(btVector3(0, 0, 0));
 		}
 
+		// Set friction and restitution for realistic collisions
+		body->setFriction(0.5f);
+		body->setRestitution(0.3f);
+
 		// Store in component
 		rb.RuntimeBody = body;
 
@@ -239,6 +337,14 @@ namespace Nebula {
 		if (m_DynamicsWorld)
 		{
 			m_DynamicsWorld->addRigidBody(body);
+			
+			// Log rigid body creation for debugging
+			const char* typeStr = "Unknown";
+			if (rb.Type == RigidBodyComponent::BodyType::Static) typeStr = "Static";
+			else if (rb.Type == RigidBodyComponent::BodyType::Dynamic) typeStr = "Dynamic";
+			else if (rb.Type == RigidBodyComponent::BodyType::Kinematic) typeStr = "Kinematic";
+			
+			NB_INFO("Added {0} RigidBody (mass: {1}) to physics world", typeStr, rb.Mass);
 		}
 	}
 
@@ -280,6 +386,7 @@ namespace Nebula {
 
 		if (rb.RuntimeBody)
 		{
+			// Update position and rotation
 			btTransform btTrans;
 			btTrans.setIdentity();
 			btTrans.setOrigin(btVector3(transform.Position.x, transform.Position.y, transform.Position.z));
@@ -289,6 +396,76 @@ namespace Nebula {
 
 			rb.RuntimeBody->setWorldTransform(btTrans);
 			rb.RuntimeBody->getMotionState()->setWorldTransform(btTrans);
+			
+			// For kinematic objects, we need to activate them so the transform update takes effect
+			if (rb.Type == RigidBodyComponent::BodyType::Kinematic || rb.IsKinematic)
+			{
+				rb.RuntimeBody->activate(true);
+			}
+
+			// Update collision shape if scale changed
+			btCollisionShape* currentShape = rb.RuntimeBody->getCollisionShape();
+			if (currentShape)
+			{
+				btCollisionShape* newShape = nullptr;
+				
+				// Recreate shape with new scale if entity has colliders
+				if (entity.HasComponent<BoxColliderComponent>())
+				{
+					auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
+					
+					// Only recreate if scale or size changed
+					if (boxCollider.LastScale != transform.Scale || boxCollider.LastSize != boxCollider.Size)
+					{
+						glm::vec3 finalSize = boxCollider.Size * transform.Scale;
+						newShape = CreateBoxShape(finalSize);
+						boxCollider.LastScale = transform.Scale;
+						boxCollider.LastSize = boxCollider.Size;
+					
+						// Clean up old shape (stored in component)
+						if (boxCollider.RuntimeShape && boxCollider.RuntimeShape == currentShape)
+						{
+							delete boxCollider.RuntimeShape;
+						}
+						boxCollider.RuntimeShape = newShape;
+					}
+				}
+				else if (entity.HasComponent<SphereColliderComponent>())
+				{
+					auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
+					
+					// Only recreate if scale or radius changed
+					if (sphereCollider.LastScale != transform.Scale || sphereCollider.LastRadius != sphereCollider.Radius)
+					{
+						float maxScale = glm::max(glm::max(transform.Scale.x, transform.Scale.y), transform.Scale.z);
+						float finalRadius = sphereCollider.Radius * maxScale;
+						newShape = CreateSphereShape(finalRadius);
+						sphereCollider.LastScale = transform.Scale;
+						sphereCollider.LastRadius = sphereCollider.Radius;
+					
+						// Clean up old shape (stored in component)
+						if (sphereCollider.RuntimeShape && sphereCollider.RuntimeShape == currentShape)
+						{
+							delete sphereCollider.RuntimeShape;
+						}
+						sphereCollider.RuntimeShape = newShape;
+					}
+				}
+
+				// Update rigid body to use new shape
+				if (newShape)
+				{
+					rb.RuntimeBody->setCollisionShape(newShape);
+					
+					// Recalculate inertia if it's a dynamic body
+					if (rb.Type == RigidBodyComponent::BodyType::Dynamic && rb.Mass > 0.0f)
+					{
+						btVector3 localInertia(0, 0, 0);
+						newShape->calculateLocalInertia(rb.Mass, localInertia);
+						rb.RuntimeBody->setMassProps(rb.Mass, localInertia);
+					}
+				}
+			}
 		}
 	}
 
@@ -320,6 +497,20 @@ namespace Nebula {
 
 			btVector3 angVel = rb.RuntimeBody->getAngularVelocity();
 			rb.AngularVelocity = glm::vec3(angVel.x(), angVel.y(), angVel.z());
+		}
+	}
+
+	void PhysicsWorld::SyncAllRigidBodyTransforms(Scene* scene)
+	{
+		if (!scene)
+			return;
+
+		// Iterate all entities with rigid bodies and sync their physics transforms
+		auto view = scene->GetRegistry().view<RigidBodyComponent, TransformComponent>();
+		for (auto entity : view)
+		{
+			Entity ent{ entity, scene };
+			UpdateRigidBodyTransform(ent);
 		}
 	}
 

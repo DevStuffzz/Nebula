@@ -18,18 +18,22 @@ IncludeDir = {}
 IncludeDir["GLFW"] = "Nebula/vendor/GLFW/include"
 IncludeDir["glad"] = "Nebula/vendor/glad/include"
 IncludeDir["ImGui"] = "Nebula/vendor/imgui"
+IncludeDir["ImGuizmo"] = "Nebula/vendor/ImGuizmo"
 IncludeDir["glm"] = "Nebula/vendor/glm"
 IncludeDir["stb_image"] = "Nebula/vendor/stb_image"
 IncludeDir["entt"] = "Nebula/vendor/entt/src"
 IncludeDir["json"] = "Nebula/vendor/json"
 IncludeDir["Lua"] = "Nebula/vendor/lua"
 IncludeDir["spdlog"] = "Nebula/vendor/spdlog"
+IncludeDir["bullet3"] = "Nebula/vendor/bullet3/src"
 
 
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
+include "Nebula/vendor/ImGuizmo"
 include "Nebula/vendor/glad"
 include "Nebula/vendor/lua"
+include "Nebula/vendor/bullet3"
 
 project "Nebula"
     location "Nebula"
@@ -52,8 +56,7 @@ project "Nebula"
     removefiles
     {
         "%{prj.name}/src/Platform/Windows/**",
-        "%{prj.name}/src/Platform/MacOS/**",
-        "%{prj.name}/src/Nebula/Physics/**"
+        "%{prj.name}/src/Platform/MacOS/**"
     }
 
     includedirs
@@ -62,20 +65,26 @@ project "Nebula"
         "%{IncludeDir.spdlog}",
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.ImGui}",
+        "%{IncludeDir.ImGuizmo}",
         "%{IncludeDir.glm}",
         "%{IncludeDir.glad}",
         "%{IncludeDir.stb_image}",
         "%{IncludeDir.entt}",
         "%{IncludeDir.json}",
         "%{IncludeDir.Lua}",
+        "%{IncludeDir.bullet3}",
     }
 
     links
     {
         "GLFW",
         "ImGui",
+        "ImGuizmo",
         "glad",
         "Lua",
+        "BulletDynamics",
+        "BulletCollision",
+        "LinearMath",
     }
 
     filter "system:windows"

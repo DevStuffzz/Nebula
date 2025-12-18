@@ -21,6 +21,7 @@ namespace Nebula {
 
 	class Framebuffer;
 	class Shader;
+	class PhysicsWorld;
 
 	class NEBULA_API Scene
 	{
@@ -41,6 +42,10 @@ namespace Nebula {
 
 		const std::string& GetName() const { return m_Name; }		
 		entt::registry& GetRegistry() { return m_Registry; }
+
+		// Physics access
+		PhysicsWorld* GetPhysicsWorld() { return m_PhysicsWorld.get(); }
+		void SetPhysicsDebugDraw(bool enabled);
 
 	private:
 		std::string m_Name;
@@ -71,6 +76,9 @@ namespace Nebula {
 	std::shared_ptr<Shader> m_ShadowShader;
 	void RenderShadowMaps();	private:
 		glm::vec3 m_GlobalIllumination;
+
+		// Physics
+		std::unique_ptr<PhysicsWorld> m_PhysicsWorld;
 
 		friend class Entity;
 		friend class SceneHierarchyPanel;

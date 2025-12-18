@@ -12,7 +12,7 @@ namespace Nebula {
 	class NEBULA_API NebulaGui {
 	public:
 		// Window
-		static void Begin(const char* name, bool* p_open = nullptr);
+		static bool Begin(const char* name, bool* p_open = nullptr);
 		static void End();
 
 		// Drag/Slider
@@ -34,6 +34,10 @@ namespace Nebula {
 
 		// Input
 		static bool InputText(const char* label, char* buf, size_t buf_size);
+
+		// Combo
+		static bool BeginCombo(const char* label, const char* preview_value);
+		static void EndCombo();
 
 		// Color
 		static bool ColorEdit4(const char* label, float* col);
@@ -97,6 +101,7 @@ namespace Nebula {
 		static bool IsWindowFocused();
 		static glm::vec2 GetItemRectMin();
 		static glm::vec2 GetItemRectMax();
+		static void SetItemDefaultFocus();
 		static void* GetWindowDrawList();
 		static void* GetForegroundDrawList();
 		static glm::vec2 GetMousePos();

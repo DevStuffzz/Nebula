@@ -9,6 +9,10 @@
 #include <string>
 #include <memory>
 
+// Forward declare Bullet types (keep them outside Nebula namespace)
+class btCollisionShape;
+class btRigidBody;
+
 namespace Nebula {
 	// Point Light Component
 	struct NEBULA_API PointLightComponent
@@ -115,6 +119,78 @@ namespace Nebula {
 		ScriptComponent(const ScriptComponent&) = default;
 		ScriptComponent(const std::string& scriptPath)
 			: ScriptPath(scriptPath) {}
+	};
+
+	// Box Collider Component
+	struct NEBULA_API BoxColliderComponent
+	{
+		glm::vec3 Size = glm::vec3(4.0f);       // Full dimensions of the box (matches default cube mesh)
+		glm::vec3 Offset = glm::vec3(0.0f);     // Offset from entity position
+
+		// Runtime data (opaque pointer to avoid exposing Bullet)
+		btCollisionShape* RuntimeShape = nullptr;
+		glm::vec3 LastScale = glm::vec3(1.0f);  // Track last scale to detect changes
+		glm::vec3 LastSize = glm::vec3(0.0f);   // Track last size to detect changes
+
+		BoxColliderComponent() = default;
+		BoxColliderComponent(const BoxColliderComponent&) = default;
+		BoxColliderComponent(const glm::vec3& size)
+			: Size(size) {}
+	};
+
+	// Sphere Collider Component
+	struct NEBULA_API SphereColliderComponent
+	{
+		float Radius = 2.0f;  // Matches default sphere mesh radius
+		glm::vec3 Offset = glm::vec3(0.0f);     // Offset from entity position
+
+		// Runtime data (opaque pointer to avoid exposing Bullet)
+		btCollisionShape* RuntimeShape = nullptr;
+		glm::vec3 LastScale = glm::vec3(1.0f);  // Track last scale to detect changes
+		float LastRadius = 0.0f;                // Track last radius to detect changes
+
+		SphereColliderComponent() = default;
+		SphereColliderComponent(const SphereColliderComponent&) = default;
+		SphereColliderComponent(float radius)
+			: Radius(radius) {}
+	};
+
+	// RigidBody Component
+	struct NEBULA_API RigidBodyComponent
+	{
+		enum class BodyType { Static = 0, Dynamic = 1, Kinematic = 2 };
+
+		BodyType Type = BodyType::Dynamic;
+		float Mass = 1.0f;
+		float LinearDrag = 0.0f;
+		float AngularDrag = 0.05f;
+		bool UseGravity = true;
+		bool IsKinematic = false;
+		bool FreezeRotation = false;
+
+		// Runtime velocity (synced from physics)
+		glm::vec3 LinearVelocity = glm::vec3(0.0f);
+		glm::vec3 AngularVelocity = glm::vec3(0.0f);
+
+		// Runtime data (opaque pointer to avoid exposing Bullet)
+		btRigidBody* RuntimeBody = nullptr;
+
+		RigidBodyComponent() = default;
+		RigidBodyComponent(const RigidBodyComponent&) = default;
+	};
+
+	// Line Renderer Component - For debug visualization and line rendering
+	struct NEBULA_API LineRendererComponent
+	{
+		std::vector<glm::vec3> Points;
+		glm::vec3 Color = glm::vec3(1.0f); // Default white
+		float Width = 1.0f;
+		bool Loop = false; // Connect last point to first
+
+		LineRendererComponent() = default;
+		LineRendererComponent(const LineRendererComponent&) = default;
+		LineRendererComponent(const glm::vec3& color)
+			: Color(color) {}
 	};
 
 }

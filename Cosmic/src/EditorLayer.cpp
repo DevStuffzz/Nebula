@@ -2,11 +2,13 @@
 #include "Nebula/Math.h"
 #include "Nebula/Renderer/RenderCommand.h"
 #include "Nebula/Log.h"
+#include "Nebula/ImGui/NebulaGuizmo.h"
 #include "Nebula/ImGui/NebulaGui.h"
 #include "Nebula/Application.h"
 #include <Nebula/Scene/Components.h>
 #include <Nebula/Scene/SceneSerializer.h>
 #include <Nebula/Scene/SceneManager.h>
+#include <Nebula/Physics/PhysicsWorld.h>
 
 #include "Nebula/Renderer/Mesh.h"
 #include <Nebula/Renderer/Shader.h>
@@ -15,6 +17,7 @@
 #include "Nebula/Renderer/Texture.h"
 
 #include "EditorWindows/Viewport.h"
+#include "EditorWindows/GameView.h"
 #include "EditorWindows/SceneHeirarchy.h"
 #include "EditorWindows/PropertiesPanel.h"
 #include "EditorWindows/MenuBar.h"
@@ -55,6 +58,16 @@ namespace Cosmic {
 		fbSpec.Height = (uint32_t)m_ViewportSize.y;
 		m_Framebuffer = Nebula::Framebuffer::Create(fbSpec);
 
+		// Create game view framebuffer
+		Nebula::FramebufferSpecification gameViewSpec;
+		gameViewSpec.Width = 1280;
+		gameViewSpec.Height = 720;
+		m_GameViewFramebuffer = Nebula::Framebuffer::Create(gameViewSpec);
+		m_GameViewSize = { 1280.0f, 720.0f };
+
+		// Create line renderer for debug visualization
+		m_LineRenderer = Nebula::LineRenderer::Create();
+
 		auto& camera = Nebula::Application::Get().GetCamera();
 		if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera))
 		{
@@ -65,57 +78,18 @@ namespace Cosmic {
 		// Create a default scene if none is set
 		if (!m_ActiveScene)
 		{
-			m_ActiveScene = std::make_shared<Nebula::Scene>("Top-Down Scene");
+			m_ActiveScene = std::make_shared<Nebula::Scene>("Default Scene");
 
-			// Create ground
-			auto ground = m_ActiveScene->CreateEntity("Ground");
-			auto& groundMeshRenderer = ground.AddComponent<Nebula::MeshRendererComponent>();
-			groundMeshRenderer.Mesh = Nebula::Mesh::CreateCube();
-			auto& groundTransform = ground.GetComponent<Nebula::TransformComponent>();
-			groundTransform.Scale = glm::vec3(20.0f, 0.1f, 20.0f);
-			groundTransform.Position = glm::vec3(0.0f, -0.5f, 0.0f);
-
-			// Create shader and material for ground
-			Nebula::Shader* rawShader = Nebula::Shader::Create("assets/shaders/Basic.glsl");
-			std::shared_ptr<Nebula::Shader> shader(rawShader);
-
-		auto groundMaterial = std::make_shared<Nebula::Material>(shader);
-		groundMaterial->SetFloat4("u_Color", glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)); // Gray color
-
-		std::shared_ptr<Nebula::Texture2D> texture;
-		texture.reset(Nebula::Texture2D::Create("assets/textures/Checkerboard.png"));
-		groundMaterial->SetTexture("u_Texture", texture);
-		groundMaterial->SetInt("u_UseTexture", 1);
-		groundMaterial->SetFloat2("u_TextureTiling", glm::vec2(1.0f, 1.0f));
-
-		groundMeshRenderer.Material = groundMaterial;			// Create a sample object (e.g., a box)
-			auto box = m_ActiveScene->CreateEntity("Box");
-			auto& boxMeshRenderer = box.AddComponent<Nebula::MeshRendererComponent>();
-			boxMeshRenderer.Mesh = Nebula::Mesh::CreateCube();
-			auto& boxTransform = box.GetComponent<Nebula::TransformComponent>();
-			boxTransform.Position = glm::vec3(2.0f, 0.5f, 0.0f);
-			boxTransform.Scale = glm::vec3(1.0f, 1.0f, 1.0f);
-
-		auto boxMaterial = std::make_shared<Nebula::Material>(shader);
-		boxMaterial->SetFloat4("u_Color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color
-		boxMaterial->SetTexture("u_Texture", texture);
-		boxMaterial->SetInt("u_UseTexture", 0); // No texture
-		boxMaterial->SetFloat2("u_TextureTiling", glm::vec2(1.0f, 1.0f));
-
-		boxMeshRenderer.Material = boxMaterial;
-		}
-
+			
 		// Create a camera entity
 		auto cameraEntity = m_ActiveScene->CreateEntity("Main Camera");
 		auto& cameraComp = cameraEntity.AddComponent<Nebula::CameraComponent>();
 		auto& cameraTransform = cameraEntity.GetComponent<Nebula::TransformComponent>();
 		cameraTransform.Position = glm::vec3(0.0f, 15.0f, 10.0f);
 		cameraTransform.Rotation = glm::vec3(-glm::half_pi<float>(), 0.0f, 0.0f); // Look along negative Y (down, since Y is up)
+		}
 
-		// Add CameraController script
-		auto& scriptComp = cameraEntity.AddComponent<Nebula::ScriptComponent>();
-		scriptComp.ScriptPath = "assets/scripts/CameraController.lua";
-
+		
 		SceneHierarchy::SetContext(m_ActiveScene);
 
 		// Setup content browser
@@ -141,6 +115,7 @@ namespace Cosmic {
 	void EditorLayer::OnDetach()
 	{
 		delete m_Framebuffer;
+		delete m_GameViewFramebuffer;
 
 		if (m_ActiveScene)
 		{
@@ -156,23 +131,7 @@ namespace Cosmic {
 		auto gizmoMode = Viewport::GetGizmoMode();
 		Nebula::Entity selectedEntity = SceneHierarchy::GetSelectedEntity();
 		
-		if (selectedEntity && gizmoMode != Viewport::GizmoMode::None)
-		{
-			glm::vec2 currentMousePos = Nebula::NebulaGui::GetMousePos();
-			bool mousePressed = Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_1);
-			auto bounds = Viewport::GetViewportBounds();
-			
-			// Only allow gizmo interaction when viewport is hovered or already using gizmo
-			if (Viewport::IsViewportHovered() || m_Gizmo.IsInUse())
-			{
-				Gizmo::Mode mode = Gizmo::Mode::None;
-				if (gizmoMode == Viewport::GizmoMode::Translate) mode = Gizmo::Mode::Translate;
-				else if (gizmoMode == Viewport::GizmoMode::Rotate) mode = Gizmo::Mode::Rotate;
-				else if (gizmoMode == Viewport::GizmoMode::Scale) mode = Gizmo::Mode::Scale;
-				
-				m_Gizmo.HandleInput(selectedEntity, mode, currentMousePos, mousePressed, bounds);
-			}
-		}
+// Gizmo input handling removed - will be replaced with ImGuizmo
 
 		float moveSpeed = 2.5f * ts;
 		
@@ -181,7 +140,7 @@ namespace Cosmic {
 			moveSpeed *= 3.0f;
 
 		// Check if right mouse button held for camera rotation (only if not using gizmo)
-		if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2) && !m_Gizmo.IsInUse())
+		if (Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_2) && !Nebula::NebulaGuizmo::IsUsing())
 		{
 				Nebula::Application::Get().GetWindow().SetCursorMode(true); // Lock cursor
 
@@ -286,32 +245,174 @@ namespace Cosmic {
 
 		if (m_ActiveScene)
 		{
-			m_ActiveScene->OnUpdate(ts);
+			// Only update physics and scripts when in runtime mode
+			if (m_RuntimeMode)
+			{
+				m_ActiveScene->OnUpdate(ts);
+			}
 			m_ActiveScene->OnRender();
+			
+			// Always draw physics debug visualization
+			if (m_LineRenderer)
+			{
+				m_ActiveScene->SetPhysicsDebugDraw(true);
+				if (m_ActiveScene->GetPhysicsWorld())
+				{
+					// Sync all entity transforms to physics bodies before debug drawing (only in editor mode)
+					if (!m_RuntimeMode)
+					{
+						m_ActiveScene->GetPhysicsWorld()->SyncAllRigidBodyTransforms(m_ActiveScene.get());
+					}
+					
+					m_ActiveScene->GetPhysicsWorld()->DebugDraw();
+					
+					// Render physics debug lines
+					const auto& lineVertices = m_ActiveScene->GetPhysicsWorld()->GetDebugLineVertices();
+					const auto& lineColors = m_ActiveScene->GetPhysicsWorld()->GetDebugLineColors();
+					
+					if (!lineVertices.empty() && !lineColors.empty())
+					{
+						// Set view projection from the editor camera
+						auto& camera = Nebula::Application::Get().GetCamera();
+						m_LineRenderer->SetViewProjection(camera.GetViewProjectionMatrix());
+						
+						m_LineRenderer->Begin();
+						m_LineRenderer->DrawLines(lineVertices, lineColors);
+						m_LineRenderer->End();
+					}
+				}
+			}
 		}
 
 		m_Framebuffer->Unbind();
+
+		// --- Render Game View ---
+		if (m_ActiveScene)
+		{
+			// Find the primary camera in the scene
+			auto view = m_ActiveScene->GetRegistry().view<Nebula::CameraComponent, Nebula::TransformComponent>();
+			for (auto entity : view)
+			{
+				auto& cameraComp = view.get<Nebula::CameraComponent>(entity);
+				if (cameraComp.Primary)
+				{
+					auto& transform = view.get<Nebula::TransformComponent>(entity);
+					
+					// Bind game view framebuffer
+					m_GameViewFramebuffer->Bind();
+					Nebula::RenderCommand::SetViewport(0, 0, (uint32_t)m_GameViewSize.x, (uint32_t)m_GameViewSize.y);
+					Nebula::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
+					Nebula::RenderCommand::Clear();
+					
+					// Temporarily set the application camera to the game camera
+					auto& appCamera = Nebula::Application::Get().GetCamera();
+					auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&appCamera);
+					if (!perspCam) break;
+					
+					glm::vec3 savedPos = perspCam->GetPosition();
+					glm::vec3 savedRot = perspCam->GetRotation();
+					
+					perspCam->SetPosition(transform.Position);
+					perspCam->SetRotation(transform.Rotation);
+					float gameAspect = m_GameViewSize.x / m_GameViewSize.y;
+					perspCam->SetProjection(cameraComp.PerspectiveFOV, gameAspect, cameraComp.PerspectiveNear, cameraComp.PerspectiveFar);
+					
+					// Render scene from game camera perspective
+					m_ActiveScene->OnRender();
+					
+					// Restore application camera
+					perspCam->SetPosition(savedPos);
+					perspCam->SetRotation(savedRot);
+					float editorAspect = m_ViewportSize.x / m_ViewportSize.y;
+					perspCam->SetProjection(45.0f, editorAspect, 0.1f, 1000.0f);
+					
+					m_GameViewFramebuffer->Unbind();
+					break;
+				}
+			}
+		}
 	}
 
 	void EditorLayer::OnImGuiRender()
 	{
-		// Menu Bar
-		MenuBar::OnImGuiRender();
+	Nebula::NebulaGuizmo::BeginFrame();
+	
+	// Menu Bar
+	MenuBar::OnImGuiRender();
 
-		uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
-
-		// Render the viewport with gizmo callback
-		auto gizmoCallback = [this]() {
-			RenderGizmo();
-		};
-
-		glm::vec2 actualDisplaySize = Viewport::OnImGuiRender((void*)(intptr_t)textureID, m_ViewportSize, 
-														   glm::vec2{ 0,1 }, glm::vec2{ 1,0 }, gizmoCallback);
-
-		// Clamp minimum size to avoid zero-sized framebuffer
-		if (actualDisplaySize.x < 1.0f) actualDisplaySize.x = 1.0f;
-		if (actualDisplaySize.y < 1.0f) actualDisplaySize.y = 1.0f;
-
+	uint32_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
+	auto gizmoCallback = [this]()
+	{
+		// Render ImGuizmo for selected entity
+		Nebula::Entity selectedEntity = SceneHierarchy::GetSelectedEntity();
+		auto gizmoMode = Viewport::GetGizmoMode();
+		
+		if (!selectedEntity || gizmoMode == Viewport::GizmoMode::None || m_RuntimeMode)
+			return;
+			
+		// Get camera from application
+		auto& camera = Nebula::Application::Get().GetCamera();
+		glm::mat4 cameraView = camera.GetViewMatrix();
+		glm::mat4 cameraProjection = camera.GetProjectionMatrix();
+		
+		// Get entity transform
+		auto& tc = selectedEntity.GetComponent<Nebula::TransformComponent>();
+		glm::mat4 transform = tc.GetTransform();
+		
+		// Setup ImGuizmo
+		auto bounds = Viewport::GetViewportBounds();
+		Nebula::NebulaGuizmo::SetOrthographic(false);
+		Nebula::NebulaGuizmo::SetDrawlist();
+		Nebula::NebulaGuizmo::SetRect(bounds[0].x, bounds[0].y, 
+									  bounds[1].x - bounds[0].x, 
+									  bounds[1].y - bounds[0].y);
+		
+		// Determine operation type
+		Nebula::GuizmoOperation operation;
+		switch (gizmoMode)
+		{
+		case Viewport::GizmoMode::Translate: operation = Nebula::GuizmoOperation::Translate; break;
+		case Viewport::GizmoMode::Rotate: operation = Nebula::GuizmoOperation::Rotate; break;
+		case Viewport::GizmoMode::Scale: operation = Nebula::GuizmoOperation::Scale; break;
+		default: return;
+		}
+		
+		// Manipulate the transform
+		if (Nebula::NebulaGuizmo::Manipulate(
+			&cameraView[0][0],
+			&cameraProjection[0][0],
+			operation,
+			Nebula::GuizmoMode::Local,
+			&transform[0][0]))
+		{
+			// Decompose the transform and update entity
+			glm::vec3 translation, rotation, scale;
+			Nebula::NebulaGuizmo::DecomposeMatrixToComponents(
+				&transform[0][0],
+				&translation[0],
+				&rotation[0],
+				&scale[0]
+			);
+			
+			tc.Position = translation;
+			tc.Rotation = rotation;
+			tc.Scale = scale;
+			
+			// Update physics body if entity has one
+			if (selectedEntity.HasComponent<Nebula::RigidBodyComponent>() && m_ActiveScene->GetPhysicsWorld())
+			{
+				m_ActiveScene->GetPhysicsWorld()->UpdateRigidBodyTransform(selectedEntity);
+			}
+		}
+	};
+	
+	glm::vec2 actualDisplaySize = Viewport::OnImGuiRender((void*)(intptr_t)textureID, m_ViewportSize, 
+											   glm::vec2{ 0,1 }, glm::vec2{ 1,0 }, gizmoCallback);
+	
+	// Clamp minimum size to avoid zero-sized framebuffer
+	if (actualDisplaySize.x < 1.0f) actualDisplaySize.x = 1.0f;
+	if (actualDisplaySize.y < 1.0f) actualDisplaySize.y = 1.0f;
+	
 		// Resize framebuffer only if size changed - match the actual displayed image size
 		if ((uint32_t)actualDisplaySize.x != (uint32_t)m_ViewportSize.x ||
 			(uint32_t)actualDisplaySize.y != (uint32_t)m_ViewportSize.y)
@@ -322,6 +423,23 @@ namespace Cosmic {
 
 		// Scene Hierarchy
 		SceneHierarchy::OnImGuiRender();
+
+		// Game View - separate window showing game camera perspective
+		uint32_t gameViewTextureID = m_GameViewFramebuffer->GetColorAttachmentRendererID();
+		glm::vec2 actualGameViewSize = GameView::OnImGuiRender((void*)(intptr_t)gameViewTextureID, m_GameViewSize,
+															   glm::vec2{ 0,1 }, glm::vec2{ 1,0 });
+		
+		// Clamp minimum size to avoid zero-sized framebuffer
+		if (actualGameViewSize.x < 1.0f) actualGameViewSize.x = 1.0f;
+		if (actualGameViewSize.y < 1.0f) actualGameViewSize.y = 1.0f;
+		
+		// Resize game view framebuffer if size changed
+		if ((uint32_t)actualGameViewSize.x != (uint32_t)m_GameViewSize.x ||
+			(uint32_t)actualGameViewSize.y != (uint32_t)m_GameViewSize.y)
+		{
+			m_GameViewSize = actualGameViewSize;
+			m_GameViewFramebuffer->Resize((uint32_t)m_GameViewSize.x, (uint32_t)m_GameViewSize.y);
+		}
 
 		// Properties Panel - sync selection from hierarchy
 		PropertiesPanel::SetSelectedEntity(SceneHierarchy::GetSelectedEntity());
@@ -456,32 +574,33 @@ namespace Cosmic {
 	{
 		m_RuntimeMode = !m_RuntimeMode;
 		MenuBar::SetRuntimeMode(m_RuntimeMode);
+		
 		if (m_RuntimeMode)
 		{
+			// Entering runtime mode - save the current scene state
 			NB_CORE_INFO("Runtime started");
+			
+			// Store the scene path so we can reload it when stopping
+			if (!m_CurrentScenePath.empty())
+			{
+				// Save current editor state before entering play mode
+				// This allows us to restore it when exiting play mode
+			}
 		}
 		else
 		{
+			// Exiting runtime mode - restore the scene to its pre-runtime state
 			NB_CORE_INFO("Runtime stopped");
+			
+			// Reload the scene to reset physics state (this will clear the physics world)
+			if (!m_CurrentScenePath.empty())
+			{
+				LoadSceneFromPath(m_CurrentScenePath);
+			}
 		}
 	}
 
-	void EditorLayer::RenderGizmo()
-	{
-		Nebula::Entity selectedEntity = SceneHierarchy::GetSelectedEntity();
-		auto gizmoMode = Viewport::GetGizmoMode();
-		
-		if (!selectedEntity || gizmoMode == Viewport::GizmoMode::None || m_RuntimeMode)
-			return;
-		
-		Gizmo::Mode mode = Gizmo::Mode::None;
-		if (gizmoMode == Viewport::GizmoMode::Translate) mode = Gizmo::Mode::Translate;
-		else if (gizmoMode == Viewport::GizmoMode::Rotate) mode = Gizmo::Mode::Rotate;
-		else if (gizmoMode == Viewport::GizmoMode::Scale) mode = Gizmo::Mode::Scale;
-		
-		auto bounds = Viewport::GetViewportBounds();
-		m_Gizmo.Render(selectedEntity, mode, bounds);
-	}
+	// RenderGizmo removed - will be replaced with ImGuizmo integration
 
 }
 

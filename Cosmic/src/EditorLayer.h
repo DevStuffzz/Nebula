@@ -4,9 +4,9 @@
 #include "Nebula/Timestep.h"
 #include "Nebula/Events/Event.h"
 #include "Nebula/Renderer/Framebuffer.h"
+#include "Nebula/Renderer/LineRenderer.h"
 #include "Nebula/Scene/Scene.h"
 #include "Nebula/Scene/Entity.h"
-#include "Gizmo.h"
 #include "EditorWindows/SceneListWindow.h"
 #include <glm/glm.hpp>
 
@@ -33,9 +33,11 @@ namespace Cosmic {
 
 	private:
 		Nebula::Framebuffer* m_Framebuffer;
+		Nebula::Framebuffer* m_GameViewFramebuffer;
 		std::shared_ptr<Nebula::Scene> m_ActiveScene;
 		std::string m_CurrentScenePath; // Track current scene file path
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
+		glm::vec2 m_GameViewSize = { 0.0f, 0.0f };
 		bool m_RuntimeMode = false;
 		bool m_ShowScriptEditor = false;
 		
@@ -49,11 +51,8 @@ namespace Cosmic {
 		float m_LastMouseY = 0.0f;
 		bool m_FirstMouse = true;
 
-		// Gizmo
-		Gizmo m_Gizmo;
-
-	private:
-		void RenderGizmo();
+		// Line renderer for debug visualization
+		std::shared_ptr<Nebula::LineRenderer> m_LineRenderer;
 
 	public:
 		// Allow setting a scene from outside

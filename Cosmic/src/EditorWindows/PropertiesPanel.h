@@ -57,6 +57,18 @@ namespace Cosmic {
 				if (s_SelectedEntity.HasComponent<Nebula::ScriptComponent>())
 					DrawScriptComponent(s_SelectedEntity.GetComponent<Nebula::ScriptComponent>());
 
+				// RigidBody Component
+				if (s_SelectedEntity.HasComponent<Nebula::RigidBodyComponent>())
+					DrawRigidBodyComponent(s_SelectedEntity.GetComponent<Nebula::RigidBodyComponent>());
+
+				// Box Collider Component
+				if (s_SelectedEntity.HasComponent<Nebula::BoxColliderComponent>())
+					DrawBoxColliderComponent(s_SelectedEntity.GetComponent<Nebula::BoxColliderComponent>());
+
+				// Sphere Collider Component
+				if (s_SelectedEntity.HasComponent<Nebula::SphereColliderComponent>())
+					DrawSphereColliderComponent(s_SelectedEntity.GetComponent<Nebula::SphereColliderComponent>());
+
 				Nebula::NebulaGui::Separator();
 
 				// Add Component button
@@ -97,6 +109,23 @@ namespace Cosmic {
 							s_SelectedEntity.AddComponent<Nebula::ScriptComponent>();
 						Nebula::NebulaGui::CloseCurrentPopup();
 					}
+					if (Nebula::NebulaGui::MenuItem("Rigidbody"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::RigidBodyComponent>())
+							s_SelectedEntity.AddComponent<Nebula::RigidBodyComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Box Collider"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::BoxColliderComponent>())
+							s_SelectedEntity.AddComponent<Nebula::BoxColliderComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Sphere Collider")) {
+						if (!s_SelectedEntity.HasComponent<Nebula::SphereColliderComponent>())
+							s_SelectedEntity.AddComponent<Nebula::SphereColliderComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
 					Nebula::NebulaGui::EndPopup();
 				}
 			}
@@ -110,6 +139,7 @@ namespace Cosmic {
 
 
 	private:
+
 		static void DrawTagComponent(Nebula::TagComponent& tag)
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Tag", true))
@@ -274,6 +304,70 @@ namespace Cosmic {
 			if (Nebula::NebulaGui::CollapsingHeader("Script", true))
 			{
 				Nebula::NebulaGui::Text("Script: %s", script.ScriptPath.c_str());
+			}
+		}
+
+		static void DrawRigidBodyComponent(Nebula::RigidBodyComponent& rb)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Rigidbody", true))
+			{
+				// Body Type
+				const char* bodyTypeStrings[] = { "Static", "Dynamic", "Kinematic" };
+				const char* currentBodyTypeString = bodyTypeStrings[(int)rb.Type];
+				if (Nebula::NebulaGui::BeginCombo("Body Type", currentBodyTypeString))
+				{
+					for (int i = 0; i < 3; i++)
+					{
+						bool isSelected = (currentBodyTypeString == bodyTypeStrings[i]);
+						if (Nebula::NebulaGui::Selectable(bodyTypeStrings[i], isSelected))
+						{
+							rb.Type = (Nebula::RigidBodyComponent::BodyType)i;
+						}
+
+						if (isSelected)
+							Nebula::NebulaGui::SetItemDefaultFocus();
+					}
+					Nebula::NebulaGui::EndCombo();
+				}
+
+				// Mass (only for Dynamic)
+				if (rb.Type == Nebula::RigidBodyComponent::BodyType::Dynamic)
+				{
+					Nebula::NebulaGui::DragFloat("Mass", &rb.Mass, 0.1f, 0.01f, 1000.0f);
+				}
+
+				// Drag
+				Nebula::NebulaGui::DragFloat("Linear Drag", &rb.LinearDrag, 0.01f, 0.0f, 10.0f);
+				Nebula::NebulaGui::DragFloat("Angular Drag", &rb.AngularDrag, 0.01f, 0.0f, 10.0f);
+
+				// Flags
+				Nebula::NebulaGui::Checkbox("Use Gravity", &rb.UseGravity);
+				Nebula::NebulaGui::Checkbox("Freeze Rotation", &rb.FreezeRotation);
+
+				// Display velocities (read-only)
+				Nebula::NebulaGui::Separator();
+				Nebula::NebulaGui::Text("Linear Velocity: (%.2f, %.2f, %.2f)", 
+					rb.LinearVelocity.x, rb.LinearVelocity.y, rb.LinearVelocity.z);
+				Nebula::NebulaGui::Text("Angular Velocity: (%.2f, %.2f, %.2f)", 
+					rb.AngularVelocity.x, rb.AngularVelocity.y, rb.AngularVelocity.z);
+			}
+		}
+
+		static void DrawBoxColliderComponent(Nebula::BoxColliderComponent& collider)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Box Collider", true))
+			{
+				Nebula::NebulaGui::DragFloat3("Size", &collider.Size.x, 0.1f, 0.01f, 100.0f);
+				Nebula::NebulaGui::DragFloat3("Offset", &collider.Offset.x, 0.1f);
+			}
+		}
+
+		static void DrawSphereColliderComponent(Nebula::SphereColliderComponent& collider)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Sphere Collider", true))
+			{
+				Nebula::NebulaGui::DragFloat("Radius", &collider.Radius, 0.1f, 0.01f, 100.0f);
+				Nebula::NebulaGui::DragFloat3("Offset", &collider.Offset.x, 0.1f);
 			}
 		}
 

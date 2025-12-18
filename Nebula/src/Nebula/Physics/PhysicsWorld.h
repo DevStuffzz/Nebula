@@ -17,6 +17,7 @@ namespace Nebula {
 
 	class Entity;
 	class Scene;
+	class PhysicsDebugDraw;
 
 	class NEBULA_API PhysicsWorld
 	{
@@ -32,11 +33,22 @@ namespace Nebula {
 		void SetGravity(const glm::vec3& gravity);
 		glm::vec3 GetGravity() const;
 
+		// Debug drawing
+		void SetDebugDrawEnabled(bool enabled);
+		bool IsDebugDrawEnabled() const { return m_DebugDrawEnabled; }
+		void DebugDraw();
+		PhysicsDebugDraw* GetDebugDrawer() { return m_DebugDrawer.get(); }
+		
+		// Get debug line data without exposing PhysicsDebugDraw header
+		const std::vector<glm::vec3>& GetDebugLineVertices() const;
+		const std::vector<glm::vec3>& GetDebugLineColors() const;
+
 		// Rigidbody management
 		void AddRigidBody(Entity entity);
 		void RemoveRigidBody(Entity entity);
 		void UpdateRigidBodyTransform(Entity entity);
 		void SyncTransformFromPhysics(Entity entity);
+		void SyncAllRigidBodyTransforms(Scene* scene); // Sync all physics bodies from entity transforms
 
 		// Collider management
 		void AddBoxCollider(Entity entity);
@@ -59,6 +71,10 @@ namespace Nebula {
 		btDiscreteDynamicsWorld* m_DynamicsWorld = nullptr;
 
 		glm::vec3 m_Gravity = glm::vec3(0.0f, -9.81f, 0.0f);
+		
+		// Debug drawing
+		std::unique_ptr<PhysicsDebugDraw> m_DebugDrawer;
+		bool m_DebugDrawEnabled = false;
 	};
 
 }

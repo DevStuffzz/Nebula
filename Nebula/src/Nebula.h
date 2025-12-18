@@ -15,6 +15,7 @@
 
 #include "Nebula/ImGui/ImGuiLayer.h"
 #include "Nebula/ImGui/NebulaGui.h"
+#include "Nebula/ImGui/NebulaGuizmo.h"
 
 
 // Renderer
@@ -28,6 +29,7 @@
 #include "Nebula/Renderer/Material.h"
 #include "Nebula/Renderer/Mesh.h"
 #include "Nebula/Renderer/Framebuffer.h"
+#include "Nebula/Renderer/LineRenderer.h"
 
 // Scene
 #include "Nebula/Scene/Transform.h"

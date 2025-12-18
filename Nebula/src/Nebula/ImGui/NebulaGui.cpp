@@ -5,7 +5,7 @@
 namespace Nebula {
 
 	// Window
-	void NebulaGui::Begin(const char* name, bool* p_open) { ImGui::Begin(name, p_open); }
+	bool NebulaGui::Begin(const char* name, bool* p_open) { return ImGui::Begin(name, p_open); }
 	void NebulaGui::End() { ImGui::End(); }
 
 	// Drag/Slider
@@ -27,6 +27,10 @@ namespace Nebula {
 
 	// Input
 	bool NebulaGui::InputText(const char* label, char* buf, size_t buf_size) { return ImGui::InputText(label, buf, buf_size); }
+
+	// Combo
+	bool NebulaGui::BeginCombo(const char* label, const char* preview_value) { return ImGui::BeginCombo(label, preview_value); }
+	void NebulaGui::EndCombo() { ImGui::EndCombo(); }
 
 	// Color
 	bool NebulaGui::ColorEdit4(const char* label, float* col) { return ImGui::ColorEdit4(label, col); }
@@ -93,6 +97,7 @@ namespace Nebula {
 	bool NebulaGui::IsWindowFocused() { return ImGui::IsWindowFocused(); }
 	glm::vec2 NebulaGui::GetItemRectMin() { auto min = ImGui::GetItemRectMin(); return glm::vec2(min.x, min.y); }
 	glm::vec2 NebulaGui::GetItemRectMax() { auto max = ImGui::GetItemRectMax(); return glm::vec2(max.x, max.y); }
+	void NebulaGui::SetItemDefaultFocus() { ImGui::SetItemDefaultFocus(); }
 	void* NebulaGui::GetWindowDrawList() { return ImGui::GetWindowDrawList(); }
 	void* NebulaGui::GetForegroundDrawList() { return ImGui::GetForegroundDrawList(); }
 	glm::vec2 NebulaGui::GetMousePos() { auto pos = ImGui::GetMousePos(); return glm::vec2(pos.x, pos.y); }

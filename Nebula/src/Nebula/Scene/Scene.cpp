@@ -9,6 +9,8 @@
 #include "Nebula/Renderer/Mesh.h"
 #include "Nebula/Application.h"
 #include "Nebula/Scripting/LuaScriptEngine.h"
+#include "Nebula/Physics/PhysicsWorld.h"
+#include "Nebula/Physics/PhysicsDebugDraw.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glad/glad.h> // TODO: Move viewport save/restore to platform-agnostic RenderCommand
 namespace Nebula {
@@ -16,6 +18,10 @@ namespace Nebula {
 	Scene::Scene(const std::string& name)
 		: m_Name(name), m_GlobalIllumination(0.1f, 0.1f, 0.1f)
 	{
+		// Initialize physics
+		m_PhysicsWorld = std::make_unique<PhysicsWorld>();
+		m_PhysicsWorld->Init();
+
 		// Initialize shadow shader
 		NB_CORE_INFO("Creating scene: {0}", name);
 		try
@@ -43,6 +49,10 @@ namespace Nebula {
 
 	Scene::~Scene()
 	{
+		if (m_PhysicsWorld)
+		{
+			m_PhysicsWorld->Shutdown();
+		}
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -64,10 +74,38 @@ namespace Nebula {
 	void Scene::Clear()
 	{
 		m_Registry.clear();
+		
+		// Reinitialize physics world to clear all bodies
+		if (m_PhysicsWorld)
+		{
+			m_PhysicsWorld->Shutdown();
+			m_PhysicsWorld->Init();
+		}
 	}
 
 	void Scene::OnUpdate(float deltaTime)
 	{
+		// Update physics
+		if (m_PhysicsWorld)
+		{
+			// Step physics simulation
+			m_PhysicsWorld->Step(deltaTime);
+
+			// Sync transforms from physics to entities
+			auto rigidBodyView = m_Registry.view<RigidBodyComponent, TransformComponent>();
+			for (auto entityID : rigidBodyView)
+			{
+				Entity entity = { entityID, this };
+				auto& rb = rigidBodyView.get<RigidBodyComponent>(entityID);
+				
+				// Only sync dynamic bodies (physics controls them)
+				if (rb.Type == RigidBodyComponent::BodyType::Dynamic && !rb.IsKinematic)
+				{
+					m_PhysicsWorld->SyncTransformFromPhysics(entity);
+				}
+			}
+		}
+
 		// Update Lua scripts
 		auto view = m_Registry.view<ScriptComponent>();
 		for (auto entityID : view)
@@ -91,8 +129,11 @@ namespace Nebula {
 			}
 		}
 
-		// Update systems here
-		// For now, this is just a placeholder for future physics systems
+		// Update physics debug drawing
+		if (m_PhysicsWorld)
+		{
+			m_PhysicsWorld->DebugDraw();
+		}
 	}
 
 	void Scene::RenderShadowMaps()
@@ -169,7 +210,6 @@ namespace Nebula {
 
 			// Store shadow map texture ID (don't unbind - let next framebuffer bind handle it)
 			light.ShadowMapTexture = shadowFB->GetDepthAttachmentRendererID();
-			NB_CORE_TRACE("Rendered shadow map {0}: {1} meshes, texture ID: {2}", i, meshCount, light.ShadowMapTexture);
 		}
 
 		// Restore viewport to what it was before shadow rendering
@@ -282,6 +322,14 @@ namespace Nebula {
 
 		// End the scene
 		Renderer::EndScene();
+	}
+
+	void Scene::SetPhysicsDebugDraw(bool enabled)
+	{
+		if (m_PhysicsWorld)
+		{
+			m_PhysicsWorld->SetDebugDrawEnabled(enabled);
+		}
 	}
 
 	std::vector<Entity> Scene::GetAllEntities() const
