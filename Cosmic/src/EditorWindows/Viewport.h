@@ -88,19 +88,17 @@ namespace Cosmic {
         float offsetX = (availWidth - imageWidth) * 0.5f;
         float offsetY = (availHeight - imageHeight) * 0.5f;
 
-        // Store viewport bounds for picking - use actual image bounds, not content region
-        auto windowPos = Nebula::NebulaGui::GetWindowPos();
-        auto minBound = Nebula::NebulaGui::GetContentRegionMin();
-        
-        s_ViewportBounds[0] = { windowPos.x + minBound.x + offsetX, windowPos.y + minBound.y + offsetY };
-        s_ViewportBounds[1] = { windowPos.x + minBound.x + offsetX + imageWidth, windowPos.y + minBound.y + offsetY + imageHeight };
+        // Vertical dummy space for offsetY (top margin)
+        Nebula::NebulaGui::Dummy({ 0.0f, offsetY });
+        // Horizontal offset before image
+        Nebula::NebulaGui::SameLine(0.0f, offsetX);
+
+        // Store viewport bounds for picking - get cursor position right before rendering image
+        glm::vec2 imageTopLeft = Nebula::NebulaGui::GetCursorScreenPos();
+        s_ViewportBounds[0] = imageTopLeft;
+        s_ViewportBounds[1] = { imageTopLeft.x + imageWidth, imageTopLeft.y + imageHeight };
         s_ViewportHovered = Nebula::NebulaGui::IsWindowHovered();
         s_ViewportFocused = Nebula::NebulaGui::IsWindowFocused();
-
-            // Vertical dummy space for offsetY (top margin)
-            Nebula::NebulaGui::Dummy({ 0.0f, offsetY });
-            // Horizontal offset before image
-            Nebula::NebulaGui::SameLine(0.0f, offsetX);
 
             Nebula::NebulaGui::Image(textureID, { imageWidth, imageHeight }, uv0, uv1);
 

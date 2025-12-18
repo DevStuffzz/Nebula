@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable: 4251)
 
 #include "Nebula/Window.h"
 #include "Nebula/Renderer/GraphicsContext.h "

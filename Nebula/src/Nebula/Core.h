@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable: 4251)
 
 
 #ifdef NB_PLATFORM_WINDOWS

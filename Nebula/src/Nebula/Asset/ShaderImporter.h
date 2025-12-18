@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable: 4251)
 
 #include "Nebula/Asset/AssetManager.h"
 #include "Nebula/Renderer/Shader.h"

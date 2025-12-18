@@ -125,14 +125,17 @@ namespace Cosmic {
 
 	void EditorLayer::OnUpdate(Nebula::Timestep ts)
 	{
-	if (!m_RuntimeMode)
-	{
-		// Handle gizmo interaction
-		auto gizmoMode = Viewport::GetGizmoMode();
-		Nebula::Entity selectedEntity = SceneHierarchy::GetSelectedEntity();
+		// Handle gizmo interaction (only in editor mode)
+		auto gizmoMode = Viewport::GizmoMode::None;
+		Nebula::Entity selectedEntity;
 		
-// Gizmo input handling removed - will be replaced with ImGuizmo
+		if (!m_RuntimeMode)
+		{
+			gizmoMode = Viewport::GetGizmoMode();
+			selectedEntity = SceneHierarchy::GetSelectedEntity();
+		}
 
+		// Camera movement (available in both editor and runtime modes)
 		float moveSpeed = 2.5f * ts;
 		
 		// Speed up camera when shift is held
@@ -204,40 +207,17 @@ namespace Cosmic {
 				m_FirstMouse = true;
 			}
 
-			
-			// Update camera transform
-			auto& camera = Nebula::Application::Get().GetCamera();
-			if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&camera))
-			{
-				perspCam->SetPosition(m_CameraPosition);
-				perspCam->SetRotation(m_CameraRotation);
-			}
-		}
-
-		// Update camera from scene if in runtime
-		if (m_RuntimeMode && m_ActiveScene)
+		// --- Render Editor Viewport ---
+		// Set application camera to editor camera
+		auto& editorCamera = Nebula::Application::Get().GetCamera();
+		if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&editorCamera))
 		{
-			auto view = m_ActiveScene->GetRegistry().view<Nebula::CameraComponent, Nebula::TransformComponent>();
-			for (auto entity : view)
-			{
-				auto& cameraComp = view.get<Nebula::CameraComponent>(entity);
-				if (cameraComp.Primary)
-				{
-					auto& transform = view.get<Nebula::TransformComponent>(entity);
-					auto& appCamera = Nebula::Application::Get().GetCamera();
-					if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&appCamera))
-					{
-						perspCam->SetPosition(transform.Position);
-						perspCam->SetRotation(transform.Rotation);
-						float aspect = m_ViewportSize.x / m_ViewportSize.y;
-						perspCam->SetProjection(cameraComp.PerspectiveFOV, aspect, cameraComp.PerspectiveNear, cameraComp.PerspectiveFar);
-					}
-					break;
-				}
-			}
+			perspCam->SetPosition(m_CameraPosition);
+			perspCam->SetRotation(m_CameraRotation);
+			float editorAspect = m_ViewportSize.x / m_ViewportSize.y;
+			perspCam->SetProjection(45.0f, editorAspect, 0.1f, 1000.0f);
 		}
-
-		// --- Existing framebuffer bind, render code ---
+		
 		m_Framebuffer->Bind();
 		Nebula::RenderCommand::SetViewport(0, 0, (uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		Nebula::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
@@ -289,18 +269,22 @@ namespace Cosmic {
 		// --- Render Game View ---
 		if (m_ActiveScene)
 		{
+			// Bind game view framebuffer
+			m_GameViewFramebuffer->Bind();
+			Nebula::RenderCommand::SetViewport(0, 0, (uint32_t)m_GameViewSize.x, (uint32_t)m_GameViewSize.y);
+			
 			// Find the primary camera in the scene
 			auto view = m_ActiveScene->GetRegistry().view<Nebula::CameraComponent, Nebula::TransformComponent>();
+			bool foundPrimaryCamera = false;
+			
 			for (auto entity : view)
 			{
 				auto& cameraComp = view.get<Nebula::CameraComponent>(entity);
 				if (cameraComp.Primary)
 				{
+					foundPrimaryCamera = true;
 					auto& transform = view.get<Nebula::TransformComponent>(entity);
 					
-					// Bind game view framebuffer
-					m_GameViewFramebuffer->Bind();
-					Nebula::RenderCommand::SetViewport(0, 0, (uint32_t)m_GameViewSize.x, (uint32_t)m_GameViewSize.y);
 					Nebula::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
 					Nebula::RenderCommand::Clear();
 					
@@ -309,9 +293,15 @@ namespace Cosmic {
 					auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&appCamera);
 					if (!perspCam) break;
 					
+					// Save complete editor camera state
 					glm::vec3 savedPos = perspCam->GetPosition();
 					glm::vec3 savedRot = perspCam->GetRotation();
+					float savedFOV = 45.0f;
+					float savedNear = 0.1f;
+					float savedFar = 1000.0f;
+					float savedAspect = m_ViewportSize.x / m_ViewportSize.y;
 					
+					// Set to game camera
 					perspCam->SetPosition(transform.Position);
 					perspCam->SetRotation(transform.Rotation);
 					float gameAspect = m_GameViewSize.x / m_GameViewSize.y;
@@ -320,16 +310,23 @@ namespace Cosmic {
 					// Render scene from game camera perspective
 					m_ActiveScene->OnRender();
 					
-					// Restore application camera
+					// Restore editor camera completely
 					perspCam->SetPosition(savedPos);
 					perspCam->SetRotation(savedRot);
-					float editorAspect = m_ViewportSize.x / m_ViewportSize.y;
-					perspCam->SetProjection(45.0f, editorAspect, 0.1f, 1000.0f);
+					perspCam->SetProjection(savedFOV, savedAspect, savedNear, savedFar);
 					
-					m_GameViewFramebuffer->Unbind();
 					break;
 				}
 			}
+			
+			// If no primary camera found, render error screen (purple)
+			if (!foundPrimaryCamera)
+			{
+				Nebula::RenderCommand::SetClearColor({ 0.5f, 0.0f, 0.5f, 1.0f }); // Purple error
+				Nebula::RenderCommand::Clear();
+			}
+			
+			m_GameViewFramebuffer->Unbind();
 		}
 	}
 

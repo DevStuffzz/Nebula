@@ -98,6 +98,7 @@ namespace Nebula {
 	glm::vec2 NebulaGui::GetItemRectMin() { auto min = ImGui::GetItemRectMin(); return glm::vec2(min.x, min.y); }
 	glm::vec2 NebulaGui::GetItemRectMax() { auto max = ImGui::GetItemRectMax(); return glm::vec2(max.x, max.y); }
 	void NebulaGui::SetItemDefaultFocus() { ImGui::SetItemDefaultFocus(); }
+	glm::vec2 NebulaGui::GetCursorScreenPos() { auto pos = ImGui::GetCursorScreenPos(); return glm::vec2(pos.x, pos.y); }
 	void* NebulaGui::GetWindowDrawList() { return ImGui::GetWindowDrawList(); }
 	void* NebulaGui::GetForegroundDrawList() { return ImGui::GetForegroundDrawList(); }
 	glm::vec2 NebulaGui::GetMousePos() { auto pos = ImGui::GetMousePos(); return glm::vec2(pos.x, pos.y); }

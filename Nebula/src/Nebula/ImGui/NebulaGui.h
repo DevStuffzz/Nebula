@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable: 4251)
 
 #include <glm/glm.hpp>
 #include <string>
@@ -102,6 +103,7 @@ namespace Nebula {
 		static glm::vec2 GetItemRectMin();
 		static glm::vec2 GetItemRectMax();
 		static void SetItemDefaultFocus();
+		static glm::vec2 GetCursorScreenPos();
 		static void* GetWindowDrawList();
 		static void* GetForegroundDrawList();
 		static glm::vec2 GetMousePos();

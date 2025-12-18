@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable: 4251)
 
 #include "Nebula/Renderer/LineRenderer.h"
 #include <glm/glm.hpp>

@@ -28,12 +28,15 @@ IncludeDir["spdlog"] = "Nebula/vendor/spdlog"
 IncludeDir["bullet3"] = "Nebula/vendor/bullet3/src"
 
 
+group "Dependencies"
 include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
 include "Nebula/vendor/ImGuizmo"
 include "Nebula/vendor/glad"
 include "Nebula/vendor/lua"
+group "Dependencies/Bullet"
 include "Nebula/vendor/bullet3"
+group ""
 
 project "Nebula"
     location "Nebula"
@@ -117,6 +120,10 @@ project "Nebula"
             "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Cosmic/\"",
             "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Nebula/assets"
         }
+
+        linkoptions { "/ignore:4099" } -- NOTE(Peter): Disable no PDB found warning
+        disablewarnings { "4068" } -- Disable "Unknown #pragma mark warning"
+
 
     filter "system:macosx"
         cppdialect "C++17"
