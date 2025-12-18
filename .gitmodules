@@ -20,3 +20,6 @@
 [submodule "Nebula/vendor/glad"]
 	path = Nebula/vendor/glad
 	url = https://github.com/DevStuffzz/glad
+[submodule "Nebula/vendor/ImGuizmo"]
+	path = Nebula/vendor/ImGuizmo
+	url = https://github.com/DevStuffzz/ImGuizmo.git
