@@ -23,11 +23,6 @@ namespace Nebula {
 		lua_setglobal(L, "Nebula");
 	}
 
-	void LuaBindings::RegisterTransformComponent(lua_State* L)
-	{
-		// Entity metatable is set up in LuaScriptEngine when we create entity userdata
-	}
-
 	void LuaBindings::RegisterInputBindings(lua_State* L)
 	{
 		// Register IsKeyPressed function
@@ -216,7 +211,7 @@ namespace Nebula {
 	int LuaBindings::Entity_GetPosition(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity)
+		if (!entity || !(*entity))
 		{
 			luaL_error(L, "Invalid entity");
 			return 0;
@@ -233,7 +228,7 @@ namespace Nebula {
 	int LuaBindings::Entity_SetPosition(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity)
+		if (!entity || !(*entity))
 		{
 			luaL_error(L, "Invalid entity");
 			return 0;
@@ -251,7 +246,7 @@ namespace Nebula {
 	int LuaBindings::Entity_GetRotation(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity)
+		if (!entity || !(*entity))
 		{
 			luaL_error(L, "Invalid entity");
 			return 0;
@@ -268,7 +263,7 @@ namespace Nebula {
 	int LuaBindings::Entity_SetRotation(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity)
+		if (!entity || !(*entity))
 		{
 			luaL_error(L, "Invalid entity");
 			return 0;
@@ -286,7 +281,7 @@ namespace Nebula {
 	int LuaBindings::Entity_GetScale(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity)
+		if (!entity || !(*entity))
 		{
 			luaL_error(L, "Invalid entity");
 			return 0;
@@ -303,7 +298,7 @@ namespace Nebula {
 	int LuaBindings::Entity_SetScale(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity)
+		if (!entity || !(*entity))
 		{
 			luaL_error(L, "Invalid entity");
 			return 0;
@@ -347,7 +342,12 @@ namespace Nebula {
 	int LuaBindings::Entity_AddForce(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+		if (!entity->HasComponent<RigidBodyComponent>())
 		{
 			luaL_error(L, "Entity does not have RigidBodyComponent");
 			return 0;
@@ -370,7 +370,12 @@ namespace Nebula {
 	int LuaBindings::Entity_SetVelocity(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+		if (!entity->HasComponent<RigidBodyComponent>())
 		{
 			luaL_error(L, "Entity does not have RigidBodyComponent");
 			return 0;
@@ -393,7 +398,12 @@ namespace Nebula {
 	int LuaBindings::Entity_GetVelocity(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+		if (!entity->HasComponent<RigidBodyComponent>())
 		{
 			luaL_error(L, "Entity does not have RigidBodyComponent");
 			return 0;
@@ -417,7 +427,12 @@ namespace Nebula {
 	int LuaBindings::Entity_SetAngularVelocity(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+		if (!entity->HasComponent<RigidBodyComponent>())
 		{
 			luaL_error(L, "Entity does not have RigidBodyComponent");
 			return 0;
@@ -440,7 +455,12 @@ namespace Nebula {
 	int LuaBindings::Entity_GetAngularVelocity(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+		if (!entity->HasComponent<RigidBodyComponent>())
 		{
 			luaL_error(L, "Entity does not have RigidBodyComponent");
 			return 0;
@@ -464,7 +484,12 @@ namespace Nebula {
 	int LuaBindings::Entity_SetMass(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+		if (!entity->HasComponent<RigidBodyComponent>())
 		{
 			luaL_error(L, "Entity does not have RigidBodyComponent");
 			return 0;
@@ -488,7 +513,12 @@ namespace Nebula {
 	int LuaBindings::Entity_GetMass(lua_State* L)
 	{
 		Entity* entity = (Entity*)lua_touserdata(L, 1);
-		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+		if (!entity->HasComponent<RigidBodyComponent>())
 		{
 			luaL_error(L, "Entity does not have RigidBodyComponent");
 			return 0;
@@ -497,12 +527,6 @@ namespace Nebula {
 		auto& rb = entity->GetComponent<RigidBodyComponent>();
 		lua_pushnumber(L, rb.Mass);
 		return 1;
-	}
-
-	void LuaBindings::RegisterRigidBodyComponent(lua_State* L)
-	{
-		// This is called from RegisterEngineFunctions in LuaScriptEngine
-		// Physics methods are registered as part of the Entity metatable
 	}
 
 	// Scene Management Functions
@@ -517,18 +541,9 @@ namespace Nebula {
 			return 1;
 		}
 
-		auto scene = SceneManager::Get().LoadScene((size_t)sceneIndex);
-		
-		if (scene)
-		{
-			NB_CORE_INFO("[Lua] Loaded scene at index {0}: {1}", sceneIndex, scene->GetName());
-			lua_pushboolean(L, true);
-		}
-		else
-		{
-			NB_CORE_ERROR("[Lua] Failed to load scene at index {0}", sceneIndex);
-			lua_pushboolean(L, false);
-		}
+		// Use RequestLoadScene to defer the load until safe
+		SceneManager::Get().RequestLoadScene((size_t)sceneIndex);
+		lua_pushboolean(L, true);
 		
 		return 1;
 	}

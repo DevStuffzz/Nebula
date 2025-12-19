@@ -29,6 +29,10 @@ namespace Nebula {
 
 	// Scene management functions
 	static int LoadScene(lua_State* L);
+
+	// Physics/RigidBody functions
+	static int Entity_AddForce(lua_State* L);
+	static int Entity_SetVelocity(lua_State* L);
 	static int Entity_GetVelocity(lua_State* L);
 	static int Entity_SetAngularVelocity(lua_State* L);
 	static int Entity_GetAngularVelocity(lua_State* L);
@@ -36,17 +40,14 @@ namespace Nebula {
 	static int Entity_GetMass(lua_State* L);
 
 private:
-	// Component bindings
-	static void RegisterTransformComponent(lua_State* L);
-	static void RegisterRigidBodyComponent(lua_State* L);
-		static void RegisterInputBindings(lua_State* L);
-		static void RegisterMathBindings(lua_State* L);
-		static void RegisterLogBindings(lua_State* L);
+	static void RegisterInputBindings(lua_State* L);
+	static void RegisterMathBindings(lua_State* L);
+	static void RegisterLogBindings(lua_State* L);
 
-		// Input functions
-		static int IsKeyPressed(lua_State* L);
-		static int IsMouseButtonPressed(lua_State* L);
-		static int GetMousePosition(lua_State* L);
-	};
+	// Input functions
+	static int IsKeyPressed(lua_State* L);
+	static int IsMouseButtonPressed(lua_State* L);
+	static int GetMousePosition(lua_State* L);
+};
 
 }

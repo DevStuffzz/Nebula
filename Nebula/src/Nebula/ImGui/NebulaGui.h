@@ -115,6 +115,10 @@ namespace Nebula {
 		static float GetScrollMaxY();
 		static void SetScrollHereY(float center_y_ratio = 0.5f);
 		
+		// Clipboard
+		static void SetClipboardText(const char* text);
+		static const char* GetClipboardText();
+		
 		// Style
 		static void PushStyleVar(int idx, const glm::vec2& val);
 		static void PopStyleVar(int count = 1);

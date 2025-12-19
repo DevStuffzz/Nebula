@@ -34,11 +34,25 @@ namespace Cosmic {
 				s_Messages.clear();
 			}
 
+			Nebula::NebulaGui::SameLine();
+
+			// Copy button
+			if (Nebula::NebulaGui::Button("Copy All"))
+			{
+				std::string allText;
+				for (const auto& msg : s_Messages)
+				{
+					allText += msg.Message + "\n";
+				}
+				Nebula::NebulaGui::SetClipboardText(allText.c_str());
+			}
+
 			Nebula::NebulaGui::Separator();
 
-			// Display messages
-			for (const auto& msg : s_Messages)
+			// Display messages with context menu for copying
+			for (size_t i = 0; i < s_Messages.size(); i++)
 			{
+				const auto& msg = s_Messages[i];
 				glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 				
 				switch (msg.Level)
@@ -55,6 +69,17 @@ namespace Cosmic {
 				}
 
 				Nebula::NebulaGui::TextColored(color, msg.Message.c_str());
+
+				// Right-click context menu for individual messages
+				std::string popupID = "LogContextMenu_" + std::to_string(i);
+				if (Nebula::NebulaGui::BeginPopupContextItem(popupID.c_str()))
+				{
+					if (Nebula::NebulaGui::MenuItem("Copy"))
+					{
+						Nebula::NebulaGui::SetClipboardText(msg.Message.c_str());
+					}
+					Nebula::NebulaGui::EndPopup();
+				}
 			}
 
 			// Auto-scroll to bottom

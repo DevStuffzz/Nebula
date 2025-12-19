@@ -77,6 +77,9 @@ namespace Nebula {
 	{
 		m_Registry.clear();
 		
+		// Clear script initialization tracking
+		m_LuaScriptInitialized.clear();
+		
 		// Reinitialize physics world to clear all bodies
 		if (m_PhysicsWorld)
 		{

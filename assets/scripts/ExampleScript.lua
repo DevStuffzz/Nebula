@@ -1,44 +1,69 @@
--- Example Lua Script Template
--- Available APIs:
---   entity:GetPosition() -> {x, y, z}
---   entity:SetPosition(x, y, z)
---   entity:GetRotation() -> {x, y, z}
---   entity:SetRotation(x, y, z)
---   entity:GetScale() -> {x, y, z}
---   entity:SetScale(x, y, z)
---
---   Nebula.IsKeyPressed(keyCode) -> boolean
---   Nebula.IsMouseButtonPressed(button) -> boolean
---   Nebula.GetMousePosition() -> {x, y}
---
---   Nebula.Log(message)
---   Nebula.LogWarn(message)
---   Nebula.LogError(message)
---
---   Nebula.W, Nebula.A, Nebula.S, Nebula.D, Nebula.Space, Nebula.Escape, etc.
---   Nebula.MouseLeft, Nebula.MouseRight, Nebula.MouseMiddle
+-- Top-Down Physics Controller
+-- This script requires a RigidBody component on the entity
+-- Controls: WASD for movement, R to reload scene
+
+-- Variables (configurable in editor)
+moveSpeed = 10
+rotationSpeed = 180
 
 function OnCreate(entity)
-\t-- Called once when the entity is created
-\tNebula.Log(\"Entity script initialized!\")
+    -- Called once when the entity is created
+    Nebula.Log("Top-down controller initialized!")
 end
 
-function OnUpdate(entity, ts)
-\t-- Called every frame
-\t-- ts is the timestep (delta time) in seconds
-\t
-\t-- Example: Simple movement
-\tlocal pos = entity:GetPosition()
-\t
-\tif Nebula.IsKeyPressed(Nebula.W) then
-\t\tentity:SetPosition(pos.x, pos.y + 2.0 * ts, pos.z)
-\tend
-\tif Nebula.IsKeyPressed(Nebula.S) then
-\t\tentity:SetPosition(pos.x, pos.y - 2.0 * ts, pos.z)
-\tend
-end
-
-function OnDestroy(entity)
-\t-- Called when the entity is destroyed
-\tNebula.Log(\"Entity script destroyed!\")
+function OnUpdate(entity, deltaTime)
+    -- Called every frame
+    -- deltaTime is the timestep (time since last frame) in seconds
+    
+    -- Scene reload
+    if Nebula.IsKeyPressed(Nebula.R) then
+        Nebula.Log("Reloading scene...")
+        Nebula.LoadScene(0)
+        return
+    end
+    
+    -- Get current velocity
+    local vel = entity:GetVelocity()
+    if not vel then
+        Nebula.LogWarn("Entity missing RigidBody component!")
+        return
+    end
+    
+    -- Top-down movement (X and Z axes, Y is up)
+    local moveX = 0
+    local moveZ = 0
+    
+    if Nebula.IsKeyPressed(Nebula.W) then
+        moveZ = moveSpeed
+    end
+    if Nebula.IsKeyPressed(Nebula.S) then
+        moveZ = -moveSpeed
+    end
+    if Nebula.IsKeyPressed(Nebula.A) then
+        moveX = -moveSpeed
+    end
+    if Nebula.IsKeyPressed(Nebula.D) then
+        moveX = moveSpeed
+    end
+    
+    -- Apply velocity (preserve Y velocity for physics/gravity)
+    entity:SetVelocity(moveX, vel.y, moveZ)
+    
+    -- Optional: Rotate to face movement direction
+    if moveX ~= 0 or moveZ ~= 0 then
+        local angle = math.atan(moveX, moveZ)
+        local targetRotation = math.deg(angle)
+        
+        local rot = entity:GetRotation()
+        -- Smooth rotation towards target
+        local currentY = rot.y
+        local diff = targetRotation - currentY
+        
+        -- Normalize angle difference to -180 to 180
+        while diff > 180 do diff = diff - 360 end
+        while diff < -180 do diff = diff + 360 end
+        
+        local newY = currentY + diff * rotationSpeed * deltaTime / 180
+        entity:SetRotation(rot.x, newY, rot.z)
+    end
 end

@@ -37,6 +37,14 @@ public:
 			m_ActiveScene->OnUpdate(ts);
 		}
 
+		// Process any pending scene loads (must happen after update)
+		if (Nebula::SceneManager::Get().HasPendingSceneLoad())
+		{
+			Nebula::SceneManager::Get().ProcessPendingSceneLoad();
+			m_ActiveScene = Nebula::SceneManager::Get().GetActiveScene();
+			return; // Skip rendering this frame during scene transition
+		}
+
 		// Find the primary camera in the scene
 		Nebula::Camera* renderCamera = &Nebula::Application::Get().GetCamera();
 		

@@ -110,6 +110,10 @@ namespace Nebula {
 	float NebulaGui::GetScrollMaxY() { return ImGui::GetScrollMaxY(); }
 	void NebulaGui::SetScrollHereY(float center_y_ratio) { ImGui::SetScrollHereY(center_y_ratio); }
 
+	// Clipboard
+	void NebulaGui::SetClipboardText(const char* text) { ImGui::SetClipboardText(text); }
+	const char* NebulaGui::GetClipboardText() { return ImGui::GetClipboardText(); }
+
 	// Style
 	void NebulaGui::PushStyleVar(int idx, const glm::vec2& val) { ImGui::PushStyleVar(idx, ImVec2(val.x, val.y)); }
 	void NebulaGui::PopStyleVar(int count) { ImGui::PopStyleVar(count); }

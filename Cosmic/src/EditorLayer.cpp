@@ -225,6 +225,13 @@ namespace Cosmic {
 			if (m_RuntimeMode)
 			{
 				m_ActiveScene->OnUpdate(ts);
+				
+				// Process any pending scene loads requested during update
+				if (Nebula::SceneManager::Get().HasPendingSceneLoad())
+				{
+					Nebula::SceneManager::Get().ProcessPendingSceneLoad();
+					m_ActiveScene = Nebula::SceneManager::Get().GetActiveScene();
+				}
 			}
 			m_ActiveScene->OnRender();
 			
@@ -559,6 +566,46 @@ namespace Cosmic {
 		
 		if (m_RuntimeMode)
 		{
+			// Entering runtime mode - validate scene first
+			if (!m_ActiveScene)
+			{
+				NB_CORE_ERROR("Cannot start runtime: No active scene");
+				ConsoleWindow::AddLog("Cannot start runtime: No active scene", LogLevel::Error);
+				m_RuntimeMode = false;
+				MenuBar::SetRuntimeMode(false);
+				return;
+			}
+
+			// Check if scene has any entities
+			auto entities = m_ActiveScene->GetAllEntities();
+			if (entities.empty())
+			{
+				NB_CORE_WARN("Starting runtime with empty scene");
+				ConsoleWindow::AddLog("Warning: Scene has no entities", LogLevel::Warning);
+			}
+
+			// Validate entities with script components have valid scripts
+			for (auto entity : entities)
+			{
+				if (entity.HasComponent<Nebula::ScriptComponent>())
+				{
+					auto& sc = entity.GetComponent<Nebula::ScriptComponent>();
+					for (const auto& scriptPath : sc.ScriptPaths)
+					{
+						if (!scriptPath.empty())
+						{
+							std::filesystem::path path(scriptPath);
+							if (!std::filesystem::exists(path))
+							{
+								auto& tag = entity.GetComponent<Nebula::TagComponent>();
+								NB_CORE_ERROR("Entity '{}' references missing script: {}", tag.Tag, scriptPath);
+								ConsoleWindow::AddLog("Error: Entity '" + tag.Tag + "' references missing script: " + scriptPath, LogLevel::Error);
+							}
+						}
+					}
+				}
+			}
+
 			// Entering runtime mode - save the current scene state
 			NB_CORE_INFO("Runtime started");
 			ConsoleWindow::AddLog("Runtime started", LogLevel::Info);

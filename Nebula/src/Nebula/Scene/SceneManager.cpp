@@ -147,4 +147,26 @@ namespace Nebula {
 		}
 	}
 
+	void SceneManager::RequestLoadScene(size_t index)
+	{
+		if (index >= m_SceneList.size())
+		{
+			NB_ERROR("SceneManager::RequestLoadScene - Invalid scene index: {0}", index);
+			return;
+		}
+		
+		m_PendingSceneIndex = static_cast<int>(index);
+		NB_INFO("SceneManager: Scene load requested (index {0}), will load at end of frame", index);
+	}
+
+	void SceneManager::ProcessPendingSceneLoad()
+	{
+		if (m_PendingSceneIndex >= 0)
+		{
+			int index = m_PendingSceneIndex;
+			m_PendingSceneIndex = -1; // Reset before loading
+			LoadScene(static_cast<size_t>(index));
+		}
+	}
+
 }

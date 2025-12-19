@@ -36,6 +36,11 @@ namespace Nebula {
 		bool SaveSceneList(const std::string& filepath = "assets/SceneList.json");
 		bool LoadSceneList(const std::string& filepath = "assets/SceneList.json");
 
+		// Deferred scene loading (to avoid destroying scene mid-update)
+		void RequestLoadScene(size_t index);
+		void ProcessPendingSceneLoad();
+		bool HasPendingSceneLoad() const { return m_PendingSceneIndex >= 0; }
+
 	private:
 		SceneManager() = default;
 		~SceneManager() = default;
@@ -45,6 +50,7 @@ namespace Nebula {
 	private:
 		std::shared_ptr<Scene> m_ActiveScene;
 		std::vector<std::string> m_SceneList;
+		int m_PendingSceneIndex = -1;
 	};
 
 }
