@@ -80,14 +80,12 @@ namespace Nebula {
 			int numManifolds = m_DynamicsWorld->getDispatcher()->getNumManifolds();
 			if (numManifolds > 0)
 			{
-				NB_INFO("Physics: {0} collision manifolds detected", numManifolds);
 				for (int i = 0; i < numManifolds; i++)
 				{
 					btPersistentManifold* contactManifold = m_DynamicsWorld->getDispatcher()->getManifoldByIndexInternal(i);
 					int numContacts = contactManifold->getNumContacts();
 					if (numContacts > 0)
 					{
-						NB_INFO("  Manifold {0}: {1} contact points", i, numContacts);
 					}
 				}
 			}

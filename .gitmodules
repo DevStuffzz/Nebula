@@ -23,3 +23,6 @@
 [submodule "Nebula/vendor/ImGuizmo"]
 	path = Nebula/vendor/ImGuizmo
 	url = https://github.com/DevStuffzz/ImGuizmo.git
+[submodule "Nebula/vendor/openal-soft"]
+	path = Nebula/vendor/openal-soft
+	url = https://github.com/DevStuffzz/openal-soft

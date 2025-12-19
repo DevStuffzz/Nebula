@@ -52,6 +52,7 @@ namespace Nebula {
 
 		// Hot-reloading support
 		static void CheckForScriptChanges();
+		static void RegisterScriptReloadCallback(std::function<void(const std::string&)> callback);
 
 		// Parse script to extract @editor variables
 		static std::vector<ScriptVariable> ParseScriptVariables(const std::string& filepath);
@@ -66,6 +67,7 @@ namespace Nebula {
 		static std::string s_LastError;
 		static std::unordered_map<uint32_t, std::string> s_EntityScripts; // EntityID -> ScriptPath
 		static std::unordered_map<std::string, long long> s_ScriptModificationTimes; // ScriptPath -> LastWriteTime
+		static std::vector<std::function<void(const std::string&)>> s_ScriptReloadCallbacks;
 	};
 
 }

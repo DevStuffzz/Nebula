@@ -26,6 +26,8 @@ IncludeDir["json"] = "Nebula/vendor/json"
 IncludeDir["Lua"] = "Nebula/vendor/lua"
 IncludeDir["spdlog"] = "Nebula/vendor/spdlog"
 IncludeDir["bullet3"] = "Nebula/vendor/bullet3/src"
+IncludeDir["OpenAL"] = "Nebula/vendor/openal-soft/include"
+IncludeDir["dr_libs"] = "Nebula/vendor"
 
 
 group "Dependencies"
@@ -76,6 +78,8 @@ project "Nebula"
         "%{IncludeDir.json}",
         "%{IncludeDir.Lua}",
         "%{IncludeDir.bullet3}",
+        "%{IncludeDir.OpenAL}",
+        "%{IncludeDir.dr_libs}",
     }
 
     links
@@ -100,6 +104,17 @@ project "Nebula"
             "%{prj.name}/src/Platform/Windows/**.cpp"
         }
 
+        removefiles
+        {
+            "%{prj.name}/src/Platform/OpenAL/**"
+        }
+
+        files
+        {
+            "%{prj.name}/src/Platform/OpenAL/**.h",
+            "%{prj.name}/src/Platform/OpenAL/**.cpp"
+        }
+
         defines
         {
             "NB_PLATFORM_WINDOWS",
@@ -112,11 +127,24 @@ project "Nebula"
             "opengl32.lib"
         }
 
+        libdirs
+        {
+            "Nebula/vendor/openal-soft/build/%{cfg.buildcfg}"
+        }
+
+        links
+        {
+            "OpenAL32.lib"
+        }
+
         postbuildcommands
         {
             "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Runtime/\"",
             "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Cosmic/\"",
-            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Nebula/assets"
+            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Nebula/assets",
+            "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Nebula/\"",
+            "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Runtime/\"",
+            "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Cosmic/\"",
         }
 
         linkoptions { "/ignore:4099" } -- NOTE(Peter): Disable no PDB found warning

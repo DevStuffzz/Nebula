@@ -237,4 +237,43 @@ namespace Nebula {
 			: DirectoryPath(directoryPath) {}
 	};
 
+	// Forward declare audio types
+	class AudioClip;
+
+	// Audio Source Component - Plays audio in 3D space or 2D
+	struct NEBULA_API AudioSourceComponent
+	{
+		std::string AudioClipPath;
+		std::shared_ptr<AudioClip> Clip = nullptr;
+
+		float Volume = 1.0f;
+		float Pitch = 1.0f;
+		bool Loop = false;
+		bool PlayOnAwake = false;
+		bool Spatial = true; // 3D spatial audio vs 2D audio
+
+		// Spatial audio parameters
+		float RolloffFactor = 1.0f;
+		float ReferenceDistance = 1.0f;
+		float MaxDistance = 100.0f;
+
+		// Runtime state
+		uint32_t RuntimeSourceID = 0;
+		bool IsPlaying = false;
+
+		AudioSourceComponent() = default;
+		AudioSourceComponent(const AudioSourceComponent&) = default;
+		AudioSourceComponent(const std::string& clipPath)
+			: AudioClipPath(clipPath) {}
+	};
+
+	// Audio Listener Component - Receives audio (typically on camera)
+	struct NEBULA_API AudioListenerComponent
+	{
+		bool Active = true;
+
+		AudioListenerComponent() = default;
+		AudioListenerComponent(const AudioListenerComponent&) = default;
+	};
+
 }

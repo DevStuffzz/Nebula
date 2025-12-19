@@ -76,6 +76,14 @@ namespace Cosmic {
 				if (s_SelectedEntity.HasComponent<Nebula::SkyboxComponent>())
 					DrawSkyboxComponent(s_SelectedEntity.GetComponent<Nebula::SkyboxComponent>());
 
+				// Audio Source Component
+				if (s_SelectedEntity.HasComponent<Nebula::AudioSourceComponent>())
+					DrawAudioSourceComponent(s_SelectedEntity.GetComponent<Nebula::AudioSourceComponent>());
+
+				// Audio Listener Component
+				if (s_SelectedEntity.HasComponent<Nebula::AudioListenerComponent>())
+					DrawAudioListenerComponent(s_SelectedEntity.GetComponent<Nebula::AudioListenerComponent>());
+
 				Nebula::NebulaGui::Separator();
 
 				// Add Component button
@@ -137,6 +145,18 @@ namespace Cosmic {
 					{
 						if (!s_SelectedEntity.HasComponent<Nebula::SkyboxComponent>())
 							s_SelectedEntity.AddComponent<Nebula::SkyboxComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Audio Source"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::AudioSourceComponent>())
+							s_SelectedEntity.AddComponent<Nebula::AudioSourceComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Audio Listener"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::AudioListenerComponent>())
+							s_SelectedEntity.AddComponent<Nebula::AudioListenerComponent>();
 						Nebula::NebulaGui::CloseCurrentPopup();
 					}
 					Nebula::NebulaGui::EndPopup();
@@ -612,6 +632,94 @@ namespace Cosmic {
 						NB_CORE_ERROR("Exception reloading skybox: {0}", e.what());
 					}
 				}
+			}
+		}
+
+		static void DrawAudioSourceComponent(Nebula::AudioSourceComponent& audioSource)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Audio Source", true))
+			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##AudioSource"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::AudioSourceComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::AudioSourceComponent>();
+					return;
+				}
+
+				// Audio Clip Path
+				Nebula::NebulaGui::Text("Audio Clip: %s", audioSource.AudioClipPath.empty() ? "None" : audioSource.AudioClipPath.c_str());
+				Nebula::NebulaGui::Button("[Drop Audio File]", glm::vec2(150, 40));
+				if (Nebula::NebulaGui::BeginDragDropTarget())
+				{
+					const char* payload = (const char*)Nebula::NebulaGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+					if (payload)
+					{
+						std::string path = payload;
+						auto hasExtension = [](const std::string& str, const std::string& ext) {
+							return str.size() >= ext.size() && str.compare(str.size() - ext.size(), ext.size(), ext) == 0;
+						};
+						if (hasExtension(path, ".wav") || hasExtension(path, ".ogg") || hasExtension(path, ".mp3"))
+						{
+							audioSource.AudioClipPath = path;
+						}
+						else
+						{
+							NB_CORE_WARN("Please drop a valid audio file (.wav, .ogg, .mp3)");
+						}
+					}
+					Nebula::NebulaGui::EndDragDropTarget();
+				}
+
+				// Clear button
+				if (!audioSource.AudioClipPath.empty())
+				{
+					Nebula::NebulaGui::SameLine();
+					if (Nebula::NebulaGui::Button("Clear"))
+					{
+						audioSource.AudioClipPath = "";
+					}
+				}
+
+				// Volume
+				Nebula::NebulaGui::SliderFloat("Volume", &audioSource.Volume, 0.0f, 1.0f);
+
+				// Pitch
+				Nebula::NebulaGui::SliderFloat("Pitch", &audioSource.Pitch, 0.1f, 3.0f);
+
+				// Loop
+				Nebula::NebulaGui::Checkbox("Loop", &audioSource.Loop);
+
+				// Play On Awake
+				Nebula::NebulaGui::Checkbox("Play On Awake", &audioSource.PlayOnAwake);
+
+				// Spatial
+				Nebula::NebulaGui::Checkbox("Spatial (3D)", &audioSource.Spatial);
+
+				if (audioSource.Spatial)
+				{
+					Nebula::NebulaGui::Text("  Spatial Audio Settings:");
+					Nebula::NebulaGui::SliderFloat("  Rolloff Factor", &audioSource.RolloffFactor, 0.0f, 10.0f);
+					Nebula::NebulaGui::SliderFloat("  Reference Distance", &audioSource.ReferenceDistance, 0.1f, 100.0f);
+					Nebula::NebulaGui::SliderFloat("  Max Distance", &audioSource.MaxDistance, 1.0f, 1000.0f);
+				}
+			}
+		}
+
+		static void DrawAudioListenerComponent(Nebula::AudioListenerComponent& audioListener)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Audio Listener", true))
+			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##AudioListener"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::AudioListenerComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::AudioListenerComponent>();
+					return;
+				}
+
+				Nebula::NebulaGui::Checkbox("Active", &audioListener.Active);
+				Nebula::NebulaGui::Text("The audio listener position is typically\nattached to the main camera.");
 			}
 		}
 

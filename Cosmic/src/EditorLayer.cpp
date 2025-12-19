@@ -9,6 +9,7 @@
 #include <Nebula/Scene/SceneSerializer.h>
 #include <Nebula/Scene/SceneManager.h>
 #include <Nebula/Physics/PhysicsWorld.h>
+#include <Nebula/Audio/AudioEngine.h>
 
 #include "Nebula/Renderer/Mesh.h"
 #include <Nebula/Renderer/Shader.h>
@@ -566,7 +567,7 @@ namespace Cosmic {
 		
 		if (m_RuntimeMode)
 		{
-			// Entering runtime mode - validate scene first
+			// validate scene first
 			if (!m_ActiveScene)
 			{
 				NB_CORE_ERROR("Cannot start runtime: No active scene");
@@ -606,32 +607,35 @@ namespace Cosmic {
 				}
 			}
 
-			// Entering runtime mode - save the current scene state
 			NB_CORE_INFO("Runtime started");
 			ConsoleWindow::AddLog("Runtime started", LogLevel::Info);
 			
 			// Store the scene path so we can reload it when stopping
 			if (!m_CurrentScenePath.empty())
 			{
+				// TODO:
 				// Save current editor state before entering play mode
 				// This allows us to restore it when exiting play mode
 			}
 		}
 		else
 		{
-			// Exiting runtime mode - restore the scene to its pre-runtime state
+			// Exiting runtime mode
 			NB_CORE_INFO("Runtime stopped");
 			ConsoleWindow::AddLog("Runtime stopped", LogLevel::Info);
 			
-			// Reload the scene to reset physics state (this will clear the physics world)
+			// Stop all audio sources before reloading
+			if (m_ActiveScene && m_ActiveScene->GetAudioEngine())
+			{
+				m_ActiveScene->GetAudioEngine()->StopAll();
+			}
+			
+			// Reload the scene to reset physics state
 			if (!m_CurrentScenePath.empty())
 			{
 				LoadSceneFromPath(m_CurrentScenePath);
 			}
 		}
 	}
-
-	// RenderGizmo removed - will be replaced with ImGuizmo integration
-
 }
 

@@ -13,6 +13,8 @@
 #include "Nebula/Scripting/LuaScriptEngine.h"
 #include "Nebula/Physics/PhysicsWorld.h"
 #include "Nebula/Physics/PhysicsDebugDraw.h"
+#include "Nebula/Audio/AudioEngine.h"
+#include "Nebula/Audio/AudioClip.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glad/glad.h> // TODO: Move viewport save/restore to platform-agnostic RenderCommand
 namespace Nebula {
@@ -23,6 +25,22 @@ namespace Nebula {
 		// Initialize physics
 		m_PhysicsWorld = std::make_unique<PhysicsWorld>();
 		m_PhysicsWorld->Init();
+
+		// Initialize audio
+		m_AudioEngine = std::unique_ptr<AudioEngine>(AudioEngine::Create());
+		if (m_AudioEngine)
+		{
+			if (!m_AudioEngine->Init())
+			{
+				NB_CORE_ERROR("Failed to initialize audio engine");
+				m_AudioEngine.reset();
+			}
+		}
+
+		// Register script reload callback for hot-reloading
+		LuaScriptEngine::RegisterScriptReloadCallback([this](const std::string& scriptPath) {
+			this->ClearScriptInitialization(scriptPath);
+		});
 
 		// Initialize shadow shader
 		NB_CORE_INFO("Creating scene: {0}", name);
@@ -54,6 +72,11 @@ namespace Nebula {
 		if (m_PhysicsWorld)
 		{
 			m_PhysicsWorld->Shutdown();
+		}
+
+		if (m_AudioEngine)
+		{
+			m_AudioEngine->Shutdown();
 		}
 	}
 
@@ -142,6 +165,92 @@ namespace Nebula {
 					LuaScriptEngine::OnUpdateEntity(entity, deltaTime);
 				}
 			}
+		}
+
+		// Update audio listener (find active camera with listener component)
+		if (m_AudioEngine)
+		{
+			auto listenerView = m_Registry.view<AudioListenerComponent, TransformComponent>();
+			for (auto entityID : listenerView)
+			{
+				auto& listener = listenerView.get<AudioListenerComponent>(entityID);
+				if (listener.Active)
+				{
+					auto& transform = listenerView.get<TransformComponent>(entityID);
+					m_AudioEngine->SetListenerPosition(transform.Position);
+					
+					// Calculate forward and up vectors from rotation
+					glm::vec3 forward(0.0f, 0.0f, -1.0f);
+					glm::vec3 up(0.0f, 1.0f, 0.0f);
+					glm::quat rotation = glm::quat(glm::radians(transform.Rotation));
+					forward = rotation * forward;
+					up = rotation * up;
+					m_AudioEngine->SetListenerOrientation(forward, up);
+					
+					break; // Only one active listener
+				}
+			}
+
+			// Update audio sources
+			auto audioView = m_Registry.view<AudioSourceComponent, TransformComponent>();
+			for (auto entityID : audioView)
+			{
+				Entity entity = { entityID, this };
+				auto& audioSource = audioView.get<AudioSourceComponent>(entityID);
+				auto& transform = audioView.get<TransformComponent>(entityID);
+
+				// Load audio clip if not already loaded
+				if (!audioSource.Clip && !audioSource.AudioClipPath.empty())
+				{
+					audioSource.Clip = std::shared_ptr<AudioClip>(AudioClip::Create(audioSource.AudioClipPath));
+				}
+
+				// Create audio source if needed
+				if (audioSource.RuntimeSourceID == 0)
+				{
+					audioSource.RuntimeSourceID = m_AudioEngine->CreateSource();
+					
+					if (audioSource.RuntimeSourceID != 0)
+					{
+						// Set initial properties
+						m_AudioEngine->SetSourceVolume(audioSource.RuntimeSourceID, audioSource.Volume);
+						m_AudioEngine->SetSourcePitch(audioSource.RuntimeSourceID, audioSource.Pitch);
+						m_AudioEngine->SetSourceLoop(audioSource.RuntimeSourceID, audioSource.Loop);
+						m_AudioEngine->SetSourceSpatial(audioSource.RuntimeSourceID, audioSource.Spatial);
+						m_AudioEngine->SetSourceRolloffFactor(audioSource.RuntimeSourceID, audioSource.RolloffFactor);
+						m_AudioEngine->SetSourceReferenceDistance(audioSource.RuntimeSourceID, audioSource.ReferenceDistance);
+						m_AudioEngine->SetSourceMaxDistance(audioSource.RuntimeSourceID, audioSource.MaxDistance);
+						
+						// Attach clip
+						if (audioSource.Clip)
+						{
+							m_AudioEngine->SetSourceClip(audioSource.RuntimeSourceID, audioSource.Clip.get());
+						}
+
+						// Play on awake
+						if (audioSource.PlayOnAwake)
+						{
+							m_AudioEngine->PlaySource(audioSource.RuntimeSourceID);
+							audioSource.IsPlaying = true;
+						}
+					}
+				}
+
+				// Update position for spatial audio
+				if (audioSource.RuntimeSourceID != 0 && audioSource.Spatial)
+				{
+					m_AudioEngine->SetSourcePosition(audioSource.RuntimeSourceID, transform.Position);
+				}
+
+				// Update playing state
+				if (audioSource.RuntimeSourceID != 0)
+				{
+					audioSource.IsPlaying = m_AudioEngine->IsSourcePlaying(audioSource.RuntimeSourceID);
+				}
+			}
+
+			// Update audio engine
+			m_AudioEngine->Update();
 		}
 
 		// Update physics debug drawing
@@ -417,6 +526,27 @@ namespace Nebula {
 			}
 		}
 		return true;
+	}
+
+	void Scene::ClearScriptInitialization(const std::string& scriptPath)
+	{
+		// Remove all initialization flags for entities using this script
+		std::vector<std::pair<entt::entity, std::string>> keysToRemove;
+		
+		for (const auto& [key, initialized] : m_LuaScriptInitialized)
+		{
+			if (key.second == scriptPath)
+			{
+				keysToRemove.push_back(key);
+			}
+		}
+
+		for (const auto& key : keysToRemove)
+		{
+			m_LuaScriptInitialized.erase(key);
+		}
+
+		NB_CORE_INFO("Cleared initialization for {0} entity(ies) using script: {1}", keysToRemove.size(), scriptPath);
 	}
 
 }

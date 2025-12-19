@@ -15,6 +15,7 @@ namespace Nebula {
 	std::string LuaScriptEngine::s_LastError = "";
 	std::unordered_map<uint32_t, std::string> LuaScriptEngine::s_EntityScripts;
 	std::unordered_map<std::string, long long> LuaScriptEngine::s_ScriptModificationTimes;
+	std::vector<std::function<void(const std::string&)>> LuaScriptEngine::s_ScriptReloadCallbacks;
 
 	void LuaScriptEngine::Init()
 	{
@@ -196,7 +197,39 @@ namespace Nebula {
 	bool LuaScriptEngine::ReloadScript(const std::string& filepath)
 	{
 		NB_CORE_INFO("Reloading Lua script: {0}", filepath);
-		return LoadScript(filepath);
+		
+		// Reload the script file
+		if (!LoadScript(filepath))
+		{
+			return false;
+		}
+
+		// Find all entities using this script and mark them for re-initialization
+		std::vector<uint32_t> entitiesToReinit;
+		for (const auto& [entityID, scriptPath] : s_EntityScripts)
+		{
+			if (scriptPath == filepath)
+			{
+				entitiesToReinit.push_back(entityID);
+			}
+		}
+
+		// Note: The actual re-initialization will happen in OnUpdate when the script runs OnCreate again
+		// This is handled by the scene's m_LuaScriptInitialized map being cleared for reloaded scripts
+		
+		// Notify all registered callbacks
+		for (const auto& callback : s_ScriptReloadCallbacks)
+		{
+			callback(filepath);
+		}
+		
+		NB_CORE_INFO("Script reloaded successfully. {0} entity(ies) will be re-initialized.", entitiesToReinit.size());
+		return true;
+	}
+
+	void LuaScriptEngine::RegisterScriptReloadCallback(std::function<void(const std::string&)> callback)
+	{
+		s_ScriptReloadCallbacks.push_back(callback);
 	}
 
 	void LuaScriptEngine::RegisterEngineFunctions()

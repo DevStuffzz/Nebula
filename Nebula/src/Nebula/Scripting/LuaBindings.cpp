@@ -4,6 +4,7 @@
 #include "Nebula/Scene/Entity.h"
 #include "Nebula/Scene/Components.h"
 #include "Nebula/Scene/SceneManager.h"
+#include "Nebula/Audio/AudioEngine.h"
 #include "Nebula/Input.h"
 #include "Nebula/Log.h"
 #include "Nebula/Keycodes.h"
@@ -19,6 +20,7 @@ namespace Nebula {
 
 		RegisterInputBindings(L);
 		RegisterLogBindings(L);
+		RegisterAudioBindings(L);
 
 		lua_setglobal(L, "Nebula");
 	}
@@ -554,6 +556,298 @@ namespace Nebula {
 		SceneManager::Get().RequestLoadScene((size_t)sceneIndex);
 		lua_pushboolean(L, true);
 		
+		return 1;
+	}
+
+	// Audio Binding Registration
+	void LuaBindings::RegisterAudioBindings(lua_State* L)
+	{
+		// Register audio control functions
+		lua_pushcfunction(L, LuaBindings::Audio_Play);
+		lua_setfield(L, -2, "AudioPlay");
+
+		lua_pushcfunction(L, LuaBindings::Audio_Pause);
+		lua_setfield(L, -2, "AudioPause");
+
+		lua_pushcfunction(L, LuaBindings::Audio_Stop);
+		lua_setfield(L, -2, "AudioStop");
+
+		lua_pushcfunction(L, LuaBindings::Audio_IsPlaying);
+		lua_setfield(L, -2, "AudioIsPlaying");
+
+		lua_pushcfunction(L, LuaBindings::Audio_SetVolume);
+		lua_setfield(L, -2, "AudioSetVolume");
+
+		lua_pushcfunction(L, LuaBindings::Audio_GetVolume);
+		lua_setfield(L, -2, "AudioGetVolume");
+
+		lua_pushcfunction(L, LuaBindings::Audio_SetPitch);
+		lua_setfield(L, -2, "AudioSetPitch");
+
+		lua_pushcfunction(L, LuaBindings::Audio_GetPitch);
+		lua_setfield(L, -2, "AudioGetPitch");
+
+		lua_pushcfunction(L, LuaBindings::Audio_SetLoop);
+		lua_setfield(L, -2, "AudioSetLoop");
+
+		lua_pushcfunction(L, LuaBindings::Audio_GetLoop);
+		lua_setfield(L, -2, "AudioGetLoop");
+	}
+
+	// Audio Functions
+	int LuaBindings::Audio_Play(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			luaL_error(L, "Entity does not have AudioSourceComponent");
+			return 0;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		auto* audioEngine = entity->GetScene()->GetAudioEngine();
+		
+		if (audioEngine && audioSource.RuntimeSourceID != 0)
+		{
+			audioEngine->PlaySource(audioSource.RuntimeSourceID);
+		}
+
+		return 0;
+	}
+
+	int LuaBindings::Audio_Pause(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			luaL_error(L, "Entity does not have AudioSourceComponent");
+			return 0;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		auto* audioEngine = entity->GetScene()->GetAudioEngine();
+		
+		if (audioEngine && audioSource.RuntimeSourceID != 0)
+		{
+			audioEngine->PauseSource(audioSource.RuntimeSourceID);
+		}
+
+		return 0;
+	}
+
+	int LuaBindings::Audio_Stop(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			luaL_error(L, "Entity does not have AudioSourceComponent");
+			return 0;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		auto* audioEngine = entity->GetScene()->GetAudioEngine();
+		
+		if (audioEngine && audioSource.RuntimeSourceID != 0)
+		{
+			audioEngine->StopSource(audioSource.RuntimeSourceID);
+		}
+
+		return 0;
+	}
+
+	int LuaBindings::Audio_IsPlaying(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			lua_pushboolean(L, false);
+			return 1;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		auto* audioEngine = entity->GetScene()->GetAudioEngine();
+		
+		if (audioEngine && audioSource.RuntimeSourceID != 0)
+		{
+			bool isPlaying = audioEngine->IsSourcePlaying(audioSource.RuntimeSourceID);
+			lua_pushboolean(L, isPlaying);
+		}
+		else
+		{
+			lua_pushboolean(L, false);
+		}
+
+		return 1;
+	}
+
+	int LuaBindings::Audio_SetVolume(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		float volume = (float)lua_tonumber(L, 2);
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			luaL_error(L, "Entity does not have AudioSourceComponent");
+			return 0;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		audioSource.Volume = volume;
+		
+		auto* audioEngine = entity->GetScene()->GetAudioEngine();
+		if (audioEngine && audioSource.RuntimeSourceID != 0)
+		{
+			audioEngine->SetSourceVolume(audioSource.RuntimeSourceID, volume);
+		}
+
+		return 0;
+	}
+
+	int LuaBindings::Audio_GetVolume(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			lua_pushnumber(L, 0.0f);
+			return 1;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		lua_pushnumber(L, audioSource.Volume);
+		return 1;
+	}
+
+	int LuaBindings::Audio_SetPitch(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		float pitch = (float)lua_tonumber(L, 2);
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			luaL_error(L, "Entity does not have AudioSourceComponent");
+			return 0;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		audioSource.Pitch = pitch;
+		
+		auto* audioEngine = entity->GetScene()->GetAudioEngine();
+		if (audioEngine && audioSource.RuntimeSourceID != 0)
+		{
+			audioEngine->SetSourcePitch(audioSource.RuntimeSourceID, pitch);
+		}
+
+		return 0;
+	}
+
+	int LuaBindings::Audio_GetPitch(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			lua_pushnumber(L, 1.0f);
+			return 1;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		lua_pushnumber(L, audioSource.Pitch);
+		return 1;
+	}
+
+	int LuaBindings::Audio_SetLoop(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		bool loop = lua_toboolean(L, 2);
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			luaL_error(L, "Entity does not have AudioSourceComponent");
+			return 0;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		audioSource.Loop = loop;
+		
+		auto* audioEngine = entity->GetScene()->GetAudioEngine();
+		if (audioEngine && audioSource.RuntimeSourceID != 0)
+		{
+			audioEngine->SetSourceLoop(audioSource.RuntimeSourceID, loop);
+		}
+
+		return 0;
+	}
+
+	int LuaBindings::Audio_GetLoop(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !(*entity))
+		{
+			luaL_error(L, "Invalid entity");
+			return 0;
+		}
+
+		if (!entity->HasComponent<AudioSourceComponent>())
+		{
+			lua_pushboolean(L, false);
+			return 1;
+		}
+
+		auto& audioSource = entity->GetComponent<AudioSourceComponent>();
+		lua_pushboolean(L, audioSource.Loop);
 		return 1;
 	}
 

@@ -53,6 +53,10 @@
 #include "Nebula/Scripting/LuaScriptEngine.h"
 #include "Nebula/Scripting/LuaBindings.h"
 
+// Audio System
+#include "Nebula/Audio/AudioEngine.h"
+#include "Nebula/Audio/AudioClip.h"
+
 // ------------- Entry Point
 #include "Nebula/EntryPoint.h"
 // -------------------------

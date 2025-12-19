@@ -23,6 +23,7 @@ namespace Nebula {
 	class Framebuffer;
 	class Shader;
 	class PhysicsWorld;
+	class AudioEngine;
 
 	class NEBULA_API Scene
 	{
@@ -48,8 +49,14 @@ namespace Nebula {
 		PhysicsWorld* GetPhysicsWorld() { return m_PhysicsWorld.get(); }
 		void SetPhysicsDebugDraw(bool enabled);
 
+		// Audio access
+		AudioEngine* GetAudioEngine() { return m_AudioEngine.get(); }
+
 		// Script validation
 		bool ValidateAllScripts(std::string& errorMessage);
+
+		// Script hot-reloading support
+		void ClearScriptInitialization(const std::string& scriptPath);
 
 	private:
 		std::string m_Name;
@@ -80,6 +87,9 @@ namespace Nebula {
 	std::shared_ptr<Shader> m_ShadowShader;
 	void RenderShadowMaps();	private:
 		glm::vec3 m_GlobalIllumination;
+
+		// Audio
+		std::unique_ptr<AudioEngine> m_AudioEngine;
 
 		// Physics
 		std::unique_ptr<PhysicsWorld> m_PhysicsWorld;

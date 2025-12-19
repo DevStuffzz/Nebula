@@ -39,10 +39,23 @@ namespace Nebula {
 	static int Entity_SetMass(lua_State* L);
 	static int Entity_GetMass(lua_State* L);
 
+	// Audio functions
+	static int Audio_Play(lua_State* L);
+	static int Audio_Pause(lua_State* L);
+	static int Audio_Stop(lua_State* L);
+	static int Audio_IsPlaying(lua_State* L);
+	static int Audio_SetVolume(lua_State* L);
+	static int Audio_GetVolume(lua_State* L);
+	static int Audio_SetPitch(lua_State* L);
+	static int Audio_GetPitch(lua_State* L);
+	static int Audio_SetLoop(lua_State* L);
+	static int Audio_GetLoop(lua_State* L);
+
 private:
 	static void RegisterInputBindings(lua_State* L);
 	static void RegisterMathBindings(lua_State* L);
 	static void RegisterLogBindings(lua_State* L);
+	static void RegisterAudioBindings(lua_State* L);
 
 	// Input functions
 	static int IsKeyPressed(lua_State* L);

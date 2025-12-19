@@ -247,6 +247,32 @@ namespace Nebula {
 			skyboxJson["DirectoryPath"] = skybox.DirectoryPath;
 			entityJson["SkyboxComponent"] = skyboxJson;
 		}
+
+		// Audio Source Component
+		if (entity.HasComponent<AudioSourceComponent>())
+		{
+			auto& audioSource = entity.GetComponent<AudioSourceComponent>();
+			json audioJson;
+			audioJson["AudioClipPath"] = audioSource.AudioClipPath;
+			audioJson["Volume"] = audioSource.Volume;
+			audioJson["Pitch"] = audioSource.Pitch;
+			audioJson["Loop"] = audioSource.Loop;
+			audioJson["PlayOnAwake"] = audioSource.PlayOnAwake;
+			audioJson["Spatial"] = audioSource.Spatial;
+			audioJson["RolloffFactor"] = audioSource.RolloffFactor;
+			audioJson["ReferenceDistance"] = audioSource.ReferenceDistance;
+			audioJson["MaxDistance"] = audioSource.MaxDistance;
+			entityJson["AudioSourceComponent"] = audioJson;
+		}
+
+		// Audio Listener Component
+		if (entity.HasComponent<AudioListenerComponent>())
+		{
+			auto& listener = entity.GetComponent<AudioListenerComponent>();
+			json listenerJson;
+			listenerJson["Active"] = listener.Active;
+			entityJson["AudioListenerComponent"] = listenerJson;
+		}
 	}
 
 	static void DeserializeEntity(const json& entityJson, Scene* scene)
@@ -561,6 +587,42 @@ namespace Nebula {
 					}
 				}
 			}
+		}
+
+		// Audio Source Component
+		if (entityJson.contains("AudioSourceComponent"))
+		{
+			const auto& audioJson = entityJson["AudioSourceComponent"];
+			auto& audioSource = entity.AddComponent<AudioSourceComponent>();
+			
+			if (audioJson.contains("AudioClipPath"))
+				audioSource.AudioClipPath = audioJson["AudioClipPath"];
+			if (audioJson.contains("Volume"))
+				audioSource.Volume = audioJson["Volume"];
+			if (audioJson.contains("Pitch"))
+				audioSource.Pitch = audioJson["Pitch"];
+			if (audioJson.contains("Loop"))
+				audioSource.Loop = audioJson["Loop"];
+			if (audioJson.contains("PlayOnAwake"))
+				audioSource.PlayOnAwake = audioJson["PlayOnAwake"];
+			if (audioJson.contains("Spatial"))
+				audioSource.Spatial = audioJson["Spatial"];
+			if (audioJson.contains("RolloffFactor"))
+				audioSource.RolloffFactor = audioJson["RolloffFactor"];
+			if (audioJson.contains("ReferenceDistance"))
+				audioSource.ReferenceDistance = audioJson["ReferenceDistance"];
+			if (audioJson.contains("MaxDistance"))
+				audioSource.MaxDistance = audioJson["MaxDistance"];
+		}
+
+		// Audio Listener Component
+		if (entityJson.contains("AudioListenerComponent"))
+		{
+			const auto& listenerJson = entityJson["AudioListenerComponent"];
+			auto& listener = entity.AddComponent<AudioListenerComponent>();
+			
+			if (listenerJson.contains("Active"))
+				listener.Active = listenerJson["Active"];
 		}
 	}
 
