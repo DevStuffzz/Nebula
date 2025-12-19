@@ -2,6 +2,7 @@
 #pragma warning(disable: 4251)
 
 #include "Nebula/Core.h"
+#include "Nebula/Scene/Components.h"
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -32,6 +33,9 @@ namespace Nebula {
 		static void OnUpdateEntity(Entity entity, float deltaTime);
 		static void OnDestroyEntity(Entity entity);
 
+		// Set script variables as Lua globals
+		static void SetScriptVariables(const std::vector<ScriptVariable>& variables);
+
 		// Script reloading
 		static bool ReloadScript(const std::string& filepath);
 		
@@ -48,6 +52,9 @@ namespace Nebula {
 
 		// Hot-reloading support
 		static void CheckForScriptChanges();
+
+		// Parse script to extract @editor variables
+		static std::vector<ScriptVariable> ParseScriptVariables(const std::string& filepath);
 
 	private:
 		static void RegisterEngineFunctions();

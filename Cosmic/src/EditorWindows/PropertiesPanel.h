@@ -5,6 +5,7 @@
 #include "Nebula/ImGui/NebulaGui.h"
 #include "Nebula/Renderer/Material.h"
 #include "Nebula/Renderer/Texture.h"
+#include "Nebula/Scripting/LuaScriptEngine.h"
 #include "Platform/OpenGL/OpenGLTexture.h"
 #include <glm/glm.hpp>
 #include <memory>
@@ -371,6 +372,27 @@ namespace Cosmic {
 						if (path.size() >= 4 && path.substr(path.size() - 4) == ".lua")
 						{
 							script.AddScript(path);
+							
+							// Parse and add variables from the script
+							auto newVars = Nebula::LuaScriptEngine::ParseScriptVariables(path);
+							for (const auto& newVar : newVars)
+							{
+								// Check if variable already exists
+								bool exists = false;
+								for (const auto& existingVar : script.Variables)
+								{
+									if (existingVar.Name == newVar.Name)
+									{
+										exists = true;
+										break;
+									}
+								}
+								// Add if it doesn't exist
+								if (!exists)
+								{
+									script.Variables.push_back(newVar);
+								}
+							}
 						}
 					}
 					Nebula::NebulaGui::EndDragDropTarget();

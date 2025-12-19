@@ -116,6 +116,9 @@ namespace Nebula {
 			Entity entity = { entityID, this };
 			auto& scriptComp = view.get<ScriptComponent>(entityID);
 			
+			// Set script variables as globals before running scripts
+			LuaScriptEngine::SetScriptVariables(scriptComp.Variables);
+			
 			// Process each script in the component
 			for (const auto& scriptPath : scriptComp.ScriptPaths)
 			{

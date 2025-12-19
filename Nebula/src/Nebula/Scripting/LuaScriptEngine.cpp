@@ -3,9 +3,11 @@
 #include "LuaBindings.h"
 #include "Nebula/Log.h"
 #include "Nebula/Scene/Entity.h"
+#include "Nebula/Scene/Components.h"
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <regex>
 
 namespace Nebula {
 
@@ -339,6 +341,114 @@ namespace Nebula {
 						NB_CORE_ERROR("Script reload failed, keeping old version: {0}", scriptPath);
 					}
 				}
+			}
+		}
+	}
+
+	std::vector<ScriptVariable> LuaScriptEngine::ParseScriptVariables(const std::string& filepath)
+	{
+		std::vector<ScriptVariable> variables;
+
+		std::ifstream file(filepath);
+		if (!file.is_open())
+		{
+			NB_CORE_ERROR("Failed to open script for parsing: {0}", filepath);
+			return variables;
+		}
+
+		std::string line;
+		// Match both "local var = value" and "var = var or value" patterns with -- @editor
+		std::regex editorVarRegex(R"((?:local\s+)?(\w+)\s*=\s*(?:\w+\s+or\s+)?([^\s]+).*--\s*@editor)");
+		
+		while (std::getline(file, line))
+		{
+			std::smatch match;
+			if (std::regex_search(line, match, editorVarRegex))
+			{
+				std::string varName = match[1].str();
+				std::string valueStr = match[2].str();
+
+				ScriptVariable var;
+				var.Name = varName;
+
+				// Determine type from value
+				if (valueStr == "true" || valueStr == "false")
+				{
+					// Boolean
+					var.VarType = ScriptVariable::Type::Bool;
+					var.BoolValue = (valueStr == "true");
+				}
+				else if (valueStr.find('.') != std::string::npos)
+				{
+					// Float (has decimal point)
+					var.VarType = ScriptVariable::Type::Float;
+					var.FloatValue = std::stof(valueStr);
+				}
+				else if (std::isdigit(valueStr[0]) || valueStr[0] == '-')
+				{
+					// Int (no decimal point)
+					var.VarType = ScriptVariable::Type::Int;
+					var.IntValue = std::stoi(valueStr);
+				}
+				else if (valueStr[0] == '"' || valueStr[0] == '\'')
+				{
+					// String
+					var.VarType = ScriptVariable::Type::String;
+					var.StringValue = valueStr.substr(1, valueStr.length() - 2);
+				}
+				else
+				{
+					// Default to float
+					var.VarType = ScriptVariable::Type::Float;
+					var.FloatValue = 0.0f;
+				}
+
+				variables.push_back(var);
+			}
+		}
+
+		file.close();
+		return variables;
+	}
+
+	void LuaScriptEngine::SetScriptVariables(const std::vector<ScriptVariable>& variables)
+	{
+		if (!s_LuaState)
+			return;
+
+		for (const auto& var : variables)
+		{
+			switch (var.VarType)
+			{
+			case ScriptVariable::Type::Float:
+				lua_pushnumber(s_LuaState, var.FloatValue);
+				lua_setglobal(s_LuaState, var.Name.c_str());
+				break;
+			case ScriptVariable::Type::Int:
+				lua_pushinteger(s_LuaState, var.IntValue);
+				lua_setglobal(s_LuaState, var.Name.c_str());
+				break;
+			case ScriptVariable::Type::Bool:
+				lua_pushboolean(s_LuaState, var.BoolValue);
+				lua_setglobal(s_LuaState, var.Name.c_str());
+				break;
+			case ScriptVariable::Type::String:
+				lua_pushstring(s_LuaState, var.StringValue.c_str());
+				lua_setglobal(s_LuaState, var.Name.c_str());
+				break;
+			case ScriptVariable::Type::Vec3:
+				// Create a table for vec3
+				lua_newtable(s_LuaState);
+				lua_pushnumber(s_LuaState, var.Vec3Value.x);
+				lua_setfield(s_LuaState, -2, "x");
+				lua_pushnumber(s_LuaState, var.Vec3Value.y);
+				lua_setfield(s_LuaState, -2, "y");
+				lua_pushnumber(s_LuaState, var.Vec3Value.z);
+				lua_setfield(s_LuaState, -2, "z");
+				lua_setglobal(s_LuaState, var.Name.c_str());
+				break;
+			default:
+				break;
 			}
 		}
 	}
