@@ -33,16 +33,16 @@ function OnUpdate(entity, deltaTime)
     local moveX = 0
     local moveZ = 0
     
-    if Nebula.IsKeyPressed(Nebula.W) then
+    if Nebula.IsKeyDown(Nebula.W) then
         moveZ = moveSpeed
     end
-    if Nebula.IsKeyPressed(Nebula.S) then
+    if Nebula.IsKeyDown(Nebula.S) then
         moveZ = -moveSpeed
     end
-    if Nebula.IsKeyPressed(Nebula.A) then
+    if Nebula.IsKeyDown(Nebula.A) then
         moveX = -moveSpeed
     end
-    if Nebula.IsKeyPressed(Nebula.D) then
+    if Nebula.IsKeyDown(Nebula.D) then
         moveX = moveSpeed
     end
     

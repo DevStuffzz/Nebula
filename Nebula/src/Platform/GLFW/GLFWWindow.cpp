@@ -36,6 +36,7 @@ namespace Nebula {
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
+		m_Data.Fullscreen = props.Fullscreen;
 		NB_CORE_INFO("Creating Window {0}: {1}, {2}", props.Title, props.Width, props.Height);
 
 
@@ -48,8 +49,21 @@ namespace Nebula {
 			s_GLFWInitialized = true;
 		}
 
-		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
-		
+		GLFWmonitor* monitor = nullptr;
+		if (props.Fullscreen)
+		{
+			monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+		}
+
+		m_Window = glfwCreateWindow(
+			(int)props.Width,
+			(int)props.Height,
+			m_Data.Title.c_str(),
+			monitor,
+			nullptr
+		);
+
 		// Load and set window icon
 		// Note: Title bar icons are limited to 16x16 by Windows, but taskbar/Alt+Tab use larger sizes
 		stbi_set_flip_vertically_on_load(0); // Don't flip icon
@@ -166,6 +180,58 @@ namespace Nebula {
 	{
 		return m_Data.VSync;
 	}
+
+	bool GLFWWindow::ToggleFullscreen()
+	{
+
+		m_Data.Fullscreen = !m_Data.Fullscreen;
+		SetFullscreen(m_Data.Fullscreen);
+		return m_Data.Fullscreen;
+	}
+
+	void GLFWWindow::SetFullscreen(bool fullscreen)
+	{
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+		if (fullscreen)
+		{
+			glfwSetWindowAttrib(m_Window, GLFW_DECORATED, GLFW_FALSE);
+
+			glfwSetWindowMonitor(
+				m_Window,
+				monitor,
+				0,
+				0,
+				mode->width,
+				mode->height,
+				mode->refreshRate
+			);
+		}
+		else
+		{
+			int w = mode->width / 2;
+			int h = mode->height / 2;
+			int x = (mode->width - w) / 2;
+			int y = (mode->height - h) / 2;
+
+			glfwSetWindowAttrib(m_Window, GLFW_DECORATED, GLFW_TRUE);
+
+			glfwSetWindowMonitor(
+				m_Window,
+				nullptr,
+				x,
+				y,
+				w,
+				h,
+				0
+			);
+		}
+
+		m_Data.Fullscreen = fullscreen;
+	}
+
+
 
 	void GLFWWindow::SetCursorMode(bool disabled)
 	{

@@ -7,6 +7,7 @@ public:
 	RuntimeLayer() 
 		: Layer("Runtime")
 	{
+
 		// Load scene manager's scene list
 		Nebula::SceneManager::Get().LoadSceneList();
 		
@@ -124,8 +125,11 @@ private:
 
 class Runtime : public Nebula::Application {
 public:
-	Runtime() {
+	Runtime()
+		: Nebula::Application(false) // Disable docking for standalone runtime
+	{
 		PushLayer(new RuntimeLayer());
+		Nebula::Application::GetWindow().SetFullscreen(true);
 	}
 
 	~Runtime() {

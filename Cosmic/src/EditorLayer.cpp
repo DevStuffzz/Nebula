@@ -135,7 +135,7 @@ namespace Cosmic {
 		float moveSpeed = 2.5f * ts;
 		
 		// Speed up camera when shift is held
-		if (Nebula::Input::IsKeyPressed(NB_KEY_LEFT_SHIFT) || Nebula::Input::IsKeyPressed(NB_KEY_RIGHT_SHIFT))
+		if (Nebula::Input::IsKeyDown(NB_KEY_LEFT_SHIFT) || Nebula::Input::IsKeyDown(NB_KEY_RIGHT_SHIFT))
 			moveSpeed *= 3.0f;
 
 		// Check if right mouse button held for camera rotation (only if not using gizmo)
@@ -181,19 +181,19 @@ namespace Cosmic {
 			glm::vec3 right = glm::vec3(rotation[0]);
 
 			// Movement input - WASD always available when right-clicking
-			if (Nebula::Input::IsKeyPressed(NB_KEY_W))
+			if (Nebula::Input::IsKeyDown(NB_KEY_W))
 				m_CameraPosition += forward * moveSpeed;
-			if (Nebula::Input::IsKeyPressed(NB_KEY_S))
+			if (Nebula::Input::IsKeyDown(NB_KEY_S))
 				m_CameraPosition -= forward * moveSpeed;
-			if (Nebula::Input::IsKeyPressed(NB_KEY_A))
+			if (Nebula::Input::IsKeyDown(NB_KEY_A))
 				m_CameraPosition -= right * moveSpeed;
-			if (Nebula::Input::IsKeyPressed(NB_KEY_D))
+			if (Nebula::Input::IsKeyDown(NB_KEY_D))
 				m_CameraPosition += right * moveSpeed;
 
 			// Q for up, E for down
-			if (Nebula::Input::IsKeyPressed(NB_KEY_Q))
+			if (Nebula::Input::IsKeyDown(NB_KEY_Q))
 				m_CameraPosition.y += moveSpeed;
-			if (Nebula::Input::IsKeyPressed(NB_KEY_E))
+			if (Nebula::Input::IsKeyDown(NB_KEY_E))
 				m_CameraPosition.y -= moveSpeed;
 
 			}

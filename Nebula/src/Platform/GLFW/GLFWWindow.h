@@ -24,6 +24,9 @@ namespace Nebula {
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
 
+		bool ToggleFullscreen() override;
+		void SetFullscreen(bool fullscreen);
+
 		void SetCursorMode(bool disabled) override;
 
 		inline void* GetNativeWindow() const override { return m_Window; }
@@ -37,7 +40,7 @@ namespace Nebula {
 		struct WindowData {
 			std::string Title;
 			unsigned int Width, Height;
-			bool VSync;
+			bool VSync, Fullscreen;
 
 			EventCallbackFn EventCallback;
 		};

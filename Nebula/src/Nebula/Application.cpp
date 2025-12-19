@@ -25,7 +25,7 @@ namespace Nebula {
 
 
 
-	Application::Application()
+	Application::Application(bool enableDocking)
 	{
 		NEB_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
@@ -48,7 +48,7 @@ namespace Nebula {
 		// Initialize Lua Scripting System
 		LuaScriptEngine::Init();
 
-		m_ImGuiLayer = new ImGuiLayer();
+		m_ImGuiLayer = new ImGuiLayer(enableDocking);
 		PushOverlay(m_ImGuiLayer);
 	}
 
@@ -103,8 +103,14 @@ namespace Nebula {
 
 			m_Window->OnUpdate();
 
-			if(Input::IsKeyPressed(NB_KEY_ESCAPE))
+			if(Input::IsKeyPressed(NB_KEY_LEFT_ALT, NB_KEY_F4) )
 				m_Running = false;
+
+			if (Input::IsKeyPressed(NB_KEY_F11))
+				m_Window->ToggleFullscreen();
+				
+			// Update input states for next frame
+			Input::Update();
 		}
 	}
 

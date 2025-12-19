@@ -34,6 +34,15 @@ namespace Nebula {
 		});
 		lua_setfield(L, -2, "IsKeyPressed");
 
+		// Register IsKeyDown function
+		lua_pushcfunction(L, [](lua_State* L) -> int {
+			int keycode = (int)lua_tointeger(L, 1);
+			bool down = Input::IsKeyDown(keycode);
+			lua_pushboolean(L, down);
+			return 1;
+		});
+		lua_setfield(L, -2, "IsKeyDown");
+
 		// Register IsMouseButtonPressed function
 		lua_pushcfunction(L, [](lua_State* L) -> int {
 			int button = (int)lua_tointeger(L, 1);

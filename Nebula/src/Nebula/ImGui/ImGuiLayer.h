@@ -12,7 +12,7 @@ namespace Nebula {
 	class NEBULA_API ImGuiLayer : public Layer
 	{
 	public:
-		ImGuiLayer();
+		ImGuiLayer(bool enableDocking = true);
 		~ImGuiLayer();
 
 		virtual void OnAttach() override;
@@ -26,6 +26,7 @@ namespace Nebula {
 		void SetDarkThemeColors();
 	private:
 		float m_Time = 0.0f;
+		bool m_EnableDocking = true;
 	};
 
 }

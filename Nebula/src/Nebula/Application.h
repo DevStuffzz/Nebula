@@ -16,7 +16,7 @@ namespace Nebula {
 	class NEBULA_API Application
 	{
 	public:
-		Application();
+		Application(bool enableDocking = true);
 		~Application();
 
 		void Run();
