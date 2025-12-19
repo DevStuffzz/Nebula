@@ -27,9 +27,8 @@ namespace Nebula {
 		static int LogWarn(lua_State* L);
 		static int LogError(lua_State* L);
 
-	// Physics/RigidBody functions
-	static int Entity_AddForce(lua_State* L);
-	static int Entity_SetVelocity(lua_State* L);
+	// Scene management functions
+	static int LoadScene(lua_State* L);
 	static int Entity_GetVelocity(lua_State* L);
 	static int Entity_SetAngularVelocity(lua_State* L);
 	static int Entity_GetAngularVelocity(lua_State* L);

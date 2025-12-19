@@ -3,6 +3,7 @@
 #include "Nebula/Scene/Scene.h"
 #include "Nebula/Scene/Entity.h"
 #include "Nebula/Scene/Components.h"
+#include "Nebula/Scene/SceneManager.h"
 #include "Nebula/Input.h"
 #include "Nebula/Log.h"
 #include "Nebula/Keycodes.h"
@@ -200,6 +201,10 @@ namespace Nebula {
 
 		lua_pushcfunction(L, LuaBindings::LogError);
 		lua_setfield(L, -2, "LogError");
+
+		// Register scene management functions
+		lua_pushcfunction(L, LuaBindings::LoadScene);
+		lua_setfield(L, -2, "LoadScene");
 	}
 
 	void LuaBindings::RegisterMathBindings(lua_State* L)
@@ -498,6 +503,34 @@ namespace Nebula {
 	{
 		// This is called from RegisterEngineFunctions in LuaScriptEngine
 		// Physics methods are registered as part of the Entity metatable
+	}
+
+	// Scene Management Functions
+	int LuaBindings::LoadScene(lua_State* L)
+	{
+		int sceneIndex = (int)lua_tointeger(L, 1);
+		
+		if (sceneIndex < 0)
+		{
+			NB_CORE_ERROR("[Lua] Invalid scene index: {0}", sceneIndex);
+			lua_pushboolean(L, false);
+			return 1;
+		}
+
+		auto scene = SceneManager::Get().LoadScene((size_t)sceneIndex);
+		
+		if (scene)
+		{
+			NB_CORE_INFO("[Lua] Loaded scene at index {0}: {1}", sceneIndex, scene->GetName());
+			lua_pushboolean(L, true);
+		}
+		else
+		{
+			NB_CORE_ERROR("[Lua] Failed to load scene at index {0}", sceneIndex);
+			lua_pushboolean(L, false);
+		}
+		
+		return 1;
 	}
 
 }
