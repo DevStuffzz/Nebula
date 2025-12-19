@@ -7,6 +7,8 @@
 #include "Nebula/Renderer/Shader.h"
 #include "Nebula/Renderer/RenderCommand.h"
 #include "Nebula/Renderer/Mesh.h"
+#include "Nebula/Renderer/Skybox.h"
+#include "Platform/OpenGL/OpenGLSkybox.h"
 #include "Nebula/Application.h"
 #include "Nebula/Scripting/LuaScriptEngine.h"
 #include "Nebula/Physics/PhysicsWorld.h"
@@ -233,6 +235,42 @@ namespace Nebula {
 	{
 		// Begin the scene with the application camera
 		Renderer::BeginScene(Application::Get().GetCamera());
+
+		// Render skybox first (before all other geometry)
+		auto skyboxView = m_Registry.view<SkyboxComponent>();
+		for (auto entity : skyboxView)
+		{
+			auto& skybox = skyboxView.get<SkyboxComponent>(entity);
+			
+			if (skybox.SkyboxInstance)
+			{
+				// Get camera matrices
+				auto& camera = Application::Get().GetCamera();
+				glm::mat4 view = camera.GetViewMatrix();
+				glm::mat4 projection = camera.GetProjectionMatrix();
+				
+				// Remove translation from view matrix (keep rotation only)
+				view = glm::mat4(glm::mat3(view));
+				
+				// Set uniforms and render
+				auto* skyboxPtr = skybox.SkyboxInstance.get();
+				if (auto* openglSkybox = dynamic_cast<OpenGLSkybox*>(skyboxPtr))
+				{
+					uint32_t shaderProgram = openglSkybox->GetShaderProgram();
+					glUseProgram(shaderProgram);
+					
+					GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+					GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
+					
+					if (viewLoc != -1)
+						glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+					if (projLoc != -1)
+						glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+					
+					openglSkybox->Render();
+				}
+			}
+		}
 
 		// Update scene-wide point lights list
 		m_PointLights.clear();

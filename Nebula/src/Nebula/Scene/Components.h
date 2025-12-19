@@ -224,4 +224,17 @@ namespace Nebula {
 			: Color(color) {}
 	};
 
+	// Skybox Component - For environment skybox rendering
+	class Skybox;
+	struct NEBULA_API SkyboxComponent
+	{
+		std::string DirectoryPath;
+		std::shared_ptr<Skybox> SkyboxInstance = nullptr;
+
+		SkyboxComponent() = default;
+		SkyboxComponent(const SkyboxComponent&) = default;
+		SkyboxComponent(const std::string& directoryPath)
+			: DirectoryPath(directoryPath) {}
+	};
+
 }

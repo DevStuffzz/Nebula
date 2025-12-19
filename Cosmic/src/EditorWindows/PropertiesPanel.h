@@ -5,10 +5,12 @@
 #include "Nebula/ImGui/NebulaGui.h"
 #include "Nebula/Renderer/Material.h"
 #include "Nebula/Renderer/Texture.h"
+#include "Nebula/Renderer/Skybox.h"
 #include "Nebula/Scripting/LuaScriptEngine.h"
 #include "Platform/OpenGL/OpenGLTexture.h"
 #include <glm/glm.hpp>
 #include <memory>
+#include <filesystem>
 
 namespace Cosmic {
 
@@ -70,6 +72,10 @@ namespace Cosmic {
 				if (s_SelectedEntity.HasComponent<Nebula::SphereColliderComponent>())
 					DrawSphereColliderComponent(s_SelectedEntity.GetComponent<Nebula::SphereColliderComponent>());
 
+				// Skybox Component
+				if (s_SelectedEntity.HasComponent<Nebula::SkyboxComponent>())
+					DrawSkyboxComponent(s_SelectedEntity.GetComponent<Nebula::SkyboxComponent>());
+
 				Nebula::NebulaGui::Separator();
 
 				// Add Component button
@@ -125,6 +131,12 @@ namespace Cosmic {
 					if (Nebula::NebulaGui::MenuItem("Sphere Collider")) {
 						if (!s_SelectedEntity.HasComponent<Nebula::SphereColliderComponent>())
 							s_SelectedEntity.AddComponent<Nebula::SphereColliderComponent>();
+						Nebula::NebulaGui::CloseCurrentPopup();
+					}
+					if (Nebula::NebulaGui::MenuItem("Skybox"))
+					{
+						if (!s_SelectedEntity.HasComponent<Nebula::SkyboxComponent>())
+							s_SelectedEntity.AddComponent<Nebula::SkyboxComponent>();
 						Nebula::NebulaGui::CloseCurrentPopup();
 					}
 					Nebula::NebulaGui::EndPopup();
@@ -513,6 +525,93 @@ namespace Cosmic {
 				
 				Nebula::NebulaGui::DragFloat("Radius", &collider.Radius, 0.1f, 0.01f, 100.0f);
 				Nebula::NebulaGui::DragFloat3("Offset", &collider.Offset.x, 0.1f);
+			}
+		}
+
+		static void DrawSkyboxComponent(Nebula::SkyboxComponent& skybox)
+		{
+			if (Nebula::NebulaGui::CollapsingHeader("Skybox", true))
+			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##Skybox"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::SkyboxComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::SkyboxComponent>();
+					return;
+				}
+
+				// Display current directory path
+				if (skybox.DirectoryPath.empty())
+				{
+					Nebula::NebulaGui::Text("Directory: None");
+				}
+				else
+				{
+					Nebula::NebulaGui::Text("Directory: %s", skybox.DirectoryPath.c_str());
+				}
+
+				// Drag and drop target for directory
+				Nebula::NebulaGui::Button("[Drop Skybox Directory]", glm::vec2(200, 50));
+				if (Nebula::NebulaGui::BeginDragDropTarget())
+				{
+					const char* payload = (const char*)Nebula::NebulaGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+					if (payload)
+					{
+						std::string path = payload;
+						
+						// Check if it's a directory
+						if (std::filesystem::is_directory(path))
+						{
+							skybox.DirectoryPath = path;
+							
+							// Try to create the skybox
+							try
+							{
+								skybox.SkyboxInstance = Nebula::Skybox::Create(path);
+								if (!skybox.SkyboxInstance)
+								{
+									NB_CORE_ERROR("Failed to create skybox from directory: {0}", path);
+								}
+							}
+							catch (const std::exception& e)
+							{
+								NB_CORE_ERROR("Exception creating skybox: {0}", e.what());
+							}
+						}
+						else
+						{
+							NB_CORE_WARN("Skybox requires a directory, not a file. Please drag a folder containing skybox images.");
+						}
+					}
+					Nebula::NebulaGui::EndDragDropTarget();
+				}
+
+				// Status indicator
+				if (skybox.SkyboxInstance)
+				{
+					Nebula::NebulaGui::TextColored(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), "Status: Loaded");
+				}
+				else if (!skybox.DirectoryPath.empty())
+				{
+					Nebula::NebulaGui::TextColored(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), "Status: Failed to load");
+				}
+				else
+				{
+					Nebula::NebulaGui::TextColored(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), "Status: No directory selected");
+				}
+
+				// Reload button
+				if (!skybox.DirectoryPath.empty() && Nebula::NebulaGui::Button("Reload Skybox"))
+				{
+					try
+					{
+						skybox.SkyboxInstance = Nebula::Skybox::Create(skybox.DirectoryPath);
+					}
+					catch (const std::exception& e)
+					{
+						NB_CORE_ERROR("Exception reloading skybox: {0}", e.what());
+					}
+				}
 			}
 		}
 

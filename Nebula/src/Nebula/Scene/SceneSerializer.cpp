@@ -7,6 +7,7 @@
 #include "Nebula/Renderer/Mesh.h"
 #include "Nebula/Renderer/Shader.h"
 #include "Nebula/Renderer/Camera.h"
+#include "Nebula/Renderer/Skybox.h"
 #include "Nebula/Physics/PhysicsWorld.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -236,6 +237,15 @@ namespace Nebula {
 			entityJson["RigidBodyComponent"]["UseGravity"] = rb.UseGravity;
 			entityJson["RigidBodyComponent"]["IsKinematic"] = rb.IsKinematic;
 			entityJson["RigidBodyComponent"]["FreezeRotation"] = rb.FreezeRotation;
+		}
+
+		// Skybox Component
+		if (entity.HasComponent<SkyboxComponent>())
+		{
+			auto& skybox = entity.GetComponent<SkyboxComponent>();
+			json skyboxJson;
+			skyboxJson["DirectoryPath"] = skybox.DirectoryPath;
+			entityJson["SkyboxComponent"] = skyboxJson;
 		}
 	}
 
@@ -525,6 +535,31 @@ namespace Nebula {
 			if (entity.GetScene()->GetPhysicsWorld())
 			{
 				entity.GetScene()->GetPhysicsWorld()->AddRigidBody(entity);
+			}
+		}
+
+		// Skybox Component
+		if (entityJson.contains("SkyboxComponent"))
+		{
+			const auto& skyboxJson = entityJson["SkyboxComponent"];
+			auto& skybox = entity.AddComponent<SkyboxComponent>();
+			
+			if (skyboxJson.contains("DirectoryPath"))
+			{
+				skybox.DirectoryPath = skyboxJson["DirectoryPath"];
+				
+				// Try to load the skybox
+				if (!skybox.DirectoryPath.empty())
+				{
+					try
+					{
+						skybox.SkyboxInstance = Skybox::Create(skybox.DirectoryPath);
+					}
+					catch (const std::exception& e)
+					{
+						NB_CORE_ERROR("Failed to load skybox during deserialization: {0}", e.what());
+					}
+				}
 			}
 		}
 	}

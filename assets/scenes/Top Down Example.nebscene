@@ -1,6 +1,37 @@
 {
     "Entities": [
         {
+            "DirectionalLightComponent": {
+                "Color": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "Intensity": 1.0
+            },
+            "ID": 2097156,
+            "TagComponent": {
+                "Tag": "Entity"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Rotation": [
+                    -54.469390869140625,
+                    -34.276615142822266,
+                    38.26178741455078
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
             "CameraComponent": {
                 "OrthographicFar": 1.0,
                 "OrthographicNear": -1.0,
@@ -11,21 +42,22 @@
                 "Primary": true,
                 "ProjectionType": "Perspective"
             },
-            "ID": 2,
+            "ID": 2097155,
             "ScriptComponent": {
-                "ScriptPath": "assets/scripts/CameraController.lua"
+                "ScriptPaths": [],
+                "Variables": []
             },
             "TagComponent": {
                 "Tag": "Main Camera"
             },
             "TransformComponent": {
                 "Position": [
-                    0.0,
-                    15.0,
-                    0.0
+                    0.6381731033325195,
+                    6.108361721038818,
+                    10.464096069335938
                 ],
                 "Rotation": [
-                    -90.0,
+                    -31.05299949645996,
                     0.0,
                     0.0
                 ],
@@ -37,7 +69,19 @@
             }
         },
         {
-            "ID": 1,
+            "BoxColliderComponent": {
+                "Offset": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Size": [
+                    2.0,
+                    2.0,
+                    2.0
+                ]
+            },
+            "ID": 2097154,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -51,11 +95,26 @@
                     "HasTexture": true,
                     "Metallic": 0.0,
                     "Roughness": 0.0,
+                    "TextureFilterNearest": false,
                     "TexturePath": "assets/textures/Checkerboard.png",
+                    "TextureRepeat": true,
+                    "TextureTiling": [
+                        1.0,
+                        1.0
+                    ],
                     "UseTexture": 0
                 },
                 "MeshID": 1,
                 "MeshSource": "assets/models/Cube.obj"
+            },
+            "RigidBodyComponent": {
+                "AngularDrag": 0.05000000074505806,
+                "FreezeRotation": false,
+                "IsKinematic": false,
+                "LinearDrag": 0.0,
+                "Mass": 1.0,
+                "Type": 1,
+                "UseGravity": true
             },
             "TagComponent": {
                 "Tag": "Box"
@@ -63,13 +122,13 @@
             "TransformComponent": {
                 "Position": [
                     2.0,
-                    0.5,
+                    2.499175548553467,
                     0.0
                 ],
                 "Rotation": [
-                    0.0,
-                    0.0,
-                    0.0
+                    -27.00986671447754,
+                    52.311737060546875,
+                    -129.4590301513672
                 ],
                 "Scale": [
                     1.0,
@@ -79,7 +138,19 @@
             }
         },
         {
-            "ID": 0,
+            "BoxColliderComponent": {
+                "Offset": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Size": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "ID": 2097153,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -93,11 +164,26 @@
                     "HasTexture": true,
                     "Metallic": 0.0,
                     "Roughness": 0.0,
+                    "TextureFilterNearest": false,
                     "TexturePath": "assets/textures/Checkerboard.png",
+                    "TextureRepeat": true,
+                    "TextureTiling": [
+                        1.0,
+                        1.0
+                    ],
                     "UseTexture": 1
                 },
                 "MeshID": 1,
                 "MeshSource": "assets/models/Cube.obj"
+            },
+            "RigidBodyComponent": {
+                "AngularDrag": 0.05000000074505806,
+                "FreezeRotation": false,
+                "IsKinematic": false,
+                "LinearDrag": 0.0,
+                "Mass": 0.0,
+                "Type": 0,
+                "UseGravity": false
             },
             "TagComponent": {
                 "Tag": "Ground"
@@ -117,6 +203,105 @@
                     20.0,
                     0.10000000149011612,
                     20.0
+                ]
+            }
+        },
+        {
+            "BoxColliderComponent": {
+                "Offset": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Size": [
+                    2.0,
+                    2.0,
+                    2.0
+                ]
+            },
+            "ID": 3145728,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        0.029411792755126953,
+                        1.0,
+                        0.0,
+                        1.0
+                    ],
+                    "HasTexture": false,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "UseTexture": 0
+                },
+                "MeshID": 1,
+                "MeshSource": "assets/models/Cube.obj"
+            },
+            "RigidBodyComponent": {
+                "AngularDrag": 0.05000000074505806,
+                "FreezeRotation": false,
+                "IsKinematic": false,
+                "LinearDrag": 0.0,
+                "Mass": 1.0,
+                "Type": 1,
+                "UseGravity": true
+            },
+            "ScriptComponent": {
+                "ScriptPaths": [
+                    "assets\\scripts\\ExampleScript.lua"
+                ],
+                "Variables": [
+                    {
+                        "Name": "speed",
+                        "Type": 0,
+                        "Value": 5.0
+                    },
+                    {
+                        "Name": "moveSpeed",
+                        "Type": 0,
+                        "Value": 10.0
+                    },
+                    {
+                        "Name": "maxSpeed",
+                        "Type": 0,
+                        "Value": 8.0
+                    },
+                    {
+                        "Name": "damping",
+                        "Type": 0,
+                        "Value": 0.8999999761581421
+                    },
+                    {
+                        "Name": "jumpForce",
+                        "Type": 0,
+                        "Value": 5.0
+                    },
+                    {
+                        "Name": "groundThreshold",
+                        "Type": 0,
+                        "Value": 0.5
+                    }
+                ]
+            },
+            "TagComponent": {
+                "Tag": "Cube"
+            },
+            "TransformComponent": {
+                "Position": [
+                    -4.788337707519531,
+                    1.981292724609375,
+                    -1.60986328125
+                ],
+                "Rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
                 ]
             }
         }

@@ -32,6 +32,7 @@
 #include "Nebula/Renderer/Mesh.h"
 #include "Nebula/Renderer/Framebuffer.h"
 #include "Nebula/Renderer/LineRenderer.h"
+#include "Nebula/Renderer/Skybox.h"
 
 // Scene
 #include "Nebula/Scene/Transform.h"
