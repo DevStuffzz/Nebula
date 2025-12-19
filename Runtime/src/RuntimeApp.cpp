@@ -22,7 +22,7 @@ public:
 		{
 			NB_ERROR("Failed to load scene from scene list. Creating default scene.");
 			// Fallback to a default scene if loading fails
-			m_ActiveScene = std::make_shared<Nebula::Scene>("Default Scene");
+
 		}
 	}
 

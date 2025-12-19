@@ -188,6 +188,7 @@ project "Runtime"
         "Nebula/vendor/glm",
         "%{IncludeDir.entt}",
         "%{IncludeDir.Lua}",
+        "%{IncludeDir.spdlog}",
     }
     
     links
