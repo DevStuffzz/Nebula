@@ -32,11 +32,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <filesystem>
-
-#ifdef NB_PLATFORM_WINDOWS
-#include <Windows.h>
-#include <commdlg.h>
-#endif
+#include "Nebula/Core/FileDialog.h"
 
 namespace Cosmic {
 
@@ -472,37 +468,19 @@ namespace Cosmic {
 	{
 		if (m_CurrentScenePath.empty())
 		{
-#ifdef NB_PLATFORM_WINDOWS
-			// Open save file dialog on Windows
-			OPENFILENAMEA ofn;
-			CHAR szFile[260] = { 0 };
-			ZeroMemory(&ofn, sizeof(OPENFILENAME));
-			ofn.lStructSize = sizeof(OPENFILENAME);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFile = szFile;
-			ofn.nMaxFile = sizeof(szFile);
-			ofn.lpstrFilter = "Nebula Scene\0*.nebscene\0All Files\0*.*\0";
-			ofn.nFilterIndex = 1;
-			ofn.lpstrFileTitle = NULL;
-			ofn.nMaxFileTitle = 0;
-			ofn.lpstrInitialDir = "assets\\scenes";
-			ofn.lpstrDefExt = "nebscene";
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+			Nebula::FileDialog* dialog = Nebula::FileDialog::Create();
+			auto result = dialog->SaveFile("Nebula Scene\0*.nebscene\0All Files\0*.*\0", "nebscene", "assets/scenes");
+			delete dialog;
 
-			if (GetSaveFileNameA(&ofn) == TRUE)
+			if (result.has_value())
 			{
-				m_CurrentScenePath = ofn.lpstrFile;
+				m_CurrentScenePath = result.value();
 			}
 			else
 			{
 				// User cancelled - don't save
 				return;
 			}
-#else
-			// Fallback for other platforms
-			std::filesystem::create_directories("assets/scenes");
-			m_CurrentScenePath = "assets/scenes/" + m_ActiveScene->GetName() + ".nebscene";
-#endif
 		}
 
 		Nebula::SceneSerializer serializer(m_ActiveScene.get());
@@ -518,30 +496,14 @@ namespace Cosmic {
 
 	void EditorLayer::LoadScene()
 	{
-#ifdef NB_PLATFORM_WINDOWS
-		// Open file dialog on Windows
-		OPENFILENAMEA ofn;
-		CHAR szFile[260] = { 0 };
-		ZeroMemory(&ofn, sizeof(OPENFILENAME));
-		ofn.lStructSize = sizeof(OPENFILENAME);
-		ofn.hwndOwner = NULL;
-		ofn.lpstrFile = szFile;
-		ofn.nMaxFile = sizeof(szFile);
-		ofn.lpstrFilter = "Nebula Scene\0*.nebscene\0All Files\0*.*\0";
-		ofn.nFilterIndex = 1;
-		ofn.lpstrFileTitle = NULL;
-		ofn.nMaxFileTitle = 0;
-		ofn.lpstrInitialDir = "assets\\scenes";
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+		Nebula::FileDialog* dialog = Nebula::FileDialog::Create();
+		auto result = dialog->OpenFile("Nebula Scene\0*.nebscene\0All Files\0*.*\0", "assets/scenes");
+		delete dialog;
 
-		if (GetOpenFileNameA(&ofn) == TRUE)
+		if (result.has_value())
 		{
-			LoadSceneFromPath(ofn.lpstrFile);
+			LoadSceneFromPath(result.value());
 		}
-#else
-		// Fallback for other platforms - use default path
-		LoadSceneFromPath("assets/scenes/Untitled Scene.nebscene");
-#endif
 	}
 
 	void EditorLayer::LoadSceneFromPath(const std::string& filepath)

@@ -85,9 +85,7 @@ project "Nebula"
         "ImGuizmo",
         "glad",
         "Lua",
-        "BulletDynamics",
-        "BulletCollision",
-        "LinearMath",
+        "Bullet3",
     }
 
     filter "system:windows"
@@ -132,7 +130,8 @@ project "Nebula"
         files
         {
             "%{prj.name}/src/Platform/MacOS/**.h",
-            "%{prj.name}/src/Platform/MacOS/**.cpp"
+            "%{prj.name}/src/Platform/MacOS/**.cpp",
+            "%{prj.name}/src/Platform/MacOS/**.mm"
         }
 
         defines
