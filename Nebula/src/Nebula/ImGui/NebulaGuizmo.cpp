@@ -85,7 +85,7 @@ namespace Nebula {
 
 	void NebulaGuizmo::SetID(int id)
 	{
-		ImGuizmo::SetID(id);
+		ImGuizmo::PushID(id);
 	}
 
 }

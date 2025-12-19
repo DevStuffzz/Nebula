@@ -26,6 +26,7 @@ namespace Nebula {
 		// Text/Label
 		static void Text(const char* fmt, ...);
 		static void TextWrapped(const char* fmt, ...);
+		static void TextColored(const glm::vec4& col, const char* fmt, ...);
 
 		// Widgets
 		static bool Button(const char* label);
@@ -73,6 +74,7 @@ namespace Nebula {
 
 		// ID stack
 		static void PushID(const char* str_id);
+		static void PushID(int str_id);
 		static void PopID();
 
 		// Drag and Drop
@@ -107,6 +109,11 @@ namespace Nebula {
 		static void* GetWindowDrawList();
 		static void* GetForegroundDrawList();
 		static glm::vec2 GetMousePos();
+		
+		// Scrolling
+		static float GetScrollY();
+		static float GetScrollMaxY();
+		static void SetScrollHereY(float center_y_ratio = 0.5f);
 		
 		// Style
 		static void PushStyleVar(int idx, const glm::vec2& val);

@@ -445,6 +445,9 @@ namespace Cosmic {
 		// Script Editor
 		ScriptEditor::OnImGuiRender();
 
+		// Console Window
+		ConsoleWindow::OnImGuiRender();
+
 		// Content Browser
 		ContentBrowser::OnImGuiRender();
 
@@ -569,6 +572,26 @@ namespace Cosmic {
 
 	void EditorLayer::ToggleRuntime()
 	{
+		if (!m_RuntimeMode)
+		{
+			// Check if scene is saved
+			if (m_CurrentScenePath.empty())
+			{
+				ConsoleWindow::AddLog("Cannot start runtime: You must save the scene before running.", LogLevel::Error);
+				NB_CORE_ERROR("Cannot start runtime: Scene must be saved first");
+				return;
+			}
+
+			// Validate all scripts before entering runtime
+			std::string errorMessage;
+			if (!m_ActiveScene->ValidateAllScripts(errorMessage))
+			{
+				ConsoleWindow::AddLog("Cannot start runtime: " + errorMessage, LogLevel::Error);
+				NB_CORE_ERROR("Cannot start runtime: {0}", errorMessage);
+				return;
+			}
+		}
+
 		m_RuntimeMode = !m_RuntimeMode;
 		MenuBar::SetRuntimeMode(m_RuntimeMode);
 		
@@ -576,6 +599,7 @@ namespace Cosmic {
 		{
 			// Entering runtime mode - save the current scene state
 			NB_CORE_INFO("Runtime started");
+			ConsoleWindow::AddLog("Runtime started", LogLevel::Info);
 			
 			// Store the scene path so we can reload it when stopping
 			if (!m_CurrentScenePath.empty())
@@ -588,6 +612,7 @@ namespace Cosmic {
 		{
 			// Exiting runtime mode - restore the scene to its pre-runtime state
 			NB_CORE_INFO("Runtime stopped");
+			ConsoleWindow::AddLog("Runtime stopped", LogLevel::Info);
 			
 			// Reload the scene to reset physics state (this will clear the physics world)
 			if (!m_CurrentScenePath.empty())

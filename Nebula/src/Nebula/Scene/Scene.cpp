@@ -85,6 +85,9 @@ namespace Nebula {
 
 	void Scene::OnUpdate(float deltaTime)
 	{
+		// Check for script file changes (hot-reloading)
+		LuaScriptEngine::CheckForScriptChanges();
+
 		// Update physics
 		if (m_PhysicsWorld)
 		{
@@ -113,19 +116,23 @@ namespace Nebula {
 			Entity entity = { entityID, this };
 			auto& scriptComp = view.get<ScriptComponent>(entityID);
 			
-			if (!scriptComp.ScriptPath.empty())
+			// Process each script in the component
+			for (const auto& scriptPath : scriptComp.ScriptPaths)
 			{
-				// Check if this is a new script that needs to be initialized
-				auto key = std::make_pair(entityID, scriptComp.ScriptPath);
-				if (m_LuaScriptInitialized.find(key) == m_LuaScriptInitialized.end())
+				if (!scriptPath.empty())
 				{
-					// Load and initialize the script
-					LuaScriptEngine::OnCreateEntity(entity, scriptComp.ScriptPath);
-					m_LuaScriptInitialized[key] = true;
+					// Check if this is a new script that needs to be initialized
+					auto key = std::make_pair(entityID, scriptPath);
+					if (m_LuaScriptInitialized.find(key) == m_LuaScriptInitialized.end())
+					{
+						// Load and initialize the script
+						LuaScriptEngine::OnCreateEntity(entity, scriptPath);
+						m_LuaScriptInitialized[key] = true;
+					}
+					
+					// Update the script
+					LuaScriptEngine::OnUpdateEntity(entity, deltaTime);
 				}
-				
-				// Update the script
-				LuaScriptEngine::OnUpdateEntity(entity, deltaTime);
 			}
 		}
 
@@ -343,6 +350,29 @@ namespace Nebula {
 		}
 
 		return entities;
+	}
+
+	bool Scene::ValidateAllScripts(std::string& errorMessage)
+	{
+		auto view = m_Registry.view<ScriptComponent, TagComponent>();
+		for (auto entityID : view)
+		{
+			auto& scriptComp = view.get<ScriptComponent>(entityID);
+			auto& tag = view.get<TagComponent>(entityID);
+
+			for (const auto& scriptPath : scriptComp.ScriptPaths)
+			{
+				if (!scriptPath.empty())
+				{
+					if (!LuaScriptEngine::ValidateScript(scriptPath))
+					{
+						errorMessage = "Script error in entity '" + tag.Tag + "' (" + scriptPath + "): " + LuaScriptEngine::GetLastError();
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 }

@@ -8,6 +8,7 @@
 #include "Nebula/Scene/Scene.h"
 #include "Nebula/Scene/Entity.h"
 #include "EditorWindows/SceneListWindow.h"
+#include "EditorWindows/ConsoleWindow.h"
 #include <glm/glm.hpp>
 
 namespace Cosmic {

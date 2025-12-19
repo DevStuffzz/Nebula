@@ -169,6 +169,14 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Mesh Renderer", true))
 			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##MeshRenderer"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::MeshRendererComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::MeshRendererComponent>();
+					return;
+				}
+				
 				Nebula::NebulaGui::Text("Mesh: %s", meshRenderer.Mesh ? "Loaded" : "None");
 				Nebula::NebulaGui::SameLine();
 				Nebula::NebulaGui::Button("[Drop Mesh]", glm::vec2(100, 30));
@@ -272,6 +280,14 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Point Light", true))
 			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##PointLight"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::PointLightComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::PointLightComponent>();
+					return;
+				}
+				
 				Nebula::NebulaGui::ColorEdit3("Color", &light.Color.x);
 				Nebula::NebulaGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
 				Nebula::NebulaGui::DragFloat("Radius", &light.Radius, 0.1f, 0.0f, 100.0f);
@@ -282,6 +298,14 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Directional Light", true))
 			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##DirectionalLight"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::DirectionalLightComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::DirectionalLightComponent>();
+					return;
+				}
+				
 				Nebula::NebulaGui::Text("Direction is controlled by entity rotation");
 				Nebula::NebulaGui::ColorEdit3("Color", &light.Color.x);
 				Nebula::NebulaGui::DragFloat("Intensity", &light.Intensity, 0.1f, 0.0f, 100.0f);
@@ -292,6 +316,14 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Camera", true))
 			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##Camera"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::CameraComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::CameraComponent>();
+					return;
+				}
+				
 				Nebula::NebulaGui::Checkbox("Primary", &camera.Primary);
 				Nebula::NebulaGui::DragFloat("FOV", &camera.PerspectiveFOV, 0.1f, 1.0f, 179.0f);
 				Nebula::NebulaGui::DragFloat("Near", &camera.PerspectiveNear, 0.01f, 0.001f, 100.0f);
@@ -303,7 +335,74 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Script", true))
 			{
-				Nebula::NebulaGui::Text("Script: %s", script.ScriptPath.c_str());
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##Script"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::ScriptComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::ScriptComponent>();
+					return;
+				}
+				
+				// Display all scripts
+				for (size_t i = 0; i < script.ScriptPaths.size(); i++)
+				{
+					Nebula::NebulaGui::PushID((int)i);
+					Nebula::NebulaGui::Text("%d: %s", (int)i + 1, script.ScriptPaths[i].c_str());
+					Nebula::NebulaGui::SameLine();
+					if (Nebula::NebulaGui::Button("X"))
+					{
+						script.RemoveScript(i);
+						Nebula::NebulaGui::PopID();
+						break;
+					}
+					Nebula::NebulaGui::PopID();
+				}
+				
+				// Add new script
+				std::string displayText = "[Drop Script Here]";
+				Nebula::NebulaGui::Button(displayText.c_str(), glm::vec2(250, 30));
+				
+				if (Nebula::NebulaGui::BeginDragDropTarget())
+				{
+					const char* payload = (const char*)Nebula::NebulaGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+					if (payload)
+					{
+						std::string path = payload;
+						if (path.size() >= 4 && path.substr(path.size() - 4) == ".lua")
+						{
+							script.AddScript(path);
+						}
+					}
+					Nebula::NebulaGui::EndDragDropTarget();
+				}
+				
+				// Display and edit script variables
+				if (!script.Variables.empty())
+				{
+					Nebula::NebulaGui::Separator();
+					Nebula::NebulaGui::Text("Variables:");
+					
+					for (auto& var : script.Variables)
+					{
+						switch (var.VarType)
+						{
+						case Nebula::ScriptVariable::Type::Float:
+							Nebula::NebulaGui::DragFloat(var.Name.c_str(), &var.FloatValue, 0.1f);
+							break;
+						case Nebula::ScriptVariable::Type::Int:
+							Nebula::NebulaGui::DragFloat(var.Name.c_str(), (float*)&var.IntValue, 1.0f);
+							break;
+						case Nebula::ScriptVariable::Type::Bool:
+							Nebula::NebulaGui::Checkbox(var.Name.c_str(), &var.BoolValue);
+							break;
+						case Nebula::ScriptVariable::Type::Vec3:
+							Nebula::NebulaGui::DragFloat3(var.Name.c_str(), &var.Vec3Value.x, 0.1f);
+							break;
+						default:
+							break;
+						}
+					}
+				}
 			}
 		}
 
@@ -311,6 +410,14 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Rigidbody", true))
 			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##RigidBody"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::RigidBodyComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::RigidBodyComponent>();
+					return;
+				}
+				
 				// Body Type
 				const char* bodyTypeStrings[] = { "Static", "Dynamic", "Kinematic" };
 				const char* currentBodyTypeString = bodyTypeStrings[(int)rb.Type];
@@ -357,6 +464,14 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Box Collider", true))
 			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##BoxCollider"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::BoxColliderComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::BoxColliderComponent>();
+					return;
+				}
+				
 				Nebula::NebulaGui::DragFloat3("Size", &collider.Size.x, 0.1f, 0.01f, 100.0f);
 				Nebula::NebulaGui::DragFloat3("Offset", &collider.Offset.x, 0.1f);
 			}
@@ -366,6 +481,14 @@ namespace Cosmic {
 		{
 			if (Nebula::NebulaGui::CollapsingHeader("Sphere Collider", true))
 			{
+				Nebula::NebulaGui::SameLine(250.0f);
+				if (Nebula::NebulaGui::Button("Remove##SphereCollider"))
+				{
+					if (s_SelectedEntity.HasComponent<Nebula::SphereColliderComponent>())
+						s_SelectedEntity.RemoveComponent<Nebula::SphereColliderComponent>();
+					return;
+				}
+				
 				Nebula::NebulaGui::DragFloat("Radius", &collider.Radius, 0.1f, 0.01f, 100.0f);
 				Nebula::NebulaGui::DragFloat3("Offset", &collider.Offset.x, 0.1f);
 			}

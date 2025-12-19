@@ -172,7 +172,41 @@ namespace Nebula {
 		if (entity.HasComponent<ScriptComponent>())
 		{
 			auto& script = entity.GetComponent<ScriptComponent>();
-			entityJson["ScriptComponent"]["ScriptPath"] = script.ScriptPath;
+			json scriptJson;
+			
+			// Save all script paths
+			scriptJson["ScriptPaths"] = script.ScriptPaths;
+			
+			// Save variables
+			json varsJson = json::array();
+			for (const auto& var : script.Variables)
+			{
+				json varJson;
+				varJson["Name"] = var.Name;
+				varJson["Type"] = (int)var.VarType;
+				
+				switch (var.VarType)
+				{
+				case ScriptVariable::Type::Float:
+					varJson["Value"] = var.FloatValue;
+					break;
+				case ScriptVariable::Type::Int:
+					varJson["Value"] = var.IntValue;
+					break;
+				case ScriptVariable::Type::Bool:
+					varJson["Value"] = var.BoolValue;
+					break;
+				case ScriptVariable::Type::Vec3:
+					varJson["Value"] = { var.Vec3Value.x, var.Vec3Value.y, var.Vec3Value.z };
+					break;
+				default:
+					break;
+				}
+				varsJson.push_back(varJson);
+			}
+			scriptJson["Variables"] = varsJson;
+			
+			entityJson["ScriptComponent"] = scriptJson;
 		}
 
 		// Box Collider Component
@@ -363,11 +397,55 @@ namespace Nebula {
 		{
 			const auto& scriptJson = entityJson["ScriptComponent"];
 			auto& script = entity.AddComponent<ScriptComponent>();
-			// Support both old ClassName and new ScriptPath for backward compatibility
-			if (scriptJson.contains("ScriptPath"))
-				script.ScriptPath = scriptJson["ScriptPath"];
+			
+			// Load script paths (support both old single path and new multiple paths)
+			if (scriptJson.contains("ScriptPaths"))
+			{
+				script.ScriptPaths = scriptJson["ScriptPaths"].get<std::vector<std::string>>();
+			}
+			else if (scriptJson.contains("ScriptPath"))
+			{
+				// Backward compatibility with single script
+				std::string path = scriptJson["ScriptPath"];
+				if (!path.empty())
+					script.ScriptPaths.push_back(path);
+			}
 			else if (scriptJson.contains("ClassName"))
-				script.ScriptPath = "assets/scripts/" + std::string(scriptJson["ClassName"]) + ".lua";
+			{
+				// Legacy support
+				std::string path = "assets/scripts/" + std::string(scriptJson["ClassName"]) + ".lua";
+				script.ScriptPaths.push_back(path);
+			}
+			
+			// Load variables
+			if (scriptJson.contains("Variables"))
+			{
+				for (const auto& varJson : scriptJson["Variables"])
+				{
+					ScriptVariable var;
+					var.Name = varJson["Name"];
+					var.VarType = (ScriptVariable::Type)varJson["Type"].get<int>();
+					
+					switch (var.VarType)
+					{
+					case ScriptVariable::Type::Float:
+						var.FloatValue = varJson["Value"];
+						break;
+					case ScriptVariable::Type::Int:
+						var.IntValue = varJson["Value"];
+						break;
+					case ScriptVariable::Type::Bool:
+						var.BoolValue = varJson["Value"];
+						break;
+					case ScriptVariable::Type::Vec3:
+						var.Vec3Value = glm::vec3(varJson["Value"][0], varJson["Value"][1], varJson["Value"][2]);
+						break;
+					default:
+						break;
+					}
+					script.Variables.push_back(var);
+				}
+			}
 		}
 
 		// Box Collider Component

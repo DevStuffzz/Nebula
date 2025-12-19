@@ -7,6 +7,7 @@
 #include "Nebula/Log.h"
 #include "Nebula/Keycodes.h"
 #include "Nebula/MouseButtonCodes.h"
+#include <btBulletDynamicsCommon.h>
 
 namespace Nebula {
 
@@ -335,6 +336,168 @@ namespace Nebula {
 		if (message)
 			NB_CORE_ERROR("[Lua] {0}", message);
 		return 0;
+	}
+
+	// Physics/RigidBody Functions
+	int LuaBindings::Entity_AddForce(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		{
+			luaL_error(L, "Entity does not have RigidBodyComponent");
+			return 0;
+		}
+
+		float x = (float)lua_tonumber(L, 2);
+		float y = (float)lua_tonumber(L, 3);
+		float z = (float)lua_tonumber(L, 4);
+
+		auto& rb = entity->GetComponent<RigidBodyComponent>();
+		if (rb.RuntimeBody)
+		{
+			btRigidBody* body = static_cast<btRigidBody*>(rb.RuntimeBody);
+			body->applyCentralForce(btVector3(x, y, z));
+			body->activate();
+		}
+		return 0;
+	}
+
+	int LuaBindings::Entity_SetVelocity(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		{
+			luaL_error(L, "Entity does not have RigidBodyComponent");
+			return 0;
+		}
+
+		float x = (float)lua_tonumber(L, 2);
+		float y = (float)lua_tonumber(L, 3);
+		float z = (float)lua_tonumber(L, 4);
+
+		auto& rb = entity->GetComponent<RigidBodyComponent>();
+		if (rb.RuntimeBody)
+		{
+			btRigidBody* body = static_cast<btRigidBody*>(rb.RuntimeBody);
+			body->setLinearVelocity(btVector3(x, y, z));
+			body->activate();
+		}
+		return 0;
+	}
+
+	int LuaBindings::Entity_GetVelocity(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		{
+			luaL_error(L, "Entity does not have RigidBodyComponent");
+			return 0;
+		}
+
+		auto& rb = entity->GetComponent<RigidBodyComponent>();
+		if (rb.RuntimeBody)
+		{
+			btRigidBody* body = static_cast<btRigidBody*>(rb.RuntimeBody);
+			btVector3 velocity = body->getLinearVelocity();
+			lua_newtable(L);
+			lua_pushnumber(L, velocity.x()); lua_setfield(L, -2, "x");
+			lua_pushnumber(L, velocity.y()); lua_setfield(L, -2, "y");
+			lua_pushnumber(L, velocity.z()); lua_setfield(L, -2, "z");
+			return 1;
+		}
+		lua_pushnil(L);
+		return 1;
+	}
+
+	int LuaBindings::Entity_SetAngularVelocity(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		{
+			luaL_error(L, "Entity does not have RigidBodyComponent");
+			return 0;
+		}
+
+		float x = (float)lua_tonumber(L, 2);
+		float y = (float)lua_tonumber(L, 3);
+		float z = (float)lua_tonumber(L, 4);
+
+		auto& rb = entity->GetComponent<RigidBodyComponent>();
+		if (rb.RuntimeBody)
+		{
+			btRigidBody* body = static_cast<btRigidBody*>(rb.RuntimeBody);
+			body->setAngularVelocity(btVector3(x, y, z));
+			body->activate();
+		}
+		return 0;
+	}
+
+	int LuaBindings::Entity_GetAngularVelocity(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		{
+			luaL_error(L, "Entity does not have RigidBodyComponent");
+			return 0;
+		}
+
+		auto& rb = entity->GetComponent<RigidBodyComponent>();
+		if (rb.RuntimeBody)
+		{
+			btRigidBody* body = static_cast<btRigidBody*>(rb.RuntimeBody);
+			btVector3 velocity = body->getAngularVelocity();
+			lua_newtable(L);
+			lua_pushnumber(L, velocity.x()); lua_setfield(L, -2, "x");
+			lua_pushnumber(L, velocity.y()); lua_setfield(L, -2, "y");
+			lua_pushnumber(L, velocity.z()); lua_setfield(L, -2, "z");
+			return 1;
+		}
+		lua_pushnil(L);
+		return 1;
+	}
+
+	int LuaBindings::Entity_SetMass(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		{
+			luaL_error(L, "Entity does not have RigidBodyComponent");
+			return 0;
+		}
+
+		float mass = (float)lua_tonumber(L, 2);
+		auto& rb = entity->GetComponent<RigidBodyComponent>();
+		rb.Mass = mass;
+
+		if (rb.RuntimeBody)
+		{
+			btRigidBody* body = static_cast<btRigidBody*>(rb.RuntimeBody);
+			btVector3 inertia(0, 0, 0);
+			if (mass > 0.0f)
+				body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+			body->setMassProps(mass, inertia);
+		}
+		return 0;
+	}
+
+	int LuaBindings::Entity_GetMass(lua_State* L)
+	{
+		Entity* entity = (Entity*)lua_touserdata(L, 1);
+		if (!entity || !entity->HasComponent<RigidBodyComponent>())
+		{
+			luaL_error(L, "Entity does not have RigidBodyComponent");
+			return 0;
+		}
+
+		auto& rb = entity->GetComponent<RigidBodyComponent>();
+		lua_pushnumber(L, rb.Mass);
+		return 1;
+	}
+
+	void LuaBindings::RegisterRigidBodyComponent(lua_State* L)
+	{
+		// This is called from RegisterEngineFunctions in LuaScriptEngine
+		// Physics methods are registered as part of the Entity metatable
 	}
 
 }

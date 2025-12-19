@@ -48,6 +48,9 @@ namespace Nebula {
 		PhysicsWorld* GetPhysicsWorld() { return m_PhysicsWorld.get(); }
 		void SetPhysicsDebugDraw(bool enabled);
 
+		// Script validation
+		bool ValidateAllScripts(std::string& errorMessage);
+
 	private:
 		std::string m_Name;
 		entt::registry m_Registry;

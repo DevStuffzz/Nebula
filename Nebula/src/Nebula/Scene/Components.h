@@ -111,15 +111,45 @@ namespace Nebula {
 		CameraComponent(const CameraComponent&) = default;
 	};
 
-	// Script Component
+	// Script Variable for editor exposure
+	struct NEBULA_API ScriptVariable
+	{
+		enum class Type { Float, Int, Bool, String, Vec3 };
+		
+		std::string Name;
+		Type VarType;
+		
+		// Union-like storage (only one is used based on VarType)
+		float FloatValue = 0.0f;
+		int IntValue = 0;
+		bool BoolValue = false;
+		std::string StringValue;
+		glm::vec3 Vec3Value = glm::vec3(0.0f);
+		
+		ScriptVariable() = default;
+		ScriptVariable(const std::string& name, float value)
+			: Name(name), VarType(Type::Float), FloatValue(value) {}
+		ScriptVariable(const std::string& name, int value)
+			: Name(name), VarType(Type::Int), IntValue(value) {}
+		ScriptVariable(const std::string& name, bool value)
+			: Name(name), VarType(Type::Bool), BoolValue(value) {}
+	};
+
+	// Script Component - supports multiple scripts
 	struct NEBULA_API ScriptComponent
 	{
-		std::string ScriptPath; // Path to Lua script file
+		std::vector<std::string> ScriptPaths; // Paths to Lua script files
+		std::vector<ScriptVariable> Variables; // Editor-exposed variables
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
 		ScriptComponent(const std::string& scriptPath)
-			: ScriptPath(scriptPath) {}
+		{
+			ScriptPaths.push_back(scriptPath);
+		}
+		
+		void AddScript(const std::string& path) { ScriptPaths.push_back(path); }
+		void RemoveScript(size_t index) { if (index < ScriptPaths.size()) ScriptPaths.erase(ScriptPaths.begin() + index); }
 	};
 
 	// Box Collider Component

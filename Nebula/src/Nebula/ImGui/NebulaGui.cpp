@@ -18,6 +18,7 @@ namespace Nebula {
 	// Text/Label
 	void NebulaGui::Text(const char* fmt, ...) { va_list args; va_start(args, fmt); ImGui::TextV(fmt, args); va_end(args); }
 	void NebulaGui::TextWrapped(const char* fmt, ...) { va_list args; va_start(args, fmt); ImGui::TextWrappedV(fmt, args); va_end(args); }
+	void NebulaGui::TextColored(const glm::vec4& col, const char* fmt, ...) { va_list args; va_start(args, fmt); ImGui::TextColoredV(ImVec4(col.x, col.y, col.z, col.w), fmt, args); va_end(args); }
 
 	// Widgets
 	bool NebulaGui::Button(const char* label) { return ImGui::Button(label); }
@@ -65,6 +66,7 @@ namespace Nebula {
 
 	// ID stack
 	void NebulaGui::PushID(const char* str_id) { ImGui::PushID(str_id); }
+	void NebulaGui::PushID(int str_id) { ImGui::PushID(str_id); }
 	void NebulaGui::PopID() { ImGui::PopID(); }
 
 	// Drag and Drop
@@ -102,6 +104,11 @@ namespace Nebula {
 	void* NebulaGui::GetWindowDrawList() { return ImGui::GetWindowDrawList(); }
 	void* NebulaGui::GetForegroundDrawList() { return ImGui::GetForegroundDrawList(); }
 	glm::vec2 NebulaGui::GetMousePos() { auto pos = ImGui::GetMousePos(); return glm::vec2(pos.x, pos.y); }
+
+	// Scrolling
+	float NebulaGui::GetScrollY() { return ImGui::GetScrollY(); }
+	float NebulaGui::GetScrollMaxY() { return ImGui::GetScrollMaxY(); }
+	void NebulaGui::SetScrollHereY(float center_y_ratio) { ImGui::SetScrollHereY(center_y_ratio); }
 
 	// Style
 	void NebulaGui::PushStyleVar(int idx, const glm::vec2& val) { ImGui::PushStyleVar(idx, ImVec2(val.x, val.y)); }

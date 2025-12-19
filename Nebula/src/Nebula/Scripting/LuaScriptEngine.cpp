@@ -5,12 +5,14 @@
 #include "Nebula/Scene/Entity.h"
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 namespace Nebula {
 
 	lua_State* LuaScriptEngine::s_LuaState = nullptr;
 	std::string LuaScriptEngine::s_LastError = "";
 	std::unordered_map<uint32_t, std::string> LuaScriptEngine::s_EntityScripts;
+	std::unordered_map<std::string, long long> LuaScriptEngine::s_ScriptModificationTimes;
 
 	void LuaScriptEngine::Init()
 	{
@@ -49,6 +51,8 @@ namespace Nebula {
 
 	bool LuaScriptEngine::LoadScript(const std::string& filepath)
 	{
+		namespace fs = std::filesystem;
+
 		if (!s_LuaState)
 		{
 			NB_CORE_ERROR("Lua state not initialized!");
@@ -77,6 +81,13 @@ namespace Nebula {
 		result = lua_pcall(s_LuaState, 0, 0, 0);
 		if (!CheckLua(result))
 			return false;
+
+		// Track modification time for hot-reloading
+		if (fs::exists(filepath))
+		{
+			auto writeTime = fs::last_write_time(filepath);
+			s_ScriptModificationTimes[filepath] = writeTime.time_since_epoch().count();
+		}
 
 		NB_CORE_INFO("Loaded Lua script: {0}", filepath);
 		return true;
@@ -217,6 +228,28 @@ namespace Nebula {
 		lua_pushcfunction(s_LuaState, LuaBindings::Entity_SetScale);
 		lua_setfield(s_LuaState, -2, "SetScale");
 
+		// Physics/RigidBody methods
+		lua_pushcfunction(s_LuaState, LuaBindings::Entity_AddForce);
+		lua_setfield(s_LuaState, -2, "AddForce");
+
+		lua_pushcfunction(s_LuaState, LuaBindings::Entity_SetVelocity);
+		lua_setfield(s_LuaState, -2, "SetVelocity");
+
+		lua_pushcfunction(s_LuaState, LuaBindings::Entity_GetVelocity);
+		lua_setfield(s_LuaState, -2, "GetVelocity");
+
+		lua_pushcfunction(s_LuaState, LuaBindings::Entity_SetAngularVelocity);
+		lua_setfield(s_LuaState, -2, "SetAngularVelocity");
+
+		lua_pushcfunction(s_LuaState, LuaBindings::Entity_GetAngularVelocity);
+		lua_setfield(s_LuaState, -2, "GetAngularVelocity");
+
+		lua_pushcfunction(s_LuaState, LuaBindings::Entity_SetMass);
+		lua_setfield(s_LuaState, -2, "SetMass");
+
+		lua_pushcfunction(s_LuaState, LuaBindings::Entity_GetMass);
+		lua_setfield(s_LuaState, -2, "GetMass");
+
 		lua_pop(s_LuaState, 1); // Pop metatable
 	}
 
@@ -238,6 +271,76 @@ namespace Nebula {
 			return false;
 		}
 		return true;
+	}
+
+	bool LuaScriptEngine::ValidateScript(const std::string& filepath)
+	{
+		if (!s_LuaState)
+		{
+			s_LastError = "Lua state not initialized!";
+			NB_CORE_ERROR("{0}", s_LastError);
+			return false;
+		}
+
+		std::ifstream file(filepath);
+		if (!file.is_open())
+		{
+			s_LastError = "Failed to open file: " + filepath;
+			NB_CORE_ERROR("{0}", s_LastError);
+			return false;
+		}
+
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		std::string code = buffer.str();
+		file.close();
+
+		// Try to load the script (syntax check only)
+		int result = luaL_loadstring(s_LuaState, code.c_str());
+		if (result != LUA_OK)
+		{
+			s_LastError = lua_tostring(s_LuaState, -1);
+			NB_CORE_ERROR("Lua validation error in {0}: {1}", filepath, s_LastError);
+			lua_pop(s_LuaState, 1);
+			return false;
+		}
+
+		// Pop the loaded chunk without executing it
+		lua_pop(s_LuaState, 1);
+		s_LastError.clear();
+		return true;
+	}
+
+	void LuaScriptEngine::CheckForScriptChanges()
+	{
+		namespace fs = std::filesystem;
+
+		// Check each tracked script for modifications
+		for (auto& [scriptPath, lastModTime] : s_ScriptModificationTimes)
+		{
+			if (fs::exists(scriptPath))
+			{
+				auto writeTime = fs::last_write_time(scriptPath);
+				long long currentTime = writeTime.time_since_epoch().count();
+
+				// If file has been modified
+				if (currentTime != lastModTime)
+				{
+					NB_CORE_INFO("Script modified, reloading: {0}", scriptPath);
+					
+					// Validate script before reloading
+					if (ValidateScript(scriptPath))
+					{
+						ReloadScript(scriptPath);
+						lastModTime = currentTime;
+					}
+					else
+					{
+						NB_CORE_ERROR("Script reload failed, keeping old version: {0}", scriptPath);
+					}
+				}
+			}
+		}
 	}
 
 }

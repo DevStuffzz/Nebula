@@ -40,6 +40,14 @@ namespace Nebula {
 
 		// Error handling
 		static std::string GetLastError() { return s_LastError; }
+		static bool HasError() { return !s_LastError.empty(); }
+		static void ClearError() { s_LastError.clear(); }
+
+		// Script validation - checks for syntax errors
+		static bool ValidateScript(const std::string& filepath);
+
+		// Hot-reloading support
+		static void CheckForScriptChanges();
 
 	private:
 		static void RegisterEngineFunctions();
@@ -50,6 +58,7 @@ namespace Nebula {
 		static lua_State* s_LuaState;
 		static std::string s_LastError;
 		static std::unordered_map<uint32_t, std::string> s_EntityScripts; // EntityID -> ScriptPath
+		static std::unordered_map<std::string, long long> s_ScriptModificationTimes; // ScriptPath -> LastWriteTime
 	};
 
 }
