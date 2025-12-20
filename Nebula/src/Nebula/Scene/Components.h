@@ -161,6 +161,7 @@ namespace Nebula {
 		// Runtime data (opaque pointer to avoid exposing Bullet)
 		btCollisionShape* RuntimeShape = nullptr;
 		glm::vec3 LastScale = glm::vec3(1.0f);  // Track last scale to detect changes
+		
 		glm::vec3 LastSize = glm::vec3(0.0f);   // Track last size to detect changes
 
 		BoxColliderComponent() = default;

@@ -28,6 +28,7 @@ namespace Nebula {
 
 	// Input
 	bool NebulaGui::InputText(const char* label, char* buf, size_t buf_size) { return ImGui::InputText(label, buf, buf_size); }
+	bool NebulaGui::InputTextMultiline(const char* label, char* buf, size_t buf_size, const glm::vec2& size, int flags) { return ImGui::InputTextMultiline(label, buf, buf_size, ImVec2(size.x, size.y), flags); }
 
 	// Combo
 	bool NebulaGui::BeginCombo(const char* label, const char* preview_value) { return ImGui::BeginCombo(label, preview_value); }
@@ -59,6 +60,12 @@ namespace Nebula {
 	bool NebulaGui::BeginPopupContextWindow(const char* str_id, ImGuiPopupFlags flags, bool also_over_items) { return ImGui::BeginPopupContextWindow(str_id, flags | (also_over_items ? 0 : ImGuiPopupFlags_NoOpenOverItems)); }
 	void NebulaGui::EndPopup() { ImGui::EndPopup(); }
 	void NebulaGui::CloseCurrentPopup() { ImGui::CloseCurrentPopup(); }
+	
+	// Tab bar
+	bool NebulaGui::BeginTabBar(const char* label) { return ImGui::BeginTabBar(label); }
+	void NebulaGui::EndTabBar(){ ImGui::EndTabBar(); }
+	bool NebulaGui::BeginTabItem(const char* label, bool open) { return ImGui::BeginTabItem(label, &open); }
+	void NebulaGui::EndTabItem() { ImGui::EndTabItem(); }
 
 	// Columns/Layout
 	void NebulaGui::Columns(int count, const char* id, bool border) { ImGui::Columns(count, id, border); }

@@ -36,6 +36,7 @@ namespace Nebula {
 
 		// Input
 		static bool InputText(const char* label, char* buf, size_t buf_size);
+		static bool InputTextMultiline(const char* label, char* buf, size_t buf_size, const glm::vec2& size = glm::vec2(0, 0), int flags = 0);
 
 		// Combo
 		static bool BeginCombo(const char* label, const char* preview_value);
@@ -67,6 +68,13 @@ namespace Nebula {
 		static bool BeginPopupContextWindow(const char* str_id = nullptr, ImGuiPopupFlags flags = 1, bool also_over_items = false);
 		static void EndPopup();
 		static void CloseCurrentPopup();
+
+		// Tab Bar
+		static bool BeginTabBar(const char* label);
+		static void EndTabBar();
+
+		static bool BeginTabItem(const char* label, bool open);
+		static void EndTabItem();
 
 		// Columns/Layout
 		static void Columns(int count, const char* id = nullptr, bool border = true);

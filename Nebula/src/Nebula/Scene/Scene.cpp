@@ -74,6 +74,7 @@ namespace Nebula {
 			m_PhysicsWorld->Shutdown();
 		}
 
+		// AudioEngine::Shutdown() already handles destroying all sources
 		if (m_AudioEngine)
 		{
 			m_AudioEngine->Shutdown();

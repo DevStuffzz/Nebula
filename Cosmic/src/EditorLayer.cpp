@@ -103,7 +103,6 @@ namespace Cosmic {
 			[this]() { LoadScene(); },
 			[]() { /* Exit handled elsewhere */ },
 			[this]() { ToggleRuntime(); },
-			[]() { ScriptEditor::ToggleVisibility(); },
 			[this]() { m_SceneListWindow.SetOpen(true); }
 		);
 
@@ -225,14 +224,20 @@ namespace Cosmic {
 			// Only update physics and scripts when in runtime mode
 			if (m_RuntimeMode)
 			{
-				m_ActiveScene->OnUpdate(ts);
-				
-				// Process any pending scene loads requested during update
+				// Process any pending scene loads BEFORE update
 				if (Nebula::SceneManager::Get().HasPendingSceneLoad())
 				{
+					// Just stop audio, don't destroy - let Scene destructor handle cleanup
+					if (m_ActiveScene && m_ActiveScene->GetAudioEngine())
+					{
+						m_ActiveScene->GetAudioEngine()->StopAll();
+					}
+					
 					Nebula::SceneManager::Get().ProcessPendingSceneLoad();
 					m_ActiveScene = Nebula::SceneManager::Get().GetActiveScene();
 				}
+				
+				m_ActiveScene->OnUpdate(ts);
 			}
 			m_ActiveScene->OnRender();
 			
@@ -452,6 +457,9 @@ namespace Cosmic {
 		// Console Window
 		ConsoleWindow::OnImGuiRender();
 
+		// Debug Window
+		DebugWindow::OnImGuiRender(m_ActiveScene, m_RuntimeMode);
+
 		// Content Browser
 		ContentBrowser::OnImGuiRender();
 
@@ -564,6 +572,7 @@ namespace Cosmic {
 
 		m_RuntimeMode = !m_RuntimeMode;
 		MenuBar::SetRuntimeMode(m_RuntimeMode);
+		ScriptEditor::SetRuntimeMode(m_RuntimeMode);
 		
 		if (m_RuntimeMode)
 		{
@@ -607,6 +616,15 @@ namespace Cosmic {
 				}
 			}
 
+			// Reset all audio sources so they reinitialize with PlayOnAwake
+			auto audioView = m_ActiveScene->GetRegistry().view<Nebula::AudioSourceComponent>();
+			for (auto entity : audioView)
+			{
+				auto& audioSource = audioView.get<Nebula::AudioSourceComponent>(entity);
+				audioSource.RuntimeSourceID = 0;
+				audioSource.IsPlaying = false;
+			}
+
 			NB_CORE_INFO("Runtime started");
 			ConsoleWindow::AddLog("Runtime started", LogLevel::Info);
 			
@@ -624,7 +642,7 @@ namespace Cosmic {
 			NB_CORE_INFO("Runtime stopped");
 			ConsoleWindow::AddLog("Runtime stopped", LogLevel::Info);
 			
-			// Stop all audio sources before reloading
+			// Just stop audio - let Scene destructor handle cleanup
 			if (m_ActiveScene && m_ActiveScene->GetAudioEngine())
 			{
 				m_ActiveScene->GetAudioEngine()->StopAll();

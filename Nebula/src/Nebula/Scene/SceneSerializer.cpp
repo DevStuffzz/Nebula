@@ -334,7 +334,16 @@ namespace Nebula {
 					if (!meshRenderer.Mesh && meshRendererJson.contains("MeshSource"))
 					{
 						std::string meshSource = meshRendererJson["MeshSource"];
+						NB_CORE_INFO("Loading mesh from source: {0} (MeshID: {1})", meshSource, meshID);
 						meshRenderer.Mesh = Mesh::LoadOBJ(meshSource);
+						if (!meshRenderer.Mesh)
+						{
+							NB_CORE_ERROR("Failed to load mesh from: {0}", meshSource);
+						}
+					}
+					else if (meshRenderer.Mesh)
+					{
+						NB_CORE_INFO("Reusing cached mesh with ID: {0}", meshID);
 					}
 				}
 				// Fallback to old MeshFile system for backward compatibility

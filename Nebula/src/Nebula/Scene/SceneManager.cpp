@@ -1,6 +1,8 @@
 #include "nbpch.h"
 #include "SceneManager.h"
 #include "SceneSerializer.h"
+#include "Components.h"
+#include "Nebula/Audio/AudioEngine.h"
 #include "Nebula/Log.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -26,11 +28,27 @@ namespace Nebula {
 
 	std::shared_ptr<Scene> SceneManager::LoadSceneFromPath(const std::string& filepath)
 	{
+		// Just stop all audio from the current scene - let destructor clean up sources
+		if (m_ActiveScene && m_ActiveScene->GetAudioEngine())
+		{
+			m_ActiveScene->GetAudioEngine()->StopAll();
+		}
+
 		auto scene = std::make_shared<Scene>();
 		SceneSerializer serializer(scene.get());
 		
 		if (serializer.Deserialize(filepath))
 		{
+			// Reset all audio sources so they start fresh with PlayOnAwake
+			auto& registry = scene->GetRegistry();
+			auto audioView = registry.view<AudioSourceComponent>();
+			for (auto entity : audioView)
+			{
+				auto& audioSource = audioView.get<AudioSourceComponent>(entity);
+				audioSource.RuntimeSourceID = 0;
+				audioSource.IsPlaying = false;
+			}
+			
 			m_ActiveScene = scene;
 			NB_INFO("SceneManager: Loaded scene from {0}", filepath);
 			return scene;
