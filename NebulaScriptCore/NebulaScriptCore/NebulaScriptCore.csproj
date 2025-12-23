@@ -1,0 +1,67 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\bin\Debug-windows-x86_64\NebulaScriptCore\</OutputPath>
+    <IntermediateOutputPath>..\..\bin-int\Debug-windows-x86_64\NebulaScriptCore\</IntermediateOutputPath>
+    <DefineConstants></DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\bin\Release-windows-x86_64\NebulaScriptCore\</OutputPath>
+    <IntermediateOutputPath>..\..\bin-int\Release-windows-x86_64\NebulaScriptCore\</IntermediateOutputPath>
+    <DefineConstants></DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Dist|x64' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\bin\Dist-windows-x86_64\NebulaScriptCore\</OutputPath>
+    <IntermediateOutputPath>..\..\bin-int\Dist-windows-x86_64\NebulaScriptCore\</IntermediateOutputPath>
+    <DefineConstants></DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Dist|x64' ">
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Source\Console.cs">
+      <Link>Source\Console.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\Input.cs">
+      <Link>Source\Input.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\KeyCodes.cs">
+      <Link>Source\KeyCodes.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\ScriptBehavior.cs">
+      <Link>Source\ScriptBehavior.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\ScriptEntity.cs">
+      <Link>Source\ScriptEntity.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\Vector3.cs">
+      <Link>Source\Vector3.cs</Link>
+    </Compile>
+  </ItemGroup>
+</Project>

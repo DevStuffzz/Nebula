@@ -21,3 +21,7 @@ Makefile
 
 .vscode/
 .idea/
+
+# Mono build files
+# We want the directory structure but not the files themselves
+Nebula/vendor/mono-build/*

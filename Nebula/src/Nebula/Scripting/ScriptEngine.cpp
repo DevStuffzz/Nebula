@@ -1,0 +1,421 @@
+#include "nbpch.h"
+#include "ScriptEngine.h"
+#include "ScriptGlue.h"
+
+#include "Nebula/Scene/Scene.h"
+#include "Nebula/Scene/Entity.h"
+#include "Nebula/Scene/Components.h"
+#include "Nebula/Log.h"
+
+#include <mono/jit/jit.h>
+#include <mono/metadata/assembly.h>
+#include <mono/metadata/object.h>
+#include <mono/metadata/metadata.h>
+#include <mono/metadata/attrdefs.h>
+#include <mono/metadata/mono-debug.h>
+#include <mono/metadata/threads.h>
+
+namespace Nebula {
+
+	const char* ScriptFieldTypeToString(ScriptFieldType type)
+	{
+		switch (type)
+		{
+			case ScriptFieldType::None:    return "None";
+			case ScriptFieldType::Float:   return "Float";
+			case ScriptFieldType::Double:  return "Double";
+			case ScriptFieldType::Bool:    return "Bool";
+			case ScriptFieldType::Char:    return "Char";
+			case ScriptFieldType::Byte:    return "Byte";
+			case ScriptFieldType::Short:   return "Short";
+			case ScriptFieldType::Int:     return "Int";
+			case ScriptFieldType::Long:    return "Long";
+			case ScriptFieldType::UByte:   return "UByte";
+			case ScriptFieldType::UShort:  return "UShort";
+			case ScriptFieldType::UInt:    return "UInt";
+			case ScriptFieldType::ULong:   return "ULong";
+			case ScriptFieldType::Vector2: return "Vector2";
+			case ScriptFieldType::Vector3: return "Vector3";
+			case ScriptFieldType::Vector4: return "Vector4";
+			case ScriptFieldType::Entity:  return "Entity";
+		}
+		return "None";
+	}
+
+	ScriptFieldType MonoTypeToScriptFieldType(MonoType* monoType)
+	{
+		int type = mono_type_get_type(monoType);
+
+		switch (type)
+		{
+			case MONO_TYPE_R4:      return ScriptFieldType::Float;
+			case MONO_TYPE_R8:      return ScriptFieldType::Double;
+			case MONO_TYPE_BOOLEAN: return ScriptFieldType::Bool;
+			case MONO_TYPE_CHAR:    return ScriptFieldType::Char;
+			case MONO_TYPE_I1:      return ScriptFieldType::Byte;
+			case MONO_TYPE_I2:      return ScriptFieldType::Short;
+			case MONO_TYPE_I4:      return ScriptFieldType::Int;
+			case MONO_TYPE_I8:      return ScriptFieldType::Long;
+			case MONO_TYPE_U1:      return ScriptFieldType::UByte;
+			case MONO_TYPE_U2:      return ScriptFieldType::UShort;
+			case MONO_TYPE_U4:      return ScriptFieldType::UInt;
+			case MONO_TYPE_U8:      return ScriptFieldType::ULong;
+		}
+		return ScriptFieldType::None;
+	}
+
+	struct ScriptEngineData
+	{
+		MonoDomain* RootDomain = nullptr;
+		MonoDomain* AppDomain = nullptr;
+
+		MonoAssembly* CoreAssembly = nullptr;
+		MonoImage* CoreAssemblyImage = nullptr;
+
+		MonoAssembly* AppAssembly = nullptr;
+		MonoImage* AppAssemblyImage = nullptr;
+
+	Ref<ScriptClass> EntityClass;
+
+	std::unordered_map<std::string, Ref<ScriptClass>> EntityClasses;
+	std::unordered_map<uint32_t, Ref<ScriptInstance>> EntityInstances;
+
+	Scene* SceneContext = nullptr;
+};
+
+static ScriptEngineData* s_Data = nullptr;
+
+static void PrintAssemblyTypes(MonoAssembly* assembly)
+{
+	MonoImage* image = mono_assembly_get_image(assembly);
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
+
+			NB_CORE_TRACE("{0}.{1}", nameSpace, name);
+		}
+	}
+
+	void ScriptEngine::Init()
+	{
+		s_Data = new ScriptEngineData();
+
+		InitMono();
+		ScriptGlue::RegisterFunctions();
+
+		LoadAssembly("bin/Debug-windows-x86_64/NebulaScriptCore/NebulaScriptCore.dll");
+		LoadAppAssembly("bin/Debug-windows-x86_64/Scripts/Scripts.dll");
+
+		LoadAssemblyClasses();
+
+		// Retrieve and instantiate EntityClass
+	s_Data->EntityClass = s_Data->EntityClasses["NebulaScriptCore.ScriptEntity"];
+}
+
+void ScriptEngine::Shutdown()
+{
+	s_Data->EntityClasses.clear();
+
+	mono_domain_set(mono_get_root_domain(), false);
+	if (s_Data->AppDomain)
+		mono_domain_unload(s_Data->AppDomain);
+
+	s_Data->AppDomain = nullptr;
+	s_Data->RootDomain = nullptr;
+
+	delete s_Data;
+	s_Data = nullptr;
+}
+
+void ScriptEngine::OnRuntimeStart(Scene* scene)
+	{
+		s_Data->SceneContext = scene;
+	}
+
+	void ScriptEngine::OnRuntimeStop()
+	{
+		s_Data->SceneContext = nullptr;
+		s_Data->EntityInstances.clear();
+	}
+
+	bool ScriptEngine::EntityClassExists(const std::string& fullClassName)
+	{
+		return s_Data->EntityClasses.find(fullClassName) != s_Data->EntityClasses.end();
+	}
+
+	void ScriptEngine::OnCreateEntity(Entity entity)
+	{
+		const auto& sc = entity.GetComponent<ScriptComponent>();
+		if (ScriptEngine::EntityClassExists(sc.ClassName))
+		{
+			uint32_t entityID = (uint32_t)entity;
+			
+			Ref<ScriptInstance> instance = CreateRef<ScriptInstance>(s_Data->EntityClasses[sc.ClassName], entity);
+			s_Data->EntityInstances[entityID] = instance;
+
+			// Call OnCreate
+			instance->InvokeOnCreate();
+		}
+	}
+
+	void ScriptEngine::OnUpdateEntity(Entity entity, float deltaTime)
+	{
+		uint32_t entityID = (uint32_t)entity;
+		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
+		{
+			Ref<ScriptInstance> instance = s_Data->EntityInstances[entityID];
+			instance->InvokeOnUpdate(deltaTime);
+		}
+	}
+
+	void ScriptEngine::OnDestroyEntity(Entity entity)
+	{
+		uint32_t entityID = (uint32_t)entity;
+		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
+		{
+			Ref<ScriptInstance> instance = s_Data->EntityInstances[entityID];
+			instance->InvokeOnDestroy();
+			s_Data->EntityInstances.erase(entityID);
+		}
+	}
+
+	Scene* ScriptEngine::GetSceneContext()
+	{
+		return s_Data->SceneContext;
+	}
+
+	Ref<ScriptInstance> ScriptEngine::GetEntityScriptInstance(uint32_t entityID)
+	{
+		auto it = s_Data->EntityInstances.find(entityID);
+		if (it == s_Data->EntityInstances.end())
+			return nullptr;
+
+		return it->second;
+	}
+
+	void ScriptEngine::InitMono()
+	{
+		// Set Mono assembly and config directories
+		mono_set_dirs("lib", "etc");
+
+		MonoDomain* rootDomain = mono_jit_init("NebulaJITRuntime");
+	if (!rootDomain)
+	{
+		NB_CORE_ERROR("Failed to initialize Mono JIT!");
+		return;
+	}
+		s_Data->RootDomain = rootDomain;
+	}
+
+	void ScriptEngine::ShutdownMono()
+	{
+		// mono_jit_cleanup(s_Data->RootDomain);
+	}
+
+	MonoAssembly* ScriptEngine::LoadMonoAssembly(const std::filesystem::path& assemblyPath)
+	{
+		std::ifstream stream(assemblyPath, std::ios::binary | std::ios::ate);
+	if (!stream.is_open())
+	{
+		NB_CORE_ERROR("Failed to open assembly file: {}", assemblyPath.string());
+		return nullptr;
+	}
+
+		std::streampos size = stream.tellg();
+		stream.seekg(0, std::ios::beg);
+
+		char* data = new char[size];
+		stream.read(data, size);
+		stream.close();
+
+		MonoImageOpenStatus status;
+		MonoImage* image = mono_image_open_from_data_full(data, size, 1, &status, 0);
+
+		if (status != MONO_IMAGE_OK)
+		{
+			const char* errorMessage = mono_image_strerror(status);
+			NB_CORE_ERROR("Failed to load Mono image: {0}", errorMessage);
+			return nullptr;
+		}
+
+		MonoAssembly* assembly = mono_assembly_load_from_full(image, assemblyPath.string().c_str(), &status, 0);
+		delete[] data;
+
+		return assembly;
+	}
+
+	void ScriptEngine::LoadAssembly(const std::filesystem::path& filepath)
+	{
+		// Create an App Domain
+		s_Data->AppDomain = mono_domain_create_appdomain((char*)"NebulaScriptRuntime", nullptr);
+		mono_domain_set(s_Data->AppDomain, true);
+
+		s_Data->CoreAssembly = LoadMonoAssembly(filepath);
+		s_Data->CoreAssemblyImage = mono_assembly_get_image(s_Data->CoreAssembly);
+	}
+
+	void ScriptEngine::LoadAppAssembly(const std::filesystem::path& filepath)
+	{
+		s_Data->AppAssembly = LoadMonoAssembly(filepath);
+		s_Data->AppAssemblyImage = mono_assembly_get_image(s_Data->AppAssembly);
+	}
+
+	void ScriptEngine::LoadAssemblyClasses()
+	{
+		s_Data->EntityClasses.clear();
+
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_Data->AppAssemblyImage, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+		MonoClass* scriptBehaviorClass = mono_class_from_name(s_Data->CoreAssemblyImage, "NebulaScriptCore", "ScriptBehavior");
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(s_Data->AppAssemblyImage, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* className = mono_metadata_string_heap(s_Data->AppAssemblyImage, cols[MONO_TYPEDEF_NAME]);
+			std::string fullName;
+			if (strlen(nameSpace) != 0)
+				fullName = fmt::format("{}.{}", nameSpace, className);
+			else
+				fullName = className;
+
+			MonoClass* monoClass = mono_class_from_name(s_Data->AppAssemblyImage, nameSpace, className);
+
+			if (monoClass == scriptBehaviorClass)
+				continue;
+
+			bool isScriptBehavior = mono_class_is_subclass_of(monoClass, scriptBehaviorClass, false);
+			if (!isScriptBehavior)
+				continue;
+
+			Ref<ScriptClass> scriptClass = CreateRef<ScriptClass>(nameSpace, className);
+			s_Data->EntityClasses[fullName] = scriptClass;
+
+			// This routine is an iterator routine for retrieving the fields in a class.
+			// You must pass a gpointer that points to zero and is treated as an opaque handle
+			// to iterate over all of the elements. When no more values are available, the return value is NULL.
+
+			int fieldCount = mono_class_num_fields(monoClass);
+			NB_CORE_WARN("{} has {} fields:", className, fieldCount);
+			void* iterator = nullptr;
+			while (MonoClassField* field = mono_class_get_fields(monoClass, &iterator))
+			{
+				const char* fieldName = mono_field_get_name(field);
+				uint32_t flags = mono_field_get_flags(field);
+				if (flags & MONO_FIELD_ATTR_PUBLIC)
+				{
+					MonoType* type = mono_field_get_type(field);
+					ScriptFieldType fieldType = MonoTypeToScriptFieldType(type);
+					NB_CORE_WARN("  {} ({})", fieldName, ScriptFieldTypeToString(fieldType));
+
+					scriptClass->m_Fields[fieldName] = { fieldType, fieldName, field };
+				}
+			}
+		}
+
+		/*auto& entityClasses = s_Data->EntityClasses;
+
+		// We need to store references to these on the C++ side
+		mono_field_static_set_value(mono_class_vtable(s_Data->AppDomain, monoClass), field, &value);*/
+	}
+
+	MonoImage* ScriptEngine::GetCoreAssemblyImage()
+	{
+		return s_Data->CoreAssemblyImage;
+	}
+
+	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className)
+		: m_ClassNamespace(classNamespace), m_ClassName(className)
+	{
+		m_MonoClass = mono_class_from_name(s_Data->CoreAssemblyImage, classNamespace.c_str(), className.c_str());
+		if (!m_MonoClass)
+			m_MonoClass = mono_class_from_name(s_Data->AppAssemblyImage, classNamespace.c_str(), className.c_str());
+	}
+
+	MonoObject* ScriptClass::Instantiate()
+	{
+		return mono_object_new(s_Data->AppDomain, m_MonoClass);
+	}
+
+	MonoMethod* ScriptClass::GetMethod(const std::string& name, int parameterCount)
+	{
+		return mono_class_get_method_from_name(m_MonoClass, name.c_str(), parameterCount);
+	}
+
+	MonoObject* ScriptClass::InvokeMethod(MonoObject* instance, MonoMethod* method, void** params)
+	{
+		MonoObject* exception = nullptr;
+		return mono_runtime_invoke(method, instance, params, &exception);
+	}
+
+	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
+		: m_ScriptClass(scriptClass)
+	{
+		m_Instance = scriptClass->Instantiate();
+
+	m_Constructor = s_Data->EntityClass->GetMethod(".ctor", 1);
+		m_OnDestroyMethod = scriptClass->GetMethod("OnDestroy", 0);
+
+		// Call Entity constructor
+		{
+			uint32_t entityID = (uint32_t)entity;
+			void* param = &entityID;
+			m_ScriptClass->InvokeMethod(m_Instance, m_Constructor, &param);
+		}
+	}
+
+	void ScriptInstance::InvokeOnCreate()
+	{
+		if (m_OnCreateMethod)
+			m_ScriptClass->InvokeMethod(m_Instance, m_OnCreateMethod, nullptr);
+	}
+
+	void ScriptInstance::InvokeOnUpdate(float deltaTime)
+	{
+		if (m_OnUpdateMethod)
+		{
+			void* param = &deltaTime;
+			m_ScriptClass->InvokeMethod(m_Instance, m_OnUpdateMethod, &param);
+		}
+	}
+
+	void ScriptInstance::InvokeOnDestroy()
+	{
+		if (m_OnDestroyMethod)
+			m_ScriptClass->InvokeMethod(m_Instance, m_OnDestroyMethod, nullptr);
+	}
+
+	bool ScriptInstance::GetFieldValueInternal(const std::string& name, void* buffer)
+	{
+		const auto& fields = m_ScriptClass->GetFields();
+		auto it = fields.find(name);
+		if (it == fields.end())
+			return false;
+
+		const ScriptField& field = it->second;
+		mono_field_get_value(m_Instance, field.ClassField, buffer);
+		return true;
+	}
+
+	bool ScriptInstance::SetFieldValueInternal(const std::string& name, const void* value)
+	{
+		const auto& fields = m_ScriptClass->GetFields();
+		auto it = fields.find(name);
+		if (it == fields.end())
+			return false;
+
+		const ScriptField& field = it->second;
+		mono_field_set_value(m_Instance, field.ClassField, (void*)value);
+		return true;
+	}
+
+}

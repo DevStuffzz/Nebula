@@ -37,11 +37,8 @@ namespace Cosmic {
 				for (auto entity : scriptView)
 				{
 					auto& sc = scriptView.get<Nebula::ScriptComponent>(entity);
-					for (const auto& scriptPath : sc.ScriptPaths)
-					{
-						if (!scriptPath.empty())
-							activeScripts++;
-					}
+					if (!sc.ClassName.empty())
+						activeScripts++;
 				}
 				Nebula::NebulaGui::Text("  Active Scripts: %d", activeScripts);
 

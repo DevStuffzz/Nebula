@@ -50,8 +50,7 @@
 #include "Nebula/Asset/ShaderImporter.h"
 
 // Scripting System
-#include "Nebula/Scripting/LuaScriptEngine.h"
-#include "Nebula/Scripting/LuaBindings.h"
+#include "Nebula/Scripting/ScriptEngine.h"
 
 // Audio System
 #include "Nebula/Audio/AudioEngine.h"

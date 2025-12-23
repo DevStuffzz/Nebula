@@ -600,27 +600,24 @@ namespace Cosmic {
 				if (entity.HasComponent<Nebula::ScriptComponent>())
 				{
 					auto& sc = entity.GetComponent<Nebula::ScriptComponent>();
-					for (const auto& scriptPath : sc.ScriptPaths)
-					{
-						if (!scriptPath.empty())
-						{
-							std::filesystem::path path(scriptPath);
-							if (!std::filesystem::exists(path))
-							{
-								auto& tag = entity.GetComponent<Nebula::TagComponent>();
-								NB_CORE_ERROR("Entity '{}' references missing script: {}", tag.Tag, scriptPath);
-								ConsoleWindow::AddLog("Error: Entity '" + tag.Tag + "' references missing script: " + scriptPath, LogLevel::Error);
-							}
-						}
-					}
-				}
+				// TODO: Validate C# class exists
+				// if (!sc.ClassName.empty())
+				// {
+				// 	if (!Nebula::ScriptEngine::EntityClassExists(sc.ClassName))
+				// 	{
+				// 		auto& tag = entity.GetComponent<Nebula::TagComponent>();
+				// 		NB_CORE_ERROR("Entity '{}' references missing C# class: {}", tag.Tag, sc.ClassName);
+				// 		ConsoleWindow::AddLog("Error: Entity '" + tag.Tag + "' references missing C# class: " + sc.ClassName, LogLevel::Error);
+				// 	}
+				// }
 			}
-
-			// Reset all audio sources so they reinitialize with PlayOnAwake
-			auto audioView = m_ActiveScene->GetRegistry().view<Nebula::AudioSourceComponent>();
-			for (auto entity : audioView)
-			{
-				auto& audioSource = audioView.get<Nebula::AudioSourceComponent>(entity);
+		}
+		
+		// Reset audio sources
+		auto audioView = m_ActiveScene->GetRegistry().view<Nebula::AudioSourceComponent>();
+		for (auto entity : audioView)
+		{
+			auto& audioSource = audioView.get<Nebula::AudioSourceComponent>(entity);
 				audioSource.RuntimeSourceID = 0;
 				audioSource.IsPlaying = false;
 			}

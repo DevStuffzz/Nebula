@@ -10,7 +10,7 @@
 #include "Nebula/Renderer/Skybox.h"
 #include "Platform/OpenGL/OpenGLSkybox.h"
 #include "Nebula/Application.h"
-#include "Nebula/Scripting/LuaScriptEngine.h"
+#include "Nebula/Scripting/ScriptEngine.h"
 #include "Nebula/Physics/PhysicsWorld.h"
 #include "Nebula/Physics/PhysicsDebugDraw.h"
 #include "Nebula/Audio/AudioEngine.h"
@@ -38,9 +38,10 @@ namespace Nebula {
 		}
 
 		// Register script reload callback for hot-reloading
-		LuaScriptEngine::RegisterScriptReloadCallback([this](const std::string& scriptPath) {
-			this->ClearScriptInitialization(scriptPath);
-		});
+		// TODO: Re-implement script hot-reloading for C# scripts
+		// ScriptEngine::RegisterScriptReloadCallback([this](const std::string& scriptPath) {
+		// 	this->ClearScriptInitialization(scriptPath);
+		// });
 
 		// Initialize shadow shader
 		NB_CORE_INFO("Creating scene: {0}", name);
@@ -102,7 +103,8 @@ namespace Nebula {
 		m_Registry.clear();
 		
 		// Clear script initialization tracking
-		m_LuaScriptInitialized.clear();
+		// TODO: Re-implement for C# scripts
+		// m_LuaScriptInitialized.clear();
 		
 		// Reinitialize physics world to clear all bodies
 		if (m_PhysicsWorld)
@@ -115,7 +117,8 @@ namespace Nebula {
 	void Scene::OnUpdate(float deltaTime)
 	{
 		// Check for script file changes (hot-reloading)
-		LuaScriptEngine::CheckForScriptChanges();
+		// TODO: Re-implement hot-reloading for C# scripts
+		// ScriptEngine::CheckForScriptChanges();
 
 		// Update physics
 		if (m_PhysicsWorld)
@@ -138,36 +141,15 @@ namespace Nebula {
 			}
 		}
 
-		// Update Lua scripts
+		// Update C# scripts
+	{
 		auto view = m_Registry.view<ScriptComponent>();
-		for (auto entityID : view)
+		for (auto entity : view)
 		{
-			Entity entity = { entityID, this };
-			auto& scriptComp = view.get<ScriptComponent>(entityID);
-			
-			// Set script variables as globals before running scripts
-			LuaScriptEngine::SetScriptVariables(scriptComp.Variables);
-			
-			// Process each script in the component
-			for (const auto& scriptPath : scriptComp.ScriptPaths)
-			{
-				if (!scriptPath.empty())
-				{
-					// Check if this is a new script that needs to be initialized
-					auto key = std::make_pair(entityID, scriptPath);
-					if (m_LuaScriptInitialized.find(key) == m_LuaScriptInitialized.end())
-					{
-						// Load and initialize the script
-						LuaScriptEngine::OnCreateEntity(entity, scriptPath);
-						m_LuaScriptInitialized[key] = true;
-					}
-					
-					// Update the script
-					LuaScriptEngine::OnUpdateEntity(entity, deltaTime);
-				}
-			}
+			Entity ent = { entity, this };
+			ScriptEngine::OnUpdateEntity(ent, deltaTime);
 		}
-
+	}
 		// Update audio listener (find active camera with listener component)
 		if (m_AudioEngine)
 		{
@@ -514,16 +496,14 @@ namespace Nebula {
 			auto& scriptComp = view.get<ScriptComponent>(entityID);
 			auto& tag = view.get<TagComponent>(entityID);
 
-			for (const auto& scriptPath : scriptComp.ScriptPaths)
+			if (!scriptComp.ClassName.empty())
 			{
-				if (!scriptPath.empty())
-				{
-					if (!LuaScriptEngine::ValidateScript(scriptPath))
-					{
-						errorMessage = "Script error in entity '" + tag.Tag + "' (" + scriptPath + "): " + LuaScriptEngine::GetLastError();
-						return false;
-					}
-				}
+				// TODO: Re-implement script validation for C# scripts
+				// if (!ScriptEngine::ValidateClass(scriptComp.ClassName))
+				// {
+				// 	errorMessage = "Script error in entity '" + tag.Tag + "' (" + scriptComp.ClassName + ")";
+				// 	return false;
+				// }
 			}
 		}
 		return true;

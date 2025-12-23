@@ -7,7 +7,7 @@
 #include "Nebula/Renderer/Renderer.h"
 #include "Nebula/Asset/AssetManager.h"
 #include "Nebula/Asset/AssetManagerRegistry.h"
-#include "Nebula/Scripting/LuaScriptEngine.h"
+#include "Nebula/Scripting/ScriptEngine.h"
 
 #include <GLFW/glfw3.h>
 
@@ -24,7 +24,6 @@ namespace Nebula {
 	Application* Application::s_Instance = nullptr;
 
 
-
 	Application::Application(bool enableDocking)
 	{
 		NEB_ASSERT(!s_Instance, "Application already exists!");
@@ -33,7 +32,7 @@ namespace Nebula {
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
-		// Initialize perspective camera with initial window aspect ratio
+		// Initialize camera
 		uint32_t width = m_Window->GetWidth();
 		uint32_t height = m_Window->GetHeight();
 		float aspectRatio = (float)width / (float)height;
@@ -41,46 +40,43 @@ namespace Nebula {
 
 		Renderer::Init();
 
-		// Initialize Asset Management System
 		AssetManager::Init();
 		AssetManagerRegistry::RegisterImporters();
 
-		// Initialize Lua Scripting System
-		LuaScriptEngine::Init();
+	ScriptEngine::Init();
 
-		m_ImGuiLayer = new ImGuiLayer(enableDocking);
-		PushOverlay(m_ImGuiLayer);
+	m_ImGuiLayer = new ImGuiLayer(enableDocking);
+	PushOverlay(m_ImGuiLayer);
+}
+
+Application::~Application()
+{
+	ScriptEngine::Shutdown();
+}
+
+void Application::OnEvent(Event& e)
+{
+	EventDispatcher dispatcher(e);
+	dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+	dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
+
+	for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();) {
+		(*--it)->OnEvent(e);
+		if (e.Handled()) break;
 	}
+}
 
-	Application::~Application()
-	{
-		LuaScriptEngine::Shutdown();
-		AssetManager::Shutdown();
-	}
+void Application::PushLayer(Layer* layer)
+{
+	m_LayerStack.PushLayer(layer);
+	layer->OnAttach();
+}
 
-	void Application::OnEvent(Event& e)
-	{
-		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
-		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
-
-		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();) {
-			(*--it)->OnEvent(e);
-			if (e.Handled()) break;
-		}
-	}
-
-	void Application::PushLayer(Layer* layer)
-	{
-		m_LayerStack.PushLayer(layer);
-		layer->OnAttach();
-	}
-
-	void Application::PushOverlay(Layer* overlay)
-	{
-		m_LayerStack.PushOverlay(overlay);
-		overlay->OnAttach();
-	}
+void Application::PushOverlay(Layer* overlay)
+{
+	m_LayerStack.PushOverlay(overlay);
+	overlay->OnAttach();
+}
 	
 	void Application::Run() {
 		while (m_Running) {
@@ -109,7 +105,6 @@ namespace Nebula {
 			if (Input::IsKeyPressed(NB_KEY_F11))
 				m_Window->ToggleFullscreen();
 				
-			// Update input states for next frame
 			Input::Update();
 		}
 	}

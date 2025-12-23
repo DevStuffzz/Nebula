@@ -135,21 +135,15 @@ namespace Nebula {
 			: Name(name), VarType(Type::Bool), BoolValue(value) {}
 	};
 
-	// Script Component - supports multiple scripts
+	// Script Component - C# script support
 	struct NEBULA_API ScriptComponent
 	{
-		std::vector<std::string> ScriptPaths; // Paths to Lua script files
-		std::vector<ScriptVariable> Variables; // Editor-exposed variables
+		std::string ClassName; // Fully qualified C# class name (e.g., "MyScripts.PlayerController")
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
-		ScriptComponent(const std::string& scriptPath)
-		{
-			ScriptPaths.push_back(scriptPath);
-		}
-		
-		void AddScript(const std::string& path) { ScriptPaths.push_back(path); }
-		void RemoveScript(size_t index) { if (index < ScriptPaths.size()) ScriptPaths.erase(ScriptPaths.begin() + index); }
+		ScriptComponent(const std::string& className)
+			: ClassName(className) {}
 	};
 
 	// Box Collider Component

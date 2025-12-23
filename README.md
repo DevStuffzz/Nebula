@@ -52,6 +52,9 @@
 - 🎯 **Cross-platform windowing** via GLFW
 
 ### Core Systems
+- ✅ **C# Scripting System** - Mono-based scripting with hot reload
+- ✅ **Script Engine** - Entity lifecycle management (OnCreate/OnUpdate/OnDestroy)
+- ✅ **Script Glue** - C++ to C# interop layer for engine APIs
 - ✅ **Window Management** - Cross-platform window creation and event handling
 - ✅ **Event System** - Flexible event-driven architecture
 - ✅ **Logging System** - Multi-level logging with spdlog integration
@@ -99,6 +102,16 @@
 
 ## 🛠️ Building the Engine
 
+### Prerequisites
+
+#### Mono Runtime (Required for C# Scripting)
+Install Mono 6.12.0 from [https://www.mono-project.com/download/stable/](https://www.mono-project.com/download/stable/)
+
+After installation, run the setup script to copy Mono files:
+```powershell
+.\setup-mono.ps1
+```
+
 ### Windows
 ```bash
 # Generate Visual Studio projects
@@ -108,6 +121,7 @@ Win-GenerateProjects.bat
 ```
 
 ### macOS
+(Not Tested on MacOS)
 ```bash
 # Generate Makefiles
 ./Mac-GenerateProjects.sh

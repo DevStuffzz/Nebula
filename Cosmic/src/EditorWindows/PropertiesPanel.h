@@ -6,7 +6,7 @@
 #include "Nebula/Renderer/Material.h"
 #include "Nebula/Renderer/Texture.h"
 #include "Nebula/Renderer/Skybox.h"
-#include "Nebula/Scripting/LuaScriptEngine.h"
+// #include "Nebula/Scripting/LuaScriptEngine.h"  // TODO: Re-enable when C# scripting is fixed
 #include "Platform/OpenGL/OpenGLTexture.h"
 #include <glm/glm.hpp>
 #include <memory>
@@ -376,86 +376,12 @@ namespace Cosmic {
 					return;
 				}
 				
-				// Display all scripts
-				for (size_t i = 0; i < script.ScriptPaths.size(); i++)
+				// Display C# class name
+				char buffer[256];
+				strcpy_s(buffer, sizeof(buffer), script.ClassName.c_str());
+				if (Nebula::NebulaGui::InputText("Class Name", buffer, sizeof(buffer)))
 				{
-					Nebula::NebulaGui::PushID((int)i);
-					Nebula::NebulaGui::Text("%d: %s", (int)i + 1, script.ScriptPaths[i].c_str());
-					Nebula::NebulaGui::SameLine();
-					if (Nebula::NebulaGui::Button("X"))
-					{
-						script.RemoveScript(i);
-						Nebula::NebulaGui::PopID();
-						break;
-					}
-					Nebula::NebulaGui::PopID();
-				}
-				
-				// Add new script
-				std::string displayText = "[Drop Script Here]";
-				Nebula::NebulaGui::Button(displayText.c_str(), glm::vec2(250, 30));
-				
-				if (Nebula::NebulaGui::BeginDragDropTarget())
-				{
-					const char* payload = (const char*)Nebula::NebulaGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-					if (payload)
-					{
-						std::string path = payload;
-						if (path.size() >= 4 && path.substr(path.size() - 4) == ".lua")
-						{
-							script.AddScript(path);
-							
-							// Parse and add variables from the script
-							auto newVars = Nebula::LuaScriptEngine::ParseScriptVariables(path);
-							for (const auto& newVar : newVars)
-							{
-								// Check if variable already exists
-								bool exists = false;
-								for (const auto& existingVar : script.Variables)
-								{
-									if (existingVar.Name == newVar.Name)
-									{
-										exists = true;
-										break;
-									}
-								}
-								// Add if it doesn't exist
-								if (!exists)
-								{
-									script.Variables.push_back(newVar);
-								}
-							}
-						}
-					}
-					Nebula::NebulaGui::EndDragDropTarget();
-				}
-				
-				// Display and edit script variables
-				if (!script.Variables.empty())
-				{
-					Nebula::NebulaGui::Separator();
-					Nebula::NebulaGui::Text("Variables:");
-					
-					for (auto& var : script.Variables)
-					{
-						switch (var.VarType)
-						{
-						case Nebula::ScriptVariable::Type::Float:
-							Nebula::NebulaGui::DragFloat(var.Name.c_str(), &var.FloatValue, 0.1f);
-							break;
-						case Nebula::ScriptVariable::Type::Int:
-							Nebula::NebulaGui::DragFloat(var.Name.c_str(), (float*)&var.IntValue, 1.0f);
-							break;
-						case Nebula::ScriptVariable::Type::Bool:
-							Nebula::NebulaGui::Checkbox(var.Name.c_str(), &var.BoolValue);
-							break;
-						case Nebula::ScriptVariable::Type::Vec3:
-							Nebula::NebulaGui::DragFloat3(var.Name.c_str(), &var.Vec3Value.x, 0.1f);
-							break;
-						default:
-							break;
-						}
-					}
+					script.ClassName = std::string(buffer);
 				}
 			}
 		}

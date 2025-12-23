@@ -23,11 +23,11 @@ IncludeDir["glm"] = "Nebula/vendor/glm"
 IncludeDir["stb_image"] = "Nebula/vendor/stb_image"
 IncludeDir["entt"] = "Nebula/vendor/entt/src"
 IncludeDir["json"] = "Nebula/vendor/json"
-IncludeDir["Lua"] = "Nebula/vendor/lua"
 IncludeDir["spdlog"] = "Nebula/vendor/spdlog"
 IncludeDir["bullet3"] = "Nebula/vendor/bullet3/src"
 IncludeDir["OpenAL"] = "Nebula/vendor/openal-soft/include"
 IncludeDir["dr_libs"] = "Nebula/vendor"
+IncludeDir["mono"] = "Nebula/vendor/mono-build/include/mono-2.0"
 
 
 group "Dependencies"
@@ -35,10 +35,13 @@ include "Nebula/vendor/GLFW"
 include "Nebula/vendor/imgui"
 include "Nebula/vendor/ImGuizmo"
 include "Nebula/vendor/glad"
-include "Nebula/vendor/lua"
 group "Dependencies/Bullet"
 include "Nebula/vendor/bullet3"
 group ""
+
+-- C# Script Projects
+include "NebulaScriptCore/premake5.lua"
+include "Scripts/premake5.lua"
 
 project "Nebula"
     location "Nebula"
@@ -76,10 +79,10 @@ project "Nebula"
         "%{IncludeDir.stb_image}",
         "%{IncludeDir.entt}",
         "%{IncludeDir.json}",
-        "%{IncludeDir.Lua}",
         "%{IncludeDir.bullet3}",
         "%{IncludeDir.OpenAL}",
         "%{IncludeDir.dr_libs}",
+        "%{IncludeDir.mono}",
     }
 
     links
@@ -88,7 +91,6 @@ project "Nebula"
         "ImGui",
         "ImGuizmo",
         "glad",
-        "Lua",
         "Bullet3",
     }
 
@@ -129,12 +131,14 @@ project "Nebula"
 
         libdirs
         {
-            "Nebula/vendor/openal-soft/build/%{cfg.buildcfg}"
+            "Nebula/vendor/openal-soft/build/%{cfg.buildcfg}",
+            "Nebula/vendor/mono-build/lib"
         }
 
         links
         {
-            "OpenAL32.lib"
+            "OpenAL32.lib",
+            "mono-2.0-sgen.lib"
         }
 
         postbuildcommands
@@ -145,6 +149,10 @@ project "Nebula"
             "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Nebula/\"",
             "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Runtime/\"",
             "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Cosmic/\"",
+            "{COPYFILE} ../Nebula/vendor/mono-build/mono-2.0-sgen.dll \"../bin/" .. outputdir .. "/Runtime/\"",
+            "{COPYFILE} ../Nebula/vendor/mono-build/mono-2.0-sgen.dll \"../bin/" .. outputdir .. "/Cosmic/\"",
+            "{COPYDIR} ../Nebula/vendor/mono-build/lib/4.5 ../bin/" .. outputdir .. "/Runtime/lib/mono/4.5",
+            "{COPYDIR} ../Nebula/vendor/mono-build/lib/4.5 ../bin/" .. outputdir .. "/Cosmic/lib/mono/4.5",
         }
 
         linkoptions { "/ignore:4099" } -- NOTE(Peter): Disable no PDB found warning
@@ -215,14 +223,12 @@ project "Runtime"
         "%{prj.name}/src",
         "Nebula/vendor/glm",
         "%{IncludeDir.entt}",
-        "%{IncludeDir.Lua}",
         "%{IncludeDir.spdlog}",
     }
     
     links
     {
         "Nebula",
-        "Lua",
     }
 
     filter "system:windows"
@@ -288,7 +294,6 @@ project "Cosmic"
         "Nebula/vendor/glm",
         "%{IncludeDir.entt}",
         "%{IncludeDir.ImGui}",
-        "%{IncludeDir.Lua}",
         "%{IncludeDir.spdlog}",
     }
     

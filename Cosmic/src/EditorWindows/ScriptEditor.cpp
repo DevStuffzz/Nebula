@@ -3,7 +3,7 @@
 
 #include "Nebula/ImGui/NebulaGui.h"
 #include <Nebula/Log.h>
-#include <Nebula/Scripting/LuaScriptEngine.h>
+// #include <Nebula/Scripting/LuaScriptEngine.h>  // TODO: Re-enable when C# scripting is fixed
 #include <Nebula/Input.h>
 #include <Nebula/Keycodes.h>
 #include <imgui.h>
@@ -210,16 +210,8 @@ namespace Cosmic {
 		if (s_Tabs[s_ActiveTab].IsDirty)
 			SaveScript(s_ActiveTab);
 
-		// Reload the Lua script
-		if (LuaScriptEngine::ReloadScript(s_Tabs[s_ActiveTab].Path))
-		{
-			NB_CORE_INFO("Script reloaded: {0}", s_Tabs[s_ActiveTab].Path);
-		}
-		else
-		{
-			NB_CORE_ERROR("Failed to reload script: {0}", s_Tabs[s_ActiveTab].Path);
-			NB_CORE_ERROR("Error: {0}", LuaScriptEngine::GetLastError());
-		}
+		// C# scripts are compiled by the build system, not reloaded at runtime
+		NB_CORE_INFO("Script saved: {0}. Rebuild C# assemblies to apply changes.", s_Tabs[s_ActiveTab].Path);
 	}
 
 }

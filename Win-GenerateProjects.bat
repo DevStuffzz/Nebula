@@ -40,9 +40,40 @@ if not exist "%PREMAKE_PATH%" (
 echo premake5.exe downloaded successfully!
 
 :generate
+
+REM ============================================
+REM Check for Mono binaries
+REM ============================================
+set MONO_BUILD_DIR=Nebula\vendor\mono-build
+set MONO_DLL=%MONO_BUILD_DIR%\mono-2.0-sgen.dll
+set MONO_LIB=%MONO_BUILD_DIR%\lib\mono-2.0-sgen.lib
+set MONO_INCLUDE=%MONO_BUILD_DIR%\include\mono-2.0\mono\jit\jit.h
+set MONO_URL=https://download.mono-project.com/archive/6.12.0/windows-installer/mono-6.12.0.206-x64-0.msi
+
+if exist "%MONO_DLL%" if exist "%MONO_LIB%" if exist "%MONO_INCLUDE%" (
+    echo Found Mono binaries in vendor directory
+    goto :generate_projects
+)
+
+echo Mono binaries not found in vendor directory
+echo.
+echo Please install Mono to enable C# scripting:
+echo 1. Download from: https://www.mono-project.com/download/stable/
+echo 2. Install to default location (C:\Program Files\Mono)
+echo 3. Run: setup-mono.ps1 to copy files
+echo.
+echo Or continue without Mono (C# scripting disabled)
+echo.
+timeout /t 3
+goto :generate_projects
+
+:generate_projects
 REM Generate Visual Studio 2022 projects
 call "%PREMAKE_PATH%" vs2022
 
+echo.
+echo ============================================
 echo Visual Studio projects generated successfully!
 echo Open Nebula.sln to start building the project.
+echo ============================================
 pause
