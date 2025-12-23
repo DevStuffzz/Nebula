@@ -10,6 +10,7 @@
 #include "EditorWindows/SceneListWindow.h"
 #include "EditorWindows/ConsoleWindow.h"
 #include "EditorWindows/DebugWindow.h"
+#include "EditorWindows/ProjectBrowser.h"
 #include <glm/glm.hpp>
 
 namespace Cosmic {
@@ -17,7 +18,7 @@ namespace Cosmic {
 	class EditorLayer : public Nebula::Layer
 	{
 	public:
-		EditorLayer();
+		EditorLayer(const std::string& projectPath = "");
 		virtual ~EditorLayer() = default;
 
 		virtual void OnAttach() override;
@@ -32,12 +33,21 @@ namespace Cosmic {
 		void LoadScene();
 		void LoadSceneFromPath(const std::string& filepath);
 		void ToggleRuntime();
+		
+		void OpenProject(const std::filesystem::path& projectPath);
+		void CreateNewProject(const std::string& name, const std::filesystem::path& path);
+		void CheckAndShowProjectBrowser();
 
 	private:
 		Nebula::Framebuffer* m_Framebuffer;
 		Nebula::Framebuffer* m_GameViewFramebuffer;
 		std::shared_ptr<Nebula::Scene> m_ActiveScene;
 		std::string m_CurrentScenePath; // Track current scene file path
+		bool m_ShowProjectBrowser = false;
+		bool m_ProjectLoaded = false;
+		
+		// Project Browser
+		ProjectBrowser m_ProjectBrowser;
 		glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
 		glm::vec2 m_GameViewSize = { 0.0f, 0.0f };
 		bool m_RuntimeMode = false;

@@ -76,8 +76,8 @@ namespace Cosmic {
         {
             auto entity = s_Context->CreateEntity(name);
             auto& meshRenderer = entity.AddComponent<Nebula::MeshRendererComponent>();
-            meshRenderer.Mesh = Nebula::Mesh::LoadOBJ("assets/models/" + objFile);
-            Nebula::Shader* rawShader = Nebula::Shader::Create("assets/shaders/Basic.glsl");
+            meshRenderer.Mesh = Nebula::Mesh::LoadOBJ("Library/models/" + objFile);
+            Nebula::Shader* rawShader = Nebula::Shader::Create("Library/shaders/Basic.glsl");
             std::shared_ptr<Nebula::Shader> shader(rawShader);
             auto material = std::make_shared<Nebula::Material>(shader);
             material->SetFloat4("u_Color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));

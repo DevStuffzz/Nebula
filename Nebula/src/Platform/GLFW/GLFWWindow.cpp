@@ -68,7 +68,7 @@ namespace Nebula {
 		// Note: Title bar icons are limited to 16x16 by Windows, but taskbar/Alt+Tab use larger sizes
 		stbi_set_flip_vertically_on_load(0); // Don't flip icon
 		int iconWidth, iconHeight, iconChannels;
-		unsigned char* iconPixels = stbi_load("assets/logo.png", &iconWidth, &iconHeight, &iconChannels, 4);
+		unsigned char* iconPixels = stbi_load("Library/logo.png", &iconWidth, &iconHeight, &iconChannels, 4);
 		if (iconPixels)
 		{
 			GLFWimage icon;
@@ -81,7 +81,7 @@ namespace Nebula {
 		}
 		else
 		{
-			NB_CORE_WARN("Failed to load window icon from assets/logo.png");
+			NB_CORE_WARN("Failed to load window icon from Library/logo.png");
 		}
 		
 		m_Context = new OpenGLContext(m_Window);

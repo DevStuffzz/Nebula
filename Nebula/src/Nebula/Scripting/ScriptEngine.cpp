@@ -7,6 +7,10 @@
 #include "Nebula/Scene/Components.h"
 #include "Nebula/Log.h"
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/object.h>
@@ -110,14 +114,9 @@ static void PrintAssemblyTypes(MonoAssembly* assembly)
 		InitMono();
 		ScriptGlue::RegisterFunctions();
 
-		LoadAssembly("bin/Debug-windows-x86_64/NebulaScriptCore/NebulaScriptCore.dll");
-		LoadAppAssembly("bin/Debug-windows-x86_64/Scripts/Scripts.dll");
-
-		LoadAssemblyClasses();
-
-		// Retrieve and instantiate EntityClass
-	s_Data->EntityClass = s_Data->EntityClasses["NebulaScriptCore.ScriptEntity"];
-}
+		// Don't load assemblies here - they will be loaded when a project is opened
+		// NebulaScriptCore and project scripts are loaded in LoadProjectAssembly()
+	}
 
 void ScriptEngine::Shutdown()
 {
@@ -202,8 +201,17 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 
 	void ScriptEngine::InitMono()
 	{
-		// Set Mono assembly and config directories
-		mono_set_dirs("lib", "etc");
+		// Get the directory where the executable is located
+		char exePath[MAX_PATH];
+#ifdef _WIN32
+		GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+#endif
+		std::filesystem::path exeDir = std::filesystem::path(exePath).parent_path();
+		std::filesystem::path monoLibPath = exeDir / "lib";
+		std::filesystem::path monoEtcPath = exeDir / "etc";
+
+		// Set Mono assembly and config directories using absolute paths
+		mono_set_dirs(monoLibPath.string().c_str(), monoEtcPath.string().c_str());
 
 		MonoDomain* rootDomain = mono_jit_init("NebulaJITRuntime");
 	if (!rootDomain)
@@ -264,7 +272,59 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 	void ScriptEngine::LoadAppAssembly(const std::filesystem::path& filepath)
 	{
 		s_Data->AppAssembly = LoadMonoAssembly(filepath);
-		s_Data->AppAssemblyImage = mono_assembly_get_image(s_Data->AppAssembly);
+		if (s_Data->AppAssembly)
+		{
+			s_Data->AppAssemblyImage = mono_assembly_get_image(s_Data->AppAssembly);
+			LoadAssemblyClasses();
+		}
+	}
+
+	void ScriptEngine::LoadProjectAssembly(const std::filesystem::path& assemblyPath)
+	{
+		if (!std::filesystem::exists(assemblyPath))
+		{
+			NB_CORE_ERROR("Project assembly not found: {0}", assemblyPath.string());
+			return;
+		}
+
+		// Unload previous app domain if exists
+		if (s_Data->AppDomain)
+		{
+			s_Data->EntityInstances.clear();
+			mono_domain_set(s_Data->RootDomain, false);
+			mono_domain_unload(s_Data->AppDomain);
+			s_Data->AppDomain = nullptr;
+		}
+
+		// Create new app domain
+		s_Data->AppDomain = mono_domain_create_appdomain((char*)"NebulaScriptRuntime", nullptr);
+		mono_domain_set(s_Data->AppDomain, true);
+
+		// Reload core assembly in new domain (relative to exe location)
+		std::filesystem::path corePath = "../NebulaScriptCore/NebulaScriptCore.dll";
+		s_Data->CoreAssembly = LoadMonoAssembly(corePath);
+		if (!s_Data->CoreAssembly)
+		{
+			NB_CORE_ERROR("Failed to load NebulaScriptCore assembly!");
+			return;
+		}
+		s_Data->CoreAssemblyImage = mono_assembly_get_image(s_Data->CoreAssembly);
+
+		// Initialize EntityClass from NebulaScriptCore
+		s_Data->EntityClass = CreateRef<ScriptClass>("NebulaScriptCore", "ScriptEntity");
+
+		// Register components now that CoreAssembly is loaded
+		ScriptGlue::RegisterComponents();
+
+		// Load project assembly
+		LoadAppAssembly(assemblyPath);
+		
+		NB_CORE_INFO("Loaded project assembly: {0}", assemblyPath.string());
+	}
+
+	void ScriptEngine::ReloadAssembly()
+	{
+		// TODO: Implement hot reload
 	}
 
 	void ScriptEngine::LoadAssemblyClasses()

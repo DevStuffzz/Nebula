@@ -48,7 +48,7 @@ private:
 	};
 
 	// To be defined in Client
-	Application* CreateApplication();
+	Application* CreateApplication(int argc, char** argv);
 
 
 }

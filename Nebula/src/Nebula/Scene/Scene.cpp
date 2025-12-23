@@ -47,7 +47,7 @@ namespace Nebula {
 		NB_CORE_INFO("Creating scene: {0}", name);
 		try
 		{
-			Shader* rawShader = Shader::Create("assets/shaders/Shadow.glsl");
+			Shader* rawShader = Shader::Create("Library/shaders/Shadow.glsl");
 			if (rawShader)
 			{
 				m_ShadowShader = std::shared_ptr<Shader>(rawShader);

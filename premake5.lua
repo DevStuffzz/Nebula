@@ -145,7 +145,6 @@ project "Nebula"
         {
             "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Runtime/\"",
             "{COPYFILE} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Cosmic/\"",
-            "{COPYDIR} ../assets ../bin/" .. outputdir .. "/Nebula/assets",
             "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Nebula/\"",
             "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Runtime/\"",
             "{COPYFILE} ../Nebula/vendor/openal-soft/build/%{cfg.buildcfg}/OpenAL32.dll \"../bin/" .. outputdir .. "/Cosmic/\"",
@@ -244,11 +243,6 @@ project "Runtime"
 
         debugdir ("bin/" .. outputdir .. "/Runtime")
 
-        postbuildcommands
-        {
-            "{COPYDIR} ../bin/" .. outputdir .. "/Cosmic/assets ../bin/" .. outputdir .. "/Runtime/assets"
-        }
-
 
 
     filter "system:macosx"
@@ -261,6 +255,79 @@ project "Runtime"
             "GL_SILENCE_DEPRECATION"
         }
     
+    filter "configurations:Debug"
+        defines "NB_DEBUG"
+        symbols "On"
+
+    filter "configurations:Release"
+        defines "NB_RELEASE"
+        optimize "On"
+
+    filter "configurations:Dist"
+        defines "NB_DIST"
+        optimize "On"
+
+project "CosmicLauncher"
+    location "CosmicLauncher"
+    kind "ConsoleApp"
+    language "C++"
+    
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+    
+    files
+    {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.cpp"
+    }
+    
+    includedirs
+    {
+        "Nebula/vendor/spdlog",
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.ImGui}",
+        "Nebula/vendor/imgui/backends",
+        "%{IncludeDir.glad}",
+        "%{IncludeDir.json}",
+    }
+    
+    links
+    {
+        "ImGui",
+        "GLFW",
+        "glad",
+        "opengl32.lib"
+    }
+
+    dependson { "Cosmic" }
+
+    filter "system:windows"
+        cppdialect "C++17"
+        staticruntime "Off"
+        systemversion "latest"
+        buildoptions { "/utf-8", "/FS" }
+
+        defines
+        {
+            "NB_PLATFORM_WINDOWS",
+            "NOMINMAX"
+        }
+
+        debugdir ("bin/" .. outputdir .. "/CosmicLauncher")
+
+        postbuildcommands
+        {
+            "IF NOT EXIST \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\" mkdir \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\"",
+            "IF NOT EXIST \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\lib\" mkdir \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\lib\"",
+            "copy /Y \"..\\bin\\" .. outputdir .. "\\Cosmic\\Cosmic.exe\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\Cosmic.exe\"",
+            "copy /Y \"..\\bin\\" .. outputdir .. "\\Nebula\\Nebula.dll\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\Nebula.dll\"",
+            "copy /Y \"..\\bin\\" .. outputdir .. "\\Nebula\\Nebula.pdb\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\Nebula.pdb\"",
+            "copy /Y \"..\\bin\\" .. outputdir .. "\\Cosmic\\OpenAL32.dll\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\OpenAL32.dll\"",
+            "copy /Y \"..\\bin\\" .. outputdir .. "\\Cosmic\\mono-2.0-sgen.dll\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\mono-2.0-sgen.dll\"",
+            "xcopy /Q /E /Y /I \"..\\bin\\" .. outputdir .. "\\Cosmic\\lib\\mono\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\lib\\mono\"",
+            "xcopy /Q /E /Y /I \"..\\DefaultAssets\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Library\"",
+        }
+
     filter "configurations:Debug"
         defines "NB_DEBUG"
         symbols "On"

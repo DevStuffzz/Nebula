@@ -198,6 +198,12 @@ namespace Nebula {
 		NB_ADD_INTERNAL_CALL(TransformComponent_GetScale);
 		NB_ADD_INTERNAL_CALL(TransformComponent_SetScale);
 
+		// Component registration moved to RegisterComponents()
+		// Must be called after CoreAssembly is loaded
+	}
+
+	void ScriptGlue::RegisterComponents()
+	{
 		RegisterComponent<TransformComponent, MeshRendererComponent>();
 	}
 

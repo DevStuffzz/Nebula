@@ -322,7 +322,7 @@ namespace Nebula {
 				{
 					std::string meshFile = meshRendererJson["MeshFile"];
 					if (!meshFile.empty())
-						meshRenderer.Mesh = Mesh::LoadOBJ("assets/models/" + meshFile);
+						meshRenderer.Mesh = Mesh::LoadOBJ("Library/models/" + meshFile);
 				}
 			}
 			
@@ -331,7 +331,7 @@ namespace Nebula {
 			if (hasMaterial && meshRendererJson.contains("Material"))
 			{
 				// Create a basic shader (this should come from asset system in the future)
-				Shader* shader = Shader::Create("assets/shaders/Basic.glsl");
+				Shader* shader = Shader::Create("Library/shaders/Basic.glsl");
 				auto material = std::make_shared<Material>(std::shared_ptr<Shader>(shader));
 				
 				const auto& matJson = meshRendererJson["Material"];

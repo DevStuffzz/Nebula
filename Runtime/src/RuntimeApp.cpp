@@ -139,6 +139,6 @@ public:
 
 
 
-Nebula::Application* Nebula::CreateApplication() {
+Nebula::Application* Nebula::CreateApplication(int argc, char** argv) {
 	return new Runtime();
 }

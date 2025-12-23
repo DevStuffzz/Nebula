@@ -52,6 +52,9 @@
 // Scripting System
 #include "Nebula/Scripting/ScriptEngine.h"
 
+// Project System
+#include "Nebula/Project/Project.h"
+
 // Audio System
 #include "Nebula/Audio/AudioEngine.h"
 #include "Nebula/Audio/AudioClip.h"

@@ -77,5 +77,4 @@ namespace Nebula {
 		std::unique_ptr<PhysicsDebugDraw> m_DebugDrawer;
 		bool m_DebugDrawEnabled = false;
 	};
-
 }

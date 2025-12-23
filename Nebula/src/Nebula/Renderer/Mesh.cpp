@@ -116,17 +116,17 @@ namespace Nebula {
 
 	std::shared_ptr<Mesh> Mesh::CreateCube()
 	{
-		return LoadOBJ("assets/models/Cube.obj");
+		return LoadOBJ("Library/models/Cube.obj");
 	}
 
 	std::shared_ptr<Mesh> Mesh::CreateQuad()
 	{
-		return LoadOBJ("assets/models/Quad.obj");
+		return LoadOBJ("Library/models/Quad.obj");
 	}
 
 	std::shared_ptr<Mesh> Mesh::CreateSphere()
 	{
-		return LoadOBJ("assets/models/Sphere.obj");
+		return LoadOBJ("Library/models/Sphere.obj");
 	}
 
 	// Mesh Registry Methods

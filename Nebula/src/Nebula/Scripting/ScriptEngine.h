@@ -134,6 +134,9 @@ namespace Nebula {
 		static void Init();
 		static void Shutdown();
 
+		static void LoadProjectAssembly(const std::filesystem::path& assemblyPath);
+		static void ReloadAssembly();
+
 		static void OnRuntimeStart(Scene* scene);
 		static void OnRuntimeStop();
 

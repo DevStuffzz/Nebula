@@ -5,6 +5,9 @@
 #include "Nebula/ImGui/NebulaGuizmo.h"
 #include "Nebula/ImGui/NebulaGui.h"
 #include "Nebula/Application.h"
+#include "Nebula/Project/Project.h"
+#include "Nebula/Scripting/ScriptEngine.h"
+#include "Nebula/Scripting/ScriptBuilder.h"
 #include <Nebula/Scene/Components.h>
 #include <Nebula/Scene/SceneSerializer.h>
 #include <Nebula/Scene/SceneManager.h>
@@ -37,17 +40,32 @@
 
 namespace Cosmic {
 
-	EditorLayer::EditorLayer()
+	EditorLayer::EditorLayer(const std::string& projectPath)
 		: Nebula::Layer("EditorLayer"), m_ActiveScene(nullptr), m_ViewportSize(1920.0f, 1080.0f)
 	{
+		// If project path provided from launcher, open it immediately
+		if (!projectPath.empty())
+		{
+			NB_CORE_INFO("Opening project from launcher: {0}", projectPath);
+			OpenProject(projectPath);
+			m_ProjectLoaded = true;
+		}
 	}
 
 	void EditorLayer::OnAttach()
 	{
 		NB_CORE_INFO("EditorLayer attached");
 
-		// Load the scene list at startup
-		Nebula::SceneManager::Get().LoadSceneList();
+		// If project not loaded from launcher, show project browser
+		if (!m_ProjectLoaded)
+		{
+			CheckAndShowProjectBrowser();
+		}
+		else
+		{
+			// Project already loaded from launcher, load scene list
+			Nebula::SceneManager::Get().LoadSceneList();
+		}
 
 		// Create framebuffer with initial fixed size (can be resized later)
 		Nebula::FramebufferSpecification fbSpec;
@@ -465,6 +483,23 @@ namespace Cosmic {
 
 		// Scene List Window
 		m_SceneListWindow.OnImGuiRender();
+
+		// Show project browser if needed
+		if (m_ShowProjectBrowser)
+		{
+			if (m_ProjectBrowser.Show(&m_ShowProjectBrowser))
+			{
+				// Project was selected
+				if (m_ProjectBrowser.ShouldCreateNewProject())
+				{
+					CreateNewProject(m_ProjectBrowser.GetNewProjectName(), m_ProjectBrowser.GetNewProjectPath());
+				}
+				else
+				{
+					OpenProject(m_ProjectBrowser.GetSelectedProjectPath());
+				}
+			}
+		}
 	}
 
 	void EditorLayer::OnEvent(Nebula::Event& e)
@@ -652,5 +687,118 @@ namespace Cosmic {
 			}
 		}
 	}
+
+	void EditorLayer::CheckAndShowProjectBrowser()
+	{
+		// Check if a project is already loaded
+		if (!Nebula::Project::GetActive())
+		{
+			m_ShowProjectBrowser = true;
+			m_ProjectLoaded = false;
+		}
+		else
+		{
+			m_ProjectLoaded = true;
+		}
+	}
+
+	void EditorLayer::OpenProject(const std::filesystem::path& projectPath)
+	{
+		NB_CORE_INFO("Opening project: {0}", projectPath.string());
+
+		// Load the project
+		Nebula::Project* project = Nebula::Project::Load(projectPath);
+		if (!project)
+		{
+			NB_CORE_ERROR("Failed to load project!");
+			return;
+		}
+
+		// Build the project scripts
+		NB_CORE_INFO("Building project scripts...");
+		if (!Nebula::ScriptBuilder::BuildProjectScripts(projectPath))
+		{
+			NB_CORE_WARN("Failed to build project scripts. Creating new project file...");
+			Nebula::ScriptBuilder::GenerateProjectFile(projectPath);
+		}
+
+		// Load the script assembly
+		std::filesystem::path scriptAssembly = projectPath / "Scripts" / "bin" / "Debug" / "Scripts.dll";
+		if (std::filesystem::exists(scriptAssembly))
+		{
+			Nebula::ScriptEngine::LoadProjectAssembly(scriptAssembly);
+		}
+		else
+		{
+			NB_CORE_WARN("Script assembly not found at: {0}", scriptAssembly.string());
+		}
+
+		// Set the content browser to the project's assets folder
+		ContentBrowser::SetContentPath(Nebula::Project::GetAssetDirectory().string());
+
+		// Load the start scene if specified
+		if (!project->GetConfig().StartScene.empty())
+		{
+			std::filesystem::path scenePath = Nebula::Project::GetAssetFileSystemPath(project->GetConfig().StartScene);
+			if (std::filesystem::exists(scenePath))
+			{
+				LoadSceneFromPath(scenePath.string());
+			}
+		}
+
+		m_ProjectLoaded = true;
+		NB_CORE_INFO("Project loaded successfully!");
+	}
+
+	void EditorLayer::CreateNewProject(const std::string& name, const std::filesystem::path& path)
+	{
+		NB_CORE_INFO("Creating new project: {0} at {1}", name, path.string());
+
+		// Create the project
+		Nebula::Project* project = Nebula::Project::New(path, name);
+		if (!project)
+		{
+			NB_CORE_ERROR("Failed to create project!");
+			return;
+		}
+
+		// Generate the script project file
+		Nebula::ScriptBuilder::GenerateProjectFile(path);
+
+		// Create a default script file
+		std::filesystem::path scriptPath = path / "Scripts" / "ExampleScript.cs";
+		std::ofstream scriptFile(scriptPath);
+		if (scriptFile.is_open())
+		{
+			scriptFile << R"(using NebulaScriptCore;
+
+public class ExampleScript : ScriptBehavior
+{
+    public override void OnCreate()
+    {
+        Console.Log("ExampleScript Created!");
+    }
+
+    public override void OnUpdate(float deltaTime)
+    {
+        // Update logic here
+    }
+}
+)";
+			scriptFile.close();
+		}
+
+		// Set the content browser to the project's assets folder
+		ContentBrowser::SetContentPath(Nebula::Project::GetAssetDirectory().string());
+
+		// Create a default scene
+		NewScene();
+		m_CurrentScenePath = (Nebula::Project::GetAssetDirectory() / "Scenes" / "NewScene.nebscene").string();
+		SaveScene();
+
+		m_ProjectLoaded = true;
+		NB_CORE_INFO("Project created successfully!");
+	}
+
 }
 

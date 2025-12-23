@@ -22,12 +22,12 @@ namespace Cosmic {
 		static void Initialize()
 		{
 			// Load editor icons
-			s_DirectoryIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("assets/editor/icons/directory.png"));
-			s_AudioIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("assets/editor/icons/audio.png"));
-			s_MaterialIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("assets/editor/icons/material.png"));
-			s_SceneIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("assets/editor/icons/scene.png"));
-			s_ScriptIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("assets/editor/icons/script.png"));
-			s_ShaderIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("assets/editor/icons/shader.png"));
+			s_DirectoryIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/directory.png"));
+			s_AudioIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/audio.png"));
+			s_MaterialIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/material.png"));
+			s_SceneIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/scene.png"));
+			s_ScriptIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/script.png"));
+			s_ShaderIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/shader.png"));
 		}
 
 		static void SetContentPath(const std::filesystem::path& path)
