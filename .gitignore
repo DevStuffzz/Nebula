@@ -27,6 +27,8 @@ Makefile
 .vscode/
 .idea/
 
+crash-log.txt
+
 # Mono build files
 # We want the directory structure but not the files themselves
 Nebula/vendor/mono-build/*

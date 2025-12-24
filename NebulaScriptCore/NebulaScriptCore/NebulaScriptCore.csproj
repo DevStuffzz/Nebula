@@ -51,11 +51,20 @@
     <Compile Include="..\Source\Console.cs">
       <Link>Source\Console.cs</Link>
     </Compile>
+    <Compile Include="..\Source\Coroutine.cs">
+      <Link>Source\Coroutine.cs</Link>
+    </Compile>
     <Compile Include="..\Source\Input.cs">
       <Link>Source\Input.cs</Link>
     </Compile>
     <Compile Include="..\Source\KeyCodes.cs">
       <Link>Source\KeyCodes.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\Log.cs">
+      <Link>Source\Log.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\MathUtil.cs">
+      <Link>Source\MathUtil.cs</Link>
     </Compile>
     <Compile Include="..\Source\ScriptBehavior.cs">
       <Link>Source\ScriptBehavior.cs</Link>
@@ -63,8 +72,17 @@
     <Compile Include="..\Source\ScriptEntity.cs">
       <Link>Source\ScriptEntity.cs</Link>
     </Compile>
+    <Compile Include="..\Source\Vector2.cs">
+      <Link>Source\Vector2.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\Vector2i.cs">
+      <Link>Source\Vector2i.cs</Link>
+    </Compile>
     <Compile Include="..\Source\Vector3.cs">
       <Link>Source\Vector3.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\Vector3i.cs">
+      <Link>Source\Vector3i.cs</Link>
     </Compile>
   </ItemGroup>
 </Project>
