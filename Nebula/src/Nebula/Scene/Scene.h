@@ -33,7 +33,8 @@ namespace Nebula {
 
 		Entity CreateEntity(const std::string& name = "Entity");
 		void DestroyEntity(Entity entity);
-
+	void OnRuntimeStart();
+	void OnRuntimeStop();
 		void OnUpdate(float deltaTime);
 		void OnRender();
 

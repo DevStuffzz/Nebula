@@ -2,12 +2,73 @@ using System.Runtime.CompilerServices;
 
 namespace Nebula
 {
+    public class Transform
+    {
+        private uint entityID;
+
+        internal Transform(uint id)
+        {
+            entityID = id;
+        }
+
+        public Vector3 position
+        {
+            get
+            {
+                InternalCalls.Entity_GetPosition(entityID, out Vector3 pos);
+                return pos;
+            }
+            set
+            {
+                InternalCalls.Entity_SetPosition(entityID, ref value);
+            }
+        }
+
+        public Vector3 rotation
+        {
+            get
+            {
+                InternalCalls.Entity_GetRotation(entityID, out Vector3 rot);
+                return rot;
+            }
+            set
+            {
+                InternalCalls.Entity_SetRotation(entityID, ref value);
+            }
+        }
+
+        public Vector3 scale
+        {
+            get
+            {
+                InternalCalls.Entity_GetScale(entityID, out Vector3 scl);
+                return scl;
+            }
+            set
+            {
+                InternalCalls.Entity_SetScale(entityID, ref value);
+            }
+        }
+    }
+
     public class ScriptEntity
     {
         public uint ID { get; internal set; }
 
+        private Transform _transform;
+        public Transform transform
+        {
+            get
+            {
+                if (_transform == null)
+                    _transform = new Transform(ID);
+                return _transform;
+            }
+        }
+
         protected ScriptEntity() { }
 
+        // Legacy methods for backward compatibility
         public Vector3 GetPosition()
         {
             InternalCalls.Entity_GetPosition(ID, out Vector3 position);

@@ -20,8 +20,6 @@ namespace Nebula {
 
 	static std::unordered_map<MonoType*, std::function<bool(Entity)>> s_EntityHasComponentFuncs;
 
-#define NB_ADD_INTERNAL_CALL(Name) mono_add_internal_call("NebulaScriptCore.InternalCalls::" #Name, (void*)Name)
-
 	// Console API
 	static void Console_Log(MonoString* message)
 	{
@@ -55,9 +53,27 @@ namespace Nebula {
 		return Input::IsKeyDown(keycode);
 	}
 
+	static bool Input_IsKeyReleased(int keycode)
+	{
+		// TODO: Implement key released detection
+		return false;
+	}
+
 	static bool Input_IsMouseButtonPressed(int button)
 	{
 		return Input::IsMouseButtonPressed(button);
+	}
+
+	static bool Input_IsMouseButtonDown(int button)
+	{
+		// For now, use same as pressed (continuous check)
+		return Input::IsMouseButtonPressed(button);
+	}
+
+	static bool Input_IsMouseButtonReleased(int button)
+	{
+		// TODO: Implement mouse button released detection
+		return false;
 	}
 
 	static float Input_GetMouseX()
@@ -180,23 +196,29 @@ namespace Nebula {
 
 	void ScriptGlue::RegisterFunctions()
 	{
-		NB_ADD_INTERNAL_CALL(Console_Log);
-		NB_ADD_INTERNAL_CALL(Console_LogWarning);
-		NB_ADD_INTERNAL_CALL(Console_LogError);
+		// Register Console functions (Nebula.Console class)
+		mono_add_internal_call("Nebula.Console::Log", (void*)Console_Log);
+		mono_add_internal_call("Nebula.Console::LogWarning", (void*)Console_LogWarning);
+		mono_add_internal_call("Nebula.Console::LogError", (void*)Console_LogError);
 
-		NB_ADD_INTERNAL_CALL(Input_IsKeyPressed);
-		NB_ADD_INTERNAL_CALL(Input_IsKeyDown);
-		NB_ADD_INTERNAL_CALL(Input_IsMouseButtonPressed);
-		NB_ADD_INTERNAL_CALL(Input_GetMouseX);
-		NB_ADD_INTERNAL_CALL(Input_GetMouseY);
+		// Register Input functions (Nebula.Input class)
+		mono_add_internal_call("Nebula.Input::IsKeyPressed", (void*)Input_IsKeyPressed);
+		mono_add_internal_call("Nebula.Input::IsKeyDown", (void*)Input_IsKeyDown);
+		mono_add_internal_call("Nebula.Input::IsKeyReleased", (void*)Input_IsKeyReleased);
+		mono_add_internal_call("Nebula.Input::IsMouseButtonPressed", (void*)Input_IsMouseButtonPressed);
+		mono_add_internal_call("Nebula.Input::IsMouseButtonDown", (void*)Input_IsMouseButtonDown);
+		mono_add_internal_call("Nebula.Input::IsMouseButtonReleased", (void*)Input_IsMouseButtonReleased);
+		mono_add_internal_call("Nebula.Input::GetMouseX", (void*)Input_GetMouseX);
+		mono_add_internal_call("Nebula.Input::GetMouseY", (void*)Input_GetMouseY);
 
-		NB_ADD_INTERNAL_CALL(Entity_HasComponent);
-		NB_ADD_INTERNAL_CALL(TransformComponent_GetPosition);
-		NB_ADD_INTERNAL_CALL(TransformComponent_SetPosition);
-		NB_ADD_INTERNAL_CALL(TransformComponent_GetRotation);
-		NB_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
-		NB_ADD_INTERNAL_CALL(TransformComponent_GetScale);
-		NB_ADD_INTERNAL_CALL(TransformComponent_SetScale);
+		// Register Entity/Transform functions (Nebula.InternalCalls class)
+		mono_add_internal_call("Nebula.InternalCalls::Entity_HasComponent", (void*)Entity_HasComponent);
+		mono_add_internal_call("Nebula.InternalCalls::Entity_GetPosition", (void*)TransformComponent_GetPosition);
+		mono_add_internal_call("Nebula.InternalCalls::Entity_SetPosition", (void*)TransformComponent_SetPosition);
+		mono_add_internal_call("Nebula.InternalCalls::Entity_GetRotation", (void*)TransformComponent_GetRotation);
+		mono_add_internal_call("Nebula.InternalCalls::Entity_SetRotation", (void*)TransformComponent_SetRotation);
+		mono_add_internal_call("Nebula.InternalCalls::Entity_GetScale", (void*)TransformComponent_GetScale);
+		mono_add_internal_call("Nebula.InternalCalls::Entity_SetScale", (void*)TransformComponent_SetScale);
 
 		// Component registration moved to RegisterComponents()
 		// Must be called after CoreAssembly is loaded

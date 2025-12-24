@@ -1,0 +1,160 @@
+{
+    "Entities": [
+        {
+            "CameraComponent": {
+                "OrthographicFar": 1.0,
+                "OrthographicNear": -1.0,
+                "OrthographicSize": 10.0,
+                "PerspectiveFOV": 45.0,
+                "PerspectiveFar": 1000.0,
+                "PerspectiveNear": 0.10000000149011612,
+                "Primary": true,
+                "ProjectionType": "Perspective"
+            },
+            "ID": 2097155,
+            "SkyboxComponent": {
+                "DirectoryPath": "assets\\skyboxes - Copy\\day"
+            },
+            "TagComponent": {
+                "Tag": "Main Camera"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    15.0,
+                    10.0
+                ],
+                "Rotation": [
+                    -56.57099914550781,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "ID": 2097154,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "HasTexture": false,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "UseTexture": 0
+                },
+                "MeshID": 1,
+                "MeshSource": "Library/models/Cube.obj"
+            },
+            "ScriptComponent": {
+                "ClassName": "TopDownController"
+            },
+            "TagComponent": {
+                "Tag": "Box"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "DirectionalLightComponent": {
+                "Color": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "Intensity": 1.0
+            },
+            "ID": 2097153,
+            "TagComponent": {
+                "Tag": "Sun"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Rotation": [
+                    -39.653690338134766,
+                    44.33686447143555,
+                    -6.820320777478628e-06
+                ],
+                "Scale": [
+                    0.9999998807907104,
+                    0.9999999403953552,
+                    0.9999996423721313
+                ]
+            }
+        },
+        {
+            "ID": 2097152,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        0.6127451062202454,
+                        0.6127451062202454,
+                        0.6127451062202454,
+                        1.0
+                    ],
+                    "HasTexture": false,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "UseTexture": 0
+                },
+                "MeshID": 1,
+                "MeshSource": "Library/models/Cube.obj"
+            },
+            "TagComponent": {
+                "Tag": "Ground"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    -3.200000047683716,
+                    0.0
+                ],
+                "Rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    100.0,
+                    1.0,
+                    100.0
+                ]
+            }
+        }
+    ],
+    "Scene": {
+        "Name": "Default Scene",
+        "Version": "1.0"
+    }
+}

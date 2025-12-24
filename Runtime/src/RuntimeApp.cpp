@@ -1,12 +1,26 @@
 
 
 #include <Nebula.h>
+#include <filesystem>
 
 class RuntimeLayer : public Nebula::Layer {
 public:
 	RuntimeLayer() 
 		: Layer("Runtime")
 	{
+		// Load script assemblies
+		std::filesystem::path coreAssembly = "Library/NebulaScriptCore.dll";
+		std::filesystem::path projectAssembly = "Assets/Scripts/bin/Debug/Scripts.dll";
+		
+		if (std::filesystem::exists(projectAssembly))
+		{
+			NB_INFO("Loading script assembly: {0}", projectAssembly.string());
+			Nebula::ScriptEngine::LoadProjectAssembly(projectAssembly);
+		}
+		else
+		{
+			NB_WARN("Script assembly not found at: {0}", projectAssembly.string());
+		}
 
 		// Load scene manager's scene list
 		Nebula::SceneManager::Get().LoadSceneList();
@@ -17,6 +31,7 @@ public:
 		if (scene)
 		{
 			m_ActiveScene = scene;
+			m_ActiveScene->OnRuntimeStart();
 			NB_INFO("Loaded scene: {0}", scene->GetName());
 		}
 		else

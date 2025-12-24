@@ -376,12 +376,33 @@ namespace Cosmic {
 					return;
 				}
 				
-				// Display C# class name
-				char buffer[256];
-				strcpy_s(buffer, sizeof(buffer), script.ClassName.c_str());
-				if (Nebula::NebulaGui::InputText("Class Name", buffer, sizeof(buffer)))
+				// Get all available script classes
+				auto classNames = Nebula::ScriptEngine::GetEntityClassNames();
+				
+				// Find current selection index
+				int currentIndex = -1;
+				for (int i = 0; i < classNames.size(); i++)
 				{
-					script.ClassName = std::string(buffer);
+					if (classNames[i] == script.ClassName)
+					{
+						currentIndex = i;
+						break;
+					}
+				}
+
+				// Display as dropdown
+				std::string previewText = script.ClassName.empty() ? "Select Script..." : script.ClassName;
+				if (Nebula::NebulaGui::BeginCombo("Class Name", previewText.c_str()))
+				{
+					for (int i = 0; i < classNames.size(); i++)
+					{
+						bool isSelected = (i == currentIndex);
+						if (Nebula::NebulaGui::Selectable(classNames[i].c_str(), isSelected))
+						{
+							script.ClassName = classNames[i];
+						}
+					}
+					Nebula::NebulaGui::EndCombo();
 				}
 			}
 		}

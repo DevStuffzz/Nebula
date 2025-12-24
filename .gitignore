@@ -5,6 +5,11 @@
 bin/
 bin-int/
 
+# .NET build artifacts
+**/obj/
+**/bin/Debug/
+**/bin/Release/
+
 # Generated project files
 *.sln
 *.vcxproj

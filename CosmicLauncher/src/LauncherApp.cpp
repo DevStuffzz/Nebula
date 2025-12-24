@@ -185,7 +185,6 @@ private:
 		fs::create_directories(projectPath / "Assets" / "Scenes");
 		fs::create_directories(projectPath / "Assets" / "Textures");
 		fs::create_directories(projectPath / "Assets" / "Models");
-		fs::create_directories(projectPath / "Assets" / "Scripts");
 		fs::create_directories(projectPath / "Assets" / "Audio");
 
 		// Copy Library folder from launcher directory (contains engine/editor assets)
@@ -217,20 +216,12 @@ private:
 
 	void CreateScriptsProject(const fs::path& projectPath, const std::string& projectName)
 	{
-		fs::path scriptsDir = projectPath / "Scripts";
+		fs::path scriptsDir = projectPath / "Assets" / "Scripts";
 		fs::create_directories(scriptsDir);
 
-		// Get absolute path to NebulaScriptCore.dll
-		fs::path nebulaScriptCorePath = projectPath / "Library" / "NebulaScriptCore.dll";
-		std::string absolutePath = nebulaScriptCorePath.string();
-		// Escape backslashes for XML
-		std::string escapedPath = absolutePath;
-		size_t pos = 0;
-		while ((pos = escapedPath.find("\\", pos)) != std::string::npos)
-		{
-			escapedPath.replace(pos, 1, "\\\\");
-			pos += 2;
-		}
+		// Get relative path to NebulaScriptCore.dll from Scripts directory
+		fs::path nebulaScriptCorePath = fs::path("..") / ".." / "Library" / "NebulaScriptCore.dll";
+		std::string relativePath = nebulaScriptCorePath.string();
 
 		// Create Scripts.csproj
 		fs::path csprojPath = scriptsDir / "Scripts.csproj";
@@ -243,35 +234,54 @@ private:
 			csproj << "    <ImplicitUsings>enable</ImplicitUsings>\n";
 			csproj << "    <Nullable>disable</Nullable>\n";
 			csproj << "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n";
+			csproj << "    <LangVersion>latest</LangVersion>\n";
 			csproj << "    <OutputPath>bin\\$(Configuration)\\</OutputPath>\n";
 			csproj << "    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>\n";
 			csproj << "  </PropertyGroup>\n\n";
 			csproj << "  <ItemGroup>\n";
 			csproj << "    <Reference Include=\"NebulaScriptCore\">\n";
-			csproj << "      <HintPath>" << escapedPath << "</HintPath>\n";
+			csproj << "      <HintPath>" << relativePath << "</HintPath>\n";
+			csproj << "      <Private>false</Private>\n";
 			csproj << "    </Reference>\n";
 			csproj << "  </ItemGroup>\n";
 			csproj << "</Project>\n";
 			csproj.close();
 		}
 
-		// Create an example script
-		fs::path exampleScriptPath = scriptsDir / "ExampleScript.cs";
+		// Create an example script - Top-Down Controller
+		fs::path exampleScriptPath = scriptsDir / "TopDownController.cs";
 		std::ofstream exampleScript(exampleScriptPath);
 		if (exampleScript.is_open())
 		{
 			exampleScript << "using Nebula;\n\n";
 			exampleScript << "namespace " << projectName << "\n";
 			exampleScript << "{\n";
-			exampleScript << "    public class ExampleScript : ScriptBehavior\n";
+			exampleScript << "    public class TopDownController : ScriptBehavior\n";
 			exampleScript << "    {\n";
+			exampleScript << "        public float Speed = 5.0f;\n\n";
 			exampleScript << "        public override void OnCreate()\n";
 			exampleScript << "        {\n";
-			exampleScript << "            Nebula.Console.Log(\"ExampleScript created!\");\n";
+			exampleScript << "            Console.Log(\"TopDownController created!\");\n";
 			exampleScript << "        }\n\n";
 			exampleScript << "        public override void OnUpdate(float deltaTime)\n";
 			exampleScript << "        {\n";
-			exampleScript << "            // Update logic here\n";
+			exampleScript << "            Vector3 movement = Vector3.Zero;\n\n";
+			exampleScript << "            // WASD movement\n";
+			exampleScript << "            if (Input.IsKeyDown(KeyCode.W))\n";
+			exampleScript << "                movement.Z -= 1.0f;\n";
+			exampleScript << "            if (Input.IsKeyDown(KeyCode.S))\n";
+			exampleScript << "                movement.Z += 1.0f;\n";
+			exampleScript << "            if (Input.IsKeyDown(KeyCode.A))\n";
+			exampleScript << "                movement.X -= 1.0f;\n";
+			exampleScript << "            if (Input.IsKeyDown(KeyCode.D))\n";
+			exampleScript << "                movement.X += 1.0f;\n\n";
+			exampleScript << "            // Apply movement\n";
+			exampleScript << "            if (movement.X != 0 || movement.Z != 0)\n";
+			exampleScript << "            {\n";
+			exampleScript << "                Vector3 position = GetPosition();\n";
+			exampleScript << "                position = position + (movement * Speed * deltaTime);\n";
+			exampleScript << "                SetPosition(position);\n";
+			exampleScript << "            }\n";
 			exampleScript << "        }\n";
 			exampleScript << "    }\n";
 			exampleScript << "}\n";

@@ -114,6 +114,34 @@ namespace Nebula {
 		}
 	}
 
+	void Scene::OnRuntimeStart()
+	{
+		// Initialize script engine with this scene
+		ScriptEngine::OnRuntimeStart(this);
+
+		// Initialize all script entities
+		auto view = m_Registry.view<ScriptComponent>();
+		for (auto entity : view)
+		{
+			Entity ent = { entity, this };
+			ScriptEngine::OnCreateEntity(ent);
+		}
+	}
+
+	void Scene::OnRuntimeStop()
+	{
+		// Destroy all script instances
+		auto view = m_Registry.view<ScriptComponent>();
+		for (auto entity : view)
+		{
+			Entity ent = { entity, this };
+			ScriptEngine::OnDestroyEntity(ent);
+		}
+
+		// Shutdown script engine runtime
+		ScriptEngine::OnRuntimeStop();
+	}
+
 	void Scene::OnUpdate(float deltaTime)
 	{
 		// Check for script file changes (hot-reloading)

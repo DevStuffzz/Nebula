@@ -139,6 +139,12 @@ namespace Cosmic {
 
 	void EditorLayer::OnUpdate(Nebula::Timestep ts)
 	{
+		// Check for script file changes (only in editor mode)
+		if (!m_RuntimeMode && m_ProjectLoaded)
+		{
+			CheckScriptFileChanges();
+		}
+
 		// Handle gizmo interaction (only in editor mode)
 		auto gizmoMode = Viewport::GizmoMode::None;
 		Nebula::Entity selectedEntity;
@@ -228,7 +234,8 @@ namespace Cosmic {
 		{
 			perspCam->SetPosition(m_CameraPosition);
 			perspCam->SetRotation(m_CameraRotation);
-			float editorAspect = m_ViewportSize.x / m_ViewportSize.y;
+			// Guard against zero aspect ratio
+			float editorAspect = m_ViewportSize.y > 0.0f ? (m_ViewportSize.x / m_ViewportSize.y) : 16.0f / 9.0f;
 			perspCam->SetProjection(45.0f, editorAspect, 0.1f, 1000.0f);
 		}
 		
@@ -326,13 +333,13 @@ namespace Cosmic {
 					float savedFOV = 45.0f;
 					float savedNear = 0.1f;
 					float savedFar = 1000.0f;
-					float savedAspect = m_ViewportSize.x / m_ViewportSize.y;
-					
-					// Set to game camera
-					perspCam->SetPosition(transform.Position);
-					perspCam->SetRotation(transform.Rotation);
-					float gameAspect = m_GameViewSize.x / m_GameViewSize.y;
-					perspCam->SetProjection(cameraComp.PerspectiveFOV, gameAspect, cameraComp.PerspectiveNear, cameraComp.PerspectiveFar);
+				float savedAspect = m_ViewportSize.y > 0.0f ? (m_ViewportSize.x / m_ViewportSize.y) : 16.0f / 9.0f;
+				
+				// Set to game camera
+				perspCam->SetPosition(transform.Position);
+				perspCam->SetRotation(transform.Rotation);
+				// Guard against zero aspect ratio
+				float gameAspect = m_GameViewSize.y > 0.0f ? (m_GameViewSize.x / m_GameViewSize.y) : 16.0f / 9.0f;
 					
 					// Render scene from game camera perspective
 					m_ActiveScene->OnRender();
@@ -603,6 +610,16 @@ namespace Cosmic {
 				NB_CORE_ERROR("Cannot start runtime: {0}", errorMessage);
 				return;
 			}
+
+			// Check for build errors
+			if (m_HasBuildErrors)
+			{
+				std::string buildError = Nebula::ScriptBuilder::GetLastBuildError();
+				ConsoleWindow::AddLog("Cannot start runtime: Scripts have build errors", LogLevel::Error);
+				ConsoleWindow::AddLog(buildError, LogLevel::Error);
+				NB_CORE_ERROR("Cannot start runtime: Build errors present");
+				return;
+			}
 		}
 
 		m_RuntimeMode = !m_RuntimeMode;
@@ -657,6 +674,9 @@ namespace Cosmic {
 				audioSource.IsPlaying = false;
 			}
 
+			// Initialize script runtime
+			m_ActiveScene->OnRuntimeStart();
+
 			NB_CORE_INFO("Runtime started");
 			ConsoleWindow::AddLog("Runtime started", LogLevel::Info);
 			
@@ -673,6 +693,12 @@ namespace Cosmic {
 			// Exiting runtime mode
 			NB_CORE_INFO("Runtime stopped");
 			ConsoleWindow::AddLog("Runtime stopped", LogLevel::Info);
+			
+			// Stop script runtime
+			if (m_ActiveScene)
+			{
+				m_ActiveScene->OnRuntimeStop();
+			}
 			
 			// Just stop audio - let Scene destructor handle cleanup
 			if (m_ActiveScene && m_ActiveScene->GetAudioEngine())
@@ -723,7 +749,7 @@ namespace Cosmic {
 		}
 
 		// Load the script assembly
-		std::filesystem::path scriptAssembly = projectPath / "Scripts" / "bin" / "Debug" / "Scripts.dll";
+		std::filesystem::path scriptAssembly = projectPath / "Assets" / "Scripts" / "bin" / "Debug" / "Scripts.dll";
 		if (std::filesystem::exists(scriptAssembly))
 		{
 			Nebula::ScriptEngine::LoadProjectAssembly(scriptAssembly);
@@ -735,6 +761,13 @@ namespace Cosmic {
 
 		// Set the content browser to the project's assets folder
 		ContentBrowser::SetContentPath(Nebula::Project::GetAssetDirectory().string());
+
+		// Setup script file watching
+		m_ScriptsDirectory = projectPath / "Assets" / "Scripts";
+		if (std::filesystem::exists(m_ScriptsDirectory))
+		{
+			m_LastScriptModifyTime = std::filesystem::last_write_time(m_ScriptsDirectory);
+		}
 
 		// Load the start scene if specified
 		if (!project->GetConfig().StartScene.empty())
@@ -800,5 +833,66 @@ public class ExampleScript : ScriptBehavior
 		NB_CORE_INFO("Project created successfully!");
 	}
 
-}
+	void EditorLayer::CheckScriptFileChanges()
+	{
+		if (!std::filesystem::exists(m_ScriptsDirectory))
+			return;
 
+		try
+		{
+			auto currentTime = std::filesystem::last_write_time(m_ScriptsDirectory);
+			
+			// Also check all .cs files for changes
+			bool filesChanged = false;
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(m_ScriptsDirectory))
+			{
+				if (entry.is_regular_file() && entry.path().extension() == ".cs")
+				{
+					auto fileTime = std::filesystem::last_write_time(entry.path());
+					if (fileTime > m_LastScriptModifyTime)
+					{
+						filesChanged = true;
+						break;
+					}
+				}
+			}
+
+			if (filesChanged)
+			{
+				NB_CORE_INFO("Script file changes detected, rebuilding...");
+				ConsoleWindow::AddLog("Script changes detected, rebuilding...", LogLevel::Info);
+				m_LastScriptModifyTime = std::filesystem::file_time_type::clock::now();
+				RebuildScripts();
+			}
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			NB_CORE_ERROR("Error checking script files: {0}", e.what());
+		}
+	}
+
+	void EditorLayer::RebuildScripts()
+	{
+		auto projectPath = Nebula::Project::GetProjectDirectory();
+		bool success = Nebula::ScriptBuilder::RebuildScripts(projectPath);
+		
+		if (success)
+		{
+			m_HasBuildErrors = false;
+			ConsoleWindow::AddLog("Scripts rebuilt successfully!", LogLevel::Info);
+			NB_CORE_INFO("Scripts rebuilt successfully!");
+		}
+		else
+		{
+			m_HasBuildErrors = true;
+			std::string errorMsg = Nebula::ScriptBuilder::GetLastBuildError();
+			ConsoleWindow::AddLog("Script build failed!", LogLevel::Error);
+			if (!errorMsg.empty())
+			{
+				ConsoleWindow::AddLog(errorMsg, LogLevel::Error);
+			}
+			NB_CORE_ERROR("Failed to rebuild scripts");
+		}
+	}
+
+}

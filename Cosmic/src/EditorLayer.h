@@ -33,6 +33,8 @@ namespace Cosmic {
 		void LoadScene();
 		void LoadSceneFromPath(const std::string& filepath);
 		void ToggleRuntime();
+		void RebuildScripts();
+		void CheckScriptFileChanges();
 		
 		void OpenProject(const std::filesystem::path& projectPath);
 		void CreateNewProject(const std::string& name, const std::filesystem::path& path);
@@ -52,6 +54,11 @@ namespace Cosmic {
 		glm::vec2 m_GameViewSize = { 0.0f, 0.0f };
 		bool m_RuntimeMode = false;
 		bool m_ShowScriptEditor = false;
+		bool m_HasBuildErrors = false;
+		
+		// Script file watching
+		std::filesystem::file_time_type m_LastScriptModifyTime;
+		std::filesystem::path m_ScriptsDirectory;
 		
 		// Editor Windows
 		SceneListWindow m_SceneListWindow;

@@ -149,6 +149,16 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 		return s_Data->EntityClasses.find(fullClassName) != s_Data->EntityClasses.end();
 	}
 
+	std::vector<std::string> ScriptEngine::GetEntityClassNames()
+	{
+		std::vector<std::string> classNames;
+		for (const auto& [name, scriptClass] : s_Data->EntityClasses)
+		{
+			classNames.push_back(name);
+		}
+		return classNames;
+	}
+
 	void ScriptEngine::OnCreateEntity(Entity entity)
 	{
 		const auto& sc = entity.GetComponent<ScriptComponent>();
@@ -422,7 +432,9 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 	{
 		m_Instance = scriptClass->Instantiate();
 
-	m_Constructor = s_Data->EntityClass->GetMethod(".ctor", 1);
+		m_Constructor = s_Data->EntityClass->GetMethod(".ctor", 0);
+		m_OnCreateMethod = scriptClass->GetMethod("OnCreate", 0);
+		m_OnUpdateMethod = scriptClass->GetMethod("OnUpdate", 1);
 		m_OnDestroyMethod = scriptClass->GetMethod("OnDestroy", 0);
 
 		// Call Entity constructor
