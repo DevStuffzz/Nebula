@@ -45,6 +45,9 @@
   <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Dist|x64' ">
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Source\Components.cs">
+      <Link>Source\Components.cs</Link>
+    </Compile>
     <Compile Include="..\Source\Console.cs">
       <Link>Source\Console.cs</Link>
     </Compile>

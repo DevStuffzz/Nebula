@@ -209,7 +209,74 @@ private:
 			fs::copy(sourceImguiIni, destImguiIni, fs::copy_options::overwrite_existing);
 		}
 
+		// Create Scripts C# project
+		CreateScriptsProject(projectPath, m_NewProjectName);
+
 		LaunchProject(projectPath.string());
+	}
+
+	void CreateScriptsProject(const fs::path& projectPath, const std::string& projectName)
+	{
+		fs::path scriptsDir = projectPath / "Scripts";
+		fs::create_directories(scriptsDir);
+
+		// Get absolute path to NebulaScriptCore.dll
+		fs::path nebulaScriptCorePath = projectPath / "Library" / "NebulaScriptCore.dll";
+		std::string absolutePath = nebulaScriptCorePath.string();
+		// Escape backslashes for XML
+		std::string escapedPath = absolutePath;
+		size_t pos = 0;
+		while ((pos = escapedPath.find("\\", pos)) != std::string::npos)
+		{
+			escapedPath.replace(pos, 1, "\\\\");
+			pos += 2;
+		}
+
+		// Create Scripts.csproj
+		fs::path csprojPath = scriptsDir / "Scripts.csproj";
+		std::ofstream csproj(csprojPath);
+		if (csproj.is_open())
+		{
+			csproj << "<Project Sdk=\"Microsoft.NET.Sdk\">\n";
+			csproj << "  <PropertyGroup>\n";
+			csproj << "    <TargetFramework>net8.0</TargetFramework>\n";
+			csproj << "    <ImplicitUsings>enable</ImplicitUsings>\n";
+			csproj << "    <Nullable>disable</Nullable>\n";
+			csproj << "    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>\n";
+			csproj << "    <OutputPath>bin\\$(Configuration)\\</OutputPath>\n";
+			csproj << "    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>\n";
+			csproj << "  </PropertyGroup>\n\n";
+			csproj << "  <ItemGroup>\n";
+			csproj << "    <Reference Include=\"NebulaScriptCore\">\n";
+			csproj << "      <HintPath>" << escapedPath << "</HintPath>\n";
+			csproj << "    </Reference>\n";
+			csproj << "  </ItemGroup>\n";
+			csproj << "</Project>\n";
+			csproj.close();
+		}
+
+		// Create an example script
+		fs::path exampleScriptPath = scriptsDir / "ExampleScript.cs";
+		std::ofstream exampleScript(exampleScriptPath);
+		if (exampleScript.is_open())
+		{
+			exampleScript << "using Nebula;\n\n";
+			exampleScript << "namespace " << projectName << "\n";
+			exampleScript << "{\n";
+			exampleScript << "    public class ExampleScript : ScriptBehavior\n";
+			exampleScript << "    {\n";
+			exampleScript << "        public override void OnCreate()\n";
+			exampleScript << "        {\n";
+			exampleScript << "            Nebula.Console.Log(\"ExampleScript created!\");\n";
+			exampleScript << "        }\n\n";
+			exampleScript << "        public override void OnUpdate(float deltaTime)\n";
+			exampleScript << "        {\n";
+			exampleScript << "            // Update logic here\n";
+			exampleScript << "        }\n";
+			exampleScript << "    }\n";
+			exampleScript << "}\n";
+			exampleScript.close();
+		}
 	}
 
 	void LaunchProject(const std::string& projectPath)

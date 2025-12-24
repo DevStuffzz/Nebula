@@ -324,8 +324,10 @@ project "CosmicLauncher"
             "copy /Y \"..\\bin\\" .. outputdir .. "\\Nebula\\Nebula.pdb\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\Nebula.pdb\"",
             "copy /Y \"..\\bin\\" .. outputdir .. "\\Cosmic\\OpenAL32.dll\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\OpenAL32.dll\"",
             "copy /Y \"..\\bin\\" .. outputdir .. "\\Cosmic\\mono-2.0-sgen.dll\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\mono-2.0-sgen.dll\"",
-            "xcopy /Q /E /Y /I \"..\\bin\\" .. outputdir .. "\\Cosmic\\lib\\mono\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\lib\\mono\"",
+            "xcopy /Q /E /Y /I /H \"..\\bin\\" .. outputdir .. "\\Cosmic\\lib\\mono\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\lib\\mono\"",
+            "copy /Y \"..\\bin\\" .. outputdir .. "\\Cosmic\\lib\\mono\\4.5\\mscorlib.dll\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Cosmic\\lib\\mono\\4.5\\mscorlib.dll\"",
             "xcopy /Q /E /Y /I \"..\\DefaultAssets\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Library\"",
+            "copy /Y \"..\\bin\\" .. outputdir .. "\\NebulaScriptCore\\net8.0\\NebulaScriptCore.dll\" \"..\\bin\\" .. outputdir .. "\\CosmicLauncher\\Library\\NebulaScriptCore.dll\"",
         }
 
     filter "configurations:Debug"

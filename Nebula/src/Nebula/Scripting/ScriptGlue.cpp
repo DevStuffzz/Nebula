@@ -160,7 +160,7 @@ namespace Nebula {
 			std::string_view typeName = typeid(Component).name();
 			size_t pos = typeName.find_last_of(':');
 			std::string_view structName = typeName.substr(pos + 1);
-			std::string managedTypename = fmt::format("NebulaScriptCore.{}", structName);
+			std::string managedTypename = fmt::format("Nebula.{}", structName);
 
 			MonoType* managedType = mono_reflection_type_from_name(managedTypename.data(), ScriptEngine::GetCoreAssemblyImage());
 			if (!managedType)

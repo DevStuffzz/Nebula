@@ -300,8 +300,8 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 		s_Data->AppDomain = mono_domain_create_appdomain((char*)"NebulaScriptRuntime", nullptr);
 		mono_domain_set(s_Data->AppDomain, true);
 
-		// Reload core assembly in new domain (relative to exe location)
-		std::filesystem::path corePath = "../NebulaScriptCore/NebulaScriptCore.dll";
+		// Reload core assembly from project's Library folder
+		std::filesystem::path corePath = "Library/NebulaScriptCore.dll";
 		s_Data->CoreAssembly = LoadMonoAssembly(corePath);
 		if (!s_Data->CoreAssembly)
 		{
@@ -311,7 +311,7 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 		s_Data->CoreAssemblyImage = mono_assembly_get_image(s_Data->CoreAssembly);
 
 		// Initialize EntityClass from NebulaScriptCore
-		s_Data->EntityClass = CreateRef<ScriptClass>("NebulaScriptCore", "ScriptEntity");
+		s_Data->EntityClass = CreateRef<ScriptClass>("Nebula", "ScriptEntity");
 
 		// Register components now that CoreAssembly is loaded
 		ScriptGlue::RegisterComponents();
@@ -333,7 +333,7 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_Data->AppAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
-		MonoClass* scriptBehaviorClass = mono_class_from_name(s_Data->CoreAssemblyImage, "NebulaScriptCore", "ScriptBehavior");
+		MonoClass* scriptBehaviorClass = mono_class_from_name(s_Data->CoreAssemblyImage, "Nebula", "ScriptBehavior");
 
 		for (int32_t i = 0; i < numTypes; i++)
 		{
