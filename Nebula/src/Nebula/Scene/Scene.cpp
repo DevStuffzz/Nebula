@@ -121,9 +121,13 @@ namespace Nebula {
 
 		// Initialize all script entities
 		auto view = m_Registry.view<ScriptComponent>();
+		NB_CORE_INFO("OnRuntimeStart: Found {} entities with ScriptComponent", view.size());
 		for (auto entity : view)
 		{
 			Entity ent = { entity, this };
+			auto& sc = ent.GetComponent<ScriptComponent>();
+			auto& tag = ent.GetComponent<TagComponent>();
+			NB_CORE_INFO("Creating script instance for entity '{}' with class '{}'", tag.Tag, sc.ClassName);
 			ScriptEngine::OnCreateEntity(ent);
 		}
 	}

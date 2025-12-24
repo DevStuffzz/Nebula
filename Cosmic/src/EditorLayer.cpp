@@ -340,6 +340,7 @@ namespace Cosmic {
 				perspCam->SetRotation(transform.Rotation);
 				// Guard against zero aspect ratio
 				float gameAspect = m_GameViewSize.y > 0.0f ? (m_GameViewSize.x / m_GameViewSize.y) : 16.0f / 9.0f;
+				perspCam->SetProjection(cameraComp.PerspectiveFOV, gameAspect, cameraComp.PerspectiveNear, cameraComp.PerspectiveFar);
 					
 					// Render scene from game camera perspective
 					m_ActiveScene->OnRender();
@@ -679,6 +680,17 @@ namespace Cosmic {
 
 			NB_CORE_INFO("Runtime started");
 			ConsoleWindow::AddLog("Runtime started", LogLevel::Info);
+			
+			// Log script entities for debugging
+			auto scriptView = m_ActiveScene->GetRegistry().view<Nebula::ScriptComponent>();
+			if (scriptView.size() > 0)
+			{
+				ConsoleWindow::AddLog(fmt::format("Found {} entities with scripts", scriptView.size()), LogLevel::Info);
+			}
+			else
+			{
+				ConsoleWindow::AddLog("No script components found in scene", LogLevel::Warning);
+			}
 			
 			// Store the scene path so we can reload it when stopping
 			if (!m_CurrentScenePath.empty())

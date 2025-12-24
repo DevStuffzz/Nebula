@@ -111,6 +111,7 @@ namespace Nebula {
 		NEB_CORE_ASSERT(entity, "Invalid entity!");
 
 		*outPosition = entity.GetComponent<TransformComponent>().Position;
+		NB_CORE_INFO("GetPosition called for entity {}: ({}, {}, {})", entityID, outPosition->x, outPosition->y, outPosition->z);
 	}
 
 	static void TransformComponent_SetPosition(uint32_t entityID, glm::vec3* position)
@@ -121,6 +122,7 @@ namespace Nebula {
 		Entity entity{ (entt::entity)entityID, scene };
 		NEB_CORE_ASSERT(entity, "Invalid entity!");
 
+		NB_CORE_INFO("SetPosition called for entity {}: ({}, {}, {})", entityID, position->x, position->y, position->z);
 		entity.GetComponent<TransformComponent>().Position = *position;
 	}
 
@@ -196,10 +198,13 @@ namespace Nebula {
 
 	void ScriptGlue::RegisterFunctions()
 	{
+		NB_CORE_INFO("ScriptGlue: Registering internal calls...");
+		
 		// Register Console functions (Nebula.Console class)
 		mono_add_internal_call("Nebula.Console::Log", (void*)Console_Log);
 		mono_add_internal_call("Nebula.Console::LogWarning", (void*)Console_LogWarning);
 		mono_add_internal_call("Nebula.Console::LogError", (void*)Console_LogError);
+		NB_CORE_INFO("  Registered Nebula.Console functions");
 
 		// Register Input functions (Nebula.Input class)
 		mono_add_internal_call("Nebula.Input::IsKeyPressed", (void*)Input_IsKeyPressed);
@@ -210,6 +215,7 @@ namespace Nebula {
 		mono_add_internal_call("Nebula.Input::IsMouseButtonReleased", (void*)Input_IsMouseButtonReleased);
 		mono_add_internal_call("Nebula.Input::GetMouseX", (void*)Input_GetMouseX);
 		mono_add_internal_call("Nebula.Input::GetMouseY", (void*)Input_GetMouseY);
+		NB_CORE_INFO("  Registered Nebula.Input functions");
 
 		// Register Entity/Transform functions (Nebula.InternalCalls class)
 		mono_add_internal_call("Nebula.InternalCalls::Entity_HasComponent", (void*)Entity_HasComponent);
@@ -219,6 +225,9 @@ namespace Nebula {
 		mono_add_internal_call("Nebula.InternalCalls::Entity_SetRotation", (void*)TransformComponent_SetRotation);
 		mono_add_internal_call("Nebula.InternalCalls::Entity_GetScale", (void*)TransformComponent_GetScale);
 		mono_add_internal_call("Nebula.InternalCalls::Entity_SetScale", (void*)TransformComponent_SetScale);
+		NB_CORE_INFO("  Registered Nebula.InternalCalls functions");
+		
+		NB_CORE_INFO("ScriptGlue: All internal calls registered successfully");
 
 		// Component registration moved to RegisterComponents()
 		// Must be called after CoreAssembly is loaded

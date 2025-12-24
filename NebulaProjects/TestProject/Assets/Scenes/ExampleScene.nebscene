@@ -57,7 +57,7 @@
                 "MeshSource": "Library/models/Cube.obj"
             },
             "ScriptComponent": {
-                "ClassName": "TopDownController"
+                "ClassName": "MyGame.TopDownController"
             },
             "TagComponent": {
                 "Tag": "Box"
@@ -90,6 +90,9 @@
                 "Intensity": 1.0
             },
             "ID": 2097153,
+            "SkyboxComponent": {
+                "DirectoryPath": "assets\\skyboxes\\day"
+            },
             "TagComponent": {
                 "Tag": "Sun"
             },
@@ -112,7 +115,7 @@
             }
         },
         {
-            "ID": 2097152,
+            "ID": 3145728,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,

@@ -9,6 +9,7 @@ namespace MyGame
         public override void OnCreate()
         {
             Console.Log("TopDownController created!");
+            Console.Log("Testing Console.Log from OnCreate");
         }
 
         public override void OnUpdate(float deltaTime)
@@ -25,12 +26,17 @@ namespace MyGame
             if (Input.IsKeyDown(KeyCode.D))
                 movement.X += 1.0f;
 
-            // Apply movement
+            // Apply movement using transform property
             if (movement.X != 0 || movement.Z != 0)
             {
-                Vector3 position = Entity.GetPosition();
-                position = position + (movement * Speed * deltaTime);
-                Entity.SetPosition(position);
+       
+                Vector3 currentPos = transform.position;
+                
+                Vector3 scaledMovement = movement * Speed * deltaTime;
+                
+                Vector3 newPos = currentPos + scaledMovement;
+                
+                transform.position = newPos;
             }
         }
     }

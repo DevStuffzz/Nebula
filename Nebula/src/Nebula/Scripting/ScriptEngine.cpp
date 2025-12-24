@@ -162,6 +162,8 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 	void ScriptEngine::OnCreateEntity(Entity entity)
 	{
 		const auto& sc = entity.GetComponent<ScriptComponent>();
+		NB_CORE_INFO("OnCreateEntity called for class: {}", sc.ClassName);
+		
 		if (ScriptEngine::EntityClassExists(sc.ClassName))
 		{
 			uint32_t entityID = (uint32_t)entity;
@@ -170,7 +172,12 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 			s_Data->EntityInstances[entityID] = instance;
 
 			// Call OnCreate
+			NB_CORE_INFO("Calling OnCreate for entity {}", entityID);
 			instance->InvokeOnCreate();
+		}
+		else
+		{
+			NB_CORE_ERROR("Script class '{}' not found in loaded assemblies!", sc.ClassName);
 		}
 	}
 
@@ -341,9 +348,19 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 	{
 		s_Data->EntityClasses.clear();
 
+		NB_CORE_INFO("ScriptEngine: Loading assembly classes...");
+		
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_Data->AppAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+		NB_CORE_INFO("  Loading types from assembly");
+		
 		MonoClass* scriptBehaviorClass = mono_class_from_name(s_Data->CoreAssemblyImage, "Nebula", "ScriptBehavior");
+		if (!scriptBehaviorClass)
+		{
+			NB_CORE_ERROR("  Failed to find ScriptBehavior base class!");
+			return;
+		}
+		NB_CORE_INFO("  Found ScriptBehavior base class");
 
 		for (int32_t i = 0; i < numTypes; i++)
 		{
@@ -369,6 +386,7 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 
 			Ref<ScriptClass> scriptClass = CreateRef<ScriptClass>(nameSpace, className);
 			s_Data->EntityClasses[fullName] = scriptClass;
+			NB_CORE_INFO("  Registered script class");
 
 			// This routine is an iterator routine for retrieving the fields in a class.
 			// You must pass a gpointer that points to zero and is treated as an opaque handle
@@ -413,7 +431,9 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 
 	MonoObject* ScriptClass::Instantiate()
 	{
-		return mono_object_new(s_Data->AppDomain, m_MonoClass);
+		MonoObject* instance = mono_object_new(s_Data->AppDomain, m_MonoClass);
+		mono_runtime_object_init(instance);  // Call default constructor
+		return instance;
 	}
 
 	MonoMethod* ScriptClass::GetMethod(const std::string& name, int parameterCount)
@@ -424,7 +444,30 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 	MonoObject* ScriptClass::InvokeMethod(MonoObject* instance, MonoMethod* method, void** params)
 	{
 		MonoObject* exception = nullptr;
-		return mono_runtime_invoke(method, instance, params, &exception);
+		MonoObject* result = mono_runtime_invoke(method, instance, params, &exception);
+		
+		if (exception)
+		{
+			MonoClass* exceptionClass = mono_object_get_class(exception);
+			const char* exceptionName = mono_class_get_name(exceptionClass);
+			
+			// Try to get the exception message
+			MonoProperty* messageProp = mono_class_get_property_from_name(exceptionClass, "Message");
+			if (messageProp)
+			{
+				MonoMethod* messageGetter = mono_property_get_get_method(messageProp);
+				MonoObject* messageObj = mono_runtime_invoke(messageGetter, exception, nullptr, nullptr);
+				char* message = mono_string_to_utf8((MonoString*)messageObj);
+				NB_CORE_ERROR("Mono exception in InvokeMethod: {} - {}", exceptionName, message);
+				mono_free(message);
+			}
+			else
+			{
+				NB_CORE_ERROR("Mono exception in InvokeMethod: {}", exceptionName);
+			}
+		}
+		
+		return result;
 	}
 
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
@@ -437,11 +480,38 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 		m_OnUpdateMethod = scriptClass->GetMethod("OnUpdate", 1);
 		m_OnDestroyMethod = scriptClass->GetMethod("OnDestroy", 0);
 
-		// Call Entity constructor
+		// Set the Entity property on the script instance
 		{
 			uint32_t entityID = (uint32_t)entity;
-			void* param = &entityID;
-			m_ScriptClass->InvokeMethod(m_Instance, m_Constructor, &param);
+			
+			// Get the Entity property from ScriptBehavior base class
+			MonoClass* scriptBehaviorClass = mono_class_from_name(s_Data->CoreAssemblyImage, "Nebula", "ScriptBehavior");
+			MonoProperty* entityProperty = mono_class_get_property_from_name(scriptBehaviorClass, "Entity");
+			
+			if (entityProperty)
+			{
+				// Create a ScriptEntity instance and set its ID
+				MonoClass* scriptEntityClass = mono_class_from_name(s_Data->CoreAssemblyImage, "Nebula", "ScriptEntity");
+				MonoObject* entityInstance = mono_object_new(s_Data->AppDomain, scriptEntityClass);
+				mono_runtime_object_init(entityInstance);
+				
+				// Set the ID property on the ScriptEntity
+				MonoProperty* idProperty = mono_class_get_property_from_name(scriptEntityClass, "ID");
+				MonoMethod* idSetter = mono_property_get_set_method(idProperty);
+				void* idParams[1] = { &entityID };
+				mono_runtime_invoke(idSetter, entityInstance, idParams, nullptr);
+				
+				// Set the Entity property on the ScriptBehavior instance
+				MonoMethod* entitySetter = mono_property_get_set_method(entityProperty);
+				void* entityParams[1] = { entityInstance };
+				mono_runtime_invoke(entitySetter, m_Instance, entityParams, nullptr);
+				
+				NB_CORE_INFO("Entity property set successfully for entity ID {}", entityID);
+			}
+			else
+			{
+				NB_CORE_ERROR("Could not find Entity property in ScriptBehavior!");
+			}
 		}
 	}
 

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NebulaScriptCore")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+92d03041d27d67e9b0e9995ee46ced9be22bcaf7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d6f28227c4ce777b8d4aafe95c13b1cee485854c")]
 [assembly: System.Reflection.AssemblyProductAttribute("NebulaScriptCore")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NebulaScriptCore")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
