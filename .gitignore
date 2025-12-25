@@ -32,5 +32,7 @@ crash-log.txt
 # Mono build files
 # We want the directory structure but not the files themselves
 Nebula/vendor/mono-build/*
- NebulaScriptCore/NebulaScriptCore/obj/
- NebulaScriptCore/NebulaScriptCore/bin/
+
+
+NebulaScriptCore/NebulaScriptCore/obj/
+NebulaScriptCore/NebulaScriptCore/bin/

@@ -54,6 +54,9 @@
     <Compile Include="..\Source\Coroutine.cs">
       <Link>Source\Coroutine.cs</Link>
     </Compile>
+    <Compile Include="..\Source\GameObject.cs">
+      <Link>Source\GameObject.cs</Link>
+    </Compile>
     <Compile Include="..\Source\Input.cs">
       <Link>Source\Input.cs</Link>
     </Compile>

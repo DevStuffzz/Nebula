@@ -66,7 +66,54 @@ namespace Nebula
             }
         }
 
+        public string name
+        {
+            get { return InternalCalls.Entity_GetName(ID); }
+            set { InternalCalls.Entity_SetName(ID, value); }
+        }
+
         protected ScriptEntity() { }
+
+        // Unity-like component access methods
+        public T GetComponent<T>() where T : class, new()
+        {
+            if (!HasComponent<T>())
+                return null;
+
+            T component = new T();
+            if (!InternalCalls.Entity_GetComponent(ID, typeof(T), component))
+                return null;
+
+            return component;
+        }
+
+        public bool HasComponent<T>() where T : class
+        {
+            return InternalCalls.Entity_HasComponent(ID, typeof(T));
+        }
+
+        public T AddComponent<T>() where T : class, new()
+        {
+            if (HasComponent<T>())
+            {
+                Console.LogWarning($"Entity already has component of type {typeof(T).Name}");
+                return GetComponent<T>();
+            }
+
+            InternalCalls.Entity_AddComponent(ID, typeof(T));
+            return GetComponent<T>();
+        }
+
+        public void RemoveComponent<T>() where T : class
+        {
+            if (!HasComponent<T>())
+            {
+                Console.LogWarning($"Entity does not have component of type {typeof(T).Name}");
+                return;
+            }
+
+            InternalCalls.Entity_RemoveComponent(ID, typeof(T));
+        }
 
         // Legacy methods for backward compatibility
         public Vector3 GetPosition()
@@ -122,5 +169,35 @@ namespace Nebula
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Entity_SetScale(uint entityID, ref Vector3 scale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_HasComponent(uint entityID, Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_GetComponent(uint entityID, Type componentType, object outComponent);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_AddComponent(uint entityID, Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_RemoveComponent(uint entityID, Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string Entity_GetName(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetName(uint entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint[] Entity_GetAllEntitiesWithComponent(Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Entity_FindByName(string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Entity_Instantiate(uint prefabID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_Destroy(uint entityID);
     }
 }
