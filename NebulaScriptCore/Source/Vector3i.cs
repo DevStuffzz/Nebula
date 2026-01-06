@@ -2,26 +2,26 @@ using System;
 
 namespace Nebula
 {
-    public struct Vec3i
+    public struct Vector3i
     {
         public int X, Y, Z;
 
-        public Vec3i(int x, int y, int z)
+        public Vector3i(int x, int y, int z)
         {
             X = x;
             Y = y;
             Z = z;
         }
 
-        public static Vec3i Zero => new Vec3i(0, 0, 0);
-        public static Vec3i One => new Vec3i(1, 1, 1);
+        public static Vector3i Zero => new Vector3i(0, 0, 0);
+        public static Vector3i One => new Vector3i(1, 1, 1);
 
-        public static Vec3i Up => new Vec3i(0, 1, 0);
-        public static Vec3i Down => new Vec3i(0, -1, 0);
-        public static Vec3i Right => new Vec3i(1, 0, 0);
-        public static Vec3i Left => new Vec3i(-1, 0, 0);
-        public static Vec3i Forward => new Vec3i(0, 0, 1);
-        public static Vec3i Backward => new Vec3i(0, 0, -1);
+        public static Vector3i Up => new Vector3i(0, 1, 0);
+        public static Vector3i Down => new Vector3i(0, -1, 0);
+        public static Vector3i Right => new Vector3i(1, 0, 0);
+        public static Vector3i Left => new Vector3i(-1, 0, 0);
+        public static Vector3i Forward => new Vector3i(0, 0, 1);
+        public static Vector3i Backward => new Vector3i(0, 0, -1);
 
         // ----------------------------
         // Math
@@ -46,9 +46,9 @@ namespace Nebula
             return new Vector3(X, Y, Z);
         }
 
-        public static Vec3i FromVector3(Vector3 v)
+        public static Vector3i FromVector3(Vector3 v)
         {
-            return new Vec3i(
+            return new Vector3i(
                 (int)MathF.Floor(v.X),
                 (int)MathF.Floor(v.Y),
                 (int)MathF.Floor(v.Z)
@@ -59,12 +59,12 @@ namespace Nebula
         // Static helpers
         // ----------------------------
 
-        public static int Dot(Vec3i a, Vec3i b)
+        public static int Dot(Vector3i a, Vector3i b)
         {
             return a.X * b.X + a.Y * b.Y + a.Z * b.Z;
         }
 
-        public static int DistanceSquared(Vec3i a, Vec3i b)
+        public static int DistanceSquared(Vector3i a, Vector3i b)
         {
             return (a - b).LengthSquared();
         }
@@ -73,33 +73,33 @@ namespace Nebula
         // Operators
         // ----------------------------
 
-        public static Vec3i operator +(Vec3i a, Vec3i b)
-            => new Vec3i(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+        public static Vector3i operator +(Vector3i a, Vector3i b)
+            => new Vector3i(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
 
-        public static Vec3i operator -(Vec3i a, Vec3i b)
-            => new Vec3i(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+        public static Vector3i operator -(Vector3i a, Vector3i b)
+            => new Vector3i(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
 
-        public static Vec3i operator -(Vec3i v)
-            => new Vec3i(-v.X, -v.Y, -v.Z);
+        public static Vector3i operator -(Vector3i v)
+            => new Vector3i(-v.X, -v.Y, -v.Z);
 
-        public static Vec3i operator *(Vec3i v, int scalar)
-            => new Vec3i(v.X * scalar, v.Y * scalar, v.Z * scalar);
+        public static Vector3i operator *(Vector3i v, int scalar)
+            => new Vector3i(v.X * scalar, v.Y * scalar, v.Z * scalar);
 
-        public static Vec3i operator *(int scalar, Vec3i v)
+        public static Vector3i operator *(int scalar, Vector3i v)
             => v * scalar;
 
-        public static Vec3i operator /(Vec3i v, int scalar)
-            => new Vec3i(v.X / scalar, v.Y / scalar, v.Z / scalar);
+        public static Vector3i operator /(Vector3i v, int scalar)
+            => new Vector3i(v.X / scalar, v.Y / scalar, v.Z / scalar);
 
-        public static bool operator ==(Vec3i a, Vec3i b)
+        public static bool operator ==(Vector3i a, Vector3i b)
             => a.X == b.X && a.Y == b.Y && a.Z == b.Z;
 
-        public static bool operator !=(Vec3i a, Vec3i b)
+        public static bool operator !=(Vector3i a, Vector3i b)
             => !(a == b);
 
         public override bool Equals(object obj)
         {
-            if (obj is not Vec3i v)
+            if (obj is not Vector3i v)
                 return false;
 
             return this == v;

@@ -45,11 +45,11 @@
   <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Dist|x64' ">
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Source\Attributes.cs">
+      <Link>Source\Attributes.cs</Link>
+    </Compile>
     <Compile Include="..\Source\Components.cs">
       <Link>Source\Components.cs</Link>
-    </Compile>
-    <Compile Include="..\Source\Console.cs">
-      <Link>Source\Console.cs</Link>
     </Compile>
     <Compile Include="..\Source\Coroutine.cs">
       <Link>Source\Coroutine.cs</Link>
@@ -69,11 +69,20 @@
     <Compile Include="..\Source\MathUtil.cs">
       <Link>Source\MathUtil.cs</Link>
     </Compile>
+    <Compile Include="..\Source\Physics.cs">
+      <Link>Source\Physics.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\Quaternion.cs">
+      <Link>Source\Quaternion.cs</Link>
+    </Compile>
     <Compile Include="..\Source\ScriptBehavior.cs">
       <Link>Source\ScriptBehavior.cs</Link>
     </Compile>
     <Compile Include="..\Source\ScriptEntity.cs">
       <Link>Source\ScriptEntity.cs</Link>
+    </Compile>
+    <Compile Include="..\Source\Time.cs">
+      <Link>Source\Time.cs</Link>
     </Compile>
     <Compile Include="..\Source\Vector2.cs">
       <Link>Source\Vector2.cs</Link>

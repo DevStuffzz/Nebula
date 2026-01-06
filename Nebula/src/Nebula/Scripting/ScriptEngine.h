@@ -90,6 +90,7 @@ namespace Nebula {
 		void InvokeOnDestroy();
 
 		Ref<ScriptClass> GetScriptClass() { return m_ScriptClass; }
+		MonoObject* GetManagedObject() { return m_Instance; }
 
 		template<typename T>
 		T GetFieldValue(const std::string& name)
@@ -125,6 +126,7 @@ namespace Nebula {
 		inline static char s_FieldValueBuffer[16];
 
 		friend class ScriptEngine;
+		friend class ScriptGlue;
 		friend struct ScriptFieldInstance;
 	};
 

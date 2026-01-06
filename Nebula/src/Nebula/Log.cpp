@@ -8,7 +8,7 @@ namespace Nebula {
 	std::shared_ptr<spdlog::logger> Log::s_ClientLogger;
 	std::shared_ptr<spdlog::logger> Log::s_CosmicLogger;
 
-
+	std::shared_ptr<std::vector<LogMessage>> Log::s_Messages = std::make_shared<std::vector<LogMessage>>();
 
 	void Log::Init() {
 		spdlog::set_pattern("%^[%T] %n: %v%$");

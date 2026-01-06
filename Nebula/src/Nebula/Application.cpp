@@ -84,6 +84,13 @@ void Application::PushOverlay(Layer* overlay)
 			Timestep timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
 
+			// Update time values
+			m_UnscaledDeltaTime = timestep;
+			m_UnscaledTime = time;
+			m_DeltaTime = timestep * m_TimeScale;
+			m_Time += m_DeltaTime;
+			m_FrameCount++;
+
 			RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
 			RenderCommand::Clear();
 

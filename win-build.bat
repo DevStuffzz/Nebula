@@ -4,6 +4,14 @@ setlocal
 echo Building Nebula Engine...
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
 
+echo Building NebulaScriptCore...
+call win-build-scriptcore.bat
+if %ERRORLEVEL% NEQ 0 (
+    echo NebulaScriptCore build failed!
+    pause
+    exit /b %ERRORLEVEL%
+)
+
 echo Building Nebula core projects (incremental)...
 MSBuild.exe Nebula\Nebula.vcxproj /p:Configuration=Debug /p:Platform=x64 /v:minimal /m
 if %ERRORLEVEL% NEQ 0 (

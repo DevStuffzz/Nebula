@@ -2,122 +2,173 @@ using System;
 
 namespace Nebula
 {
-    public struct Vec2
+    public struct Vector2
     {
-        public float X, Y;
+        public float x, y;
 
-        public Vec2(float x, float y)
+        // Uppercase aliases for compatibility
+        public float X { get => x; set => x = value; }
+        public float Y { get => y; set => y = value; }
+
+        public Vector2(float x, float y)
         {
-            X = x;
-            Y = y;
+            this.x = x;
+            this.y = y;
         }
 
-        public static Vec2 Zero => new Vec2(0f, 0f);
-        public static Vec2 One => new Vec2(1f, 1f);
+        public static Vector2 zero => new Vector2(0f, 0f);
+        public static Vector2 one => new Vector2(1f, 1f);
+        public static Vector2 Zero => zero;
+        public static Vector2 One => one;
 
-        public static Vec2 Up => new Vec2(0f, 1f);
-        public static Vec2 Down => new Vec2(0f, -1f);
-        public static Vec2 Right => new Vec2(1f, 0f);
-        public static Vec2 Left => new Vec2(-1f, 0f);
+        public static Vector2 up => new Vector2(0f, 1f);
+        public static Vector2 down => new Vector2(0f, -1f);
+        public static Vector2 right => new Vector2(1f, 0f);
+        public static Vector2 left => new Vector2(-1f, 0f);
 
         // ----------------------------
         // Length
         // ----------------------------
 
-        public float Length()
-        {
-            return MathF.Sqrt(X * X + Y * Y);
-        }
+        public float magnitude => MathF.Sqrt(x * x + y * y);
+        public float sqrMagnitude => x * x + y * y;
+        
+        // Uppercase aliases
+        public float Length() => magnitude;
+        public float SqrMagnitude() => sqrMagnitude;
 
-        public float LengthSquared()
+        public Vector2 normalized
         {
-            return X * X + Y * Y;
+            get
+            {
+                float length = magnitude;
+                if (length == 0f)
+                    return zero;
+                return this / length;
+            }
         }
-
-        public Vec2 Normalized()
-        {
-            float length = Length();
-            if (length == 0f)
-                return Zero;
-
-            return this / length;
-        }
+        
+        public Vector2 Normalized() => normalized;
 
         public void Normalize()
         {
-            float length = Length();
+            float length = magnitude;
             if (length == 0f)
                 return;
 
-            X /= length;
-            Y /= length;
+            x /= length;
+            y /= length;
         }
 
         // ----------------------------
         // Static helpers
         // ----------------------------
 
-        public static float Dot(Vec2 a, Vec2 b)
+        public static float Dot(Vector2 a, Vector2 b)
         {
-            return a.X * b.X + a.Y * b.Y;
+            return a.x * b.x + a.y * b.y;
         }
 
-        public static float Distance(Vec2 a, Vec2 b)
+        public static float Distance(Vector2 a, Vector2 b)
         {
-            return (a - b).Length();
+            return (a - b).magnitude;
         }
 
-        public static float DistanceSquared(Vec2 a, Vec2 b)
-        {
-            return (a - b).LengthSquared();
-        }
-
-        public static Vec2 Lerp(Vec2 a, Vec2 b, float t)
+        public static Vector2 Lerp(Vector2 a, Vector2 b, float t)
         {
             t = Math.Clamp(t, 0f, 1f);
             return a + (b - a) * t;
         }
 
-        public static Vec2 ClampMagnitude(Vec2 v, float maxLength)
+        public static Vector2 LerpUnclamped(Vector2 a, Vector2 b, float t)
         {
-            float length = v.Length();
+            return a + (b - a) * t;
+        }
+
+        public static Vector2 MoveTowards(Vector2 current, Vector2 target, float maxDistanceDelta)
+        {
+            Vector2 delta = target - current;
+            float dist = delta.magnitude;
+
+            if (dist <= maxDistanceDelta || dist == 0f)
+                return target;
+
+            return current + delta / dist * maxDistanceDelta;
+        }
+
+        public static Vector2 ClampMagnitude(Vector2 v, float maxLength)
+        {
+            float length = v.magnitude;
             if (length > maxLength)
-                return v.Normalized() * maxLength;
+                return v.normalized * maxLength;
 
             return v;
+        }
+
+        public static Vector2 Scale(Vector2 a, Vector2 b)
+        {
+            return new Vector2(a.x * b.x, a.y * b.y);
+        }
+
+        public static Vector2 Reflect(Vector2 v, Vector2 normal)
+        {
+            Vector2 n = normal.normalized;
+            return v - 2f * Dot(v, n) * n;
+        }
+
+        public static Vector2 Perpendicular(Vector2 v)
+        {
+            return new Vector2(-v.y, v.x);
+        }
+
+        public static float Angle(Vector2 from, Vector2 to)
+        {
+            float dot = Dot(from.normalized, to.normalized);
+            return MathF.Acos(Math.Clamp(dot, -1f, 1f)) * 180f / MathF.PI;
+        }
+
+        public static float SignedAngle(Vector2 from, Vector2 to)
+        {
+            float angle = Angle(from, to);
+            float sign = MathF.Sign(from.x * to.y - from.y * to.x);
+            return angle * sign;
         }
 
         // ----------------------------
         // Operators
         // ----------------------------
 
-        public static Vec2 operator +(Vec2 a, Vec2 b)
-            => new Vec2(a.X + b.X, a.Y + b.Y);
+        public static Vector2 operator +(Vector2 a, Vector2 b)
+            => new Vector2(a.x + b.x, a.y + b.y);
 
-        public static Vec2 operator -(Vec2 a, Vec2 b)
-            => new Vec2(a.X - b.X, a.Y - b.Y);
+        public static Vector2 operator -(Vector2 a, Vector2 b)
+            => new Vector2(a.x - b.x, a.y - b.y);
 
-        public static Vec2 operator -(Vec2 v)
-            => new Vec2(-v.X, -v.Y);
+        public static Vector2 operator -(Vector2 v)
+            => new Vector2(-v.x, -v.y);
 
-        public static Vec2 operator *(Vec2 v, float scalar)
-            => new Vec2(v.X * scalar, v.Y * scalar);
+        public static Vector2 operator *(Vector2 v, float scalar)
+            => new Vector2(v.x * scalar, v.y * scalar);
 
-        public static Vec2 operator *(float scalar, Vec2 v)
+        public static Vector2 operator *(float scalar, Vector2 v)
             => v * scalar;
 
-        public static Vec2 operator /(Vec2 v, float scalar)
-            => new Vec2(v.X / scalar, v.Y / scalar);
+        public static Vector2 operator /(Vector2 v, float scalar)
+            => new Vector2(v.x / scalar, v.y / scalar);
 
-        public static bool operator ==(Vec2 a, Vec2 b)
-            => a.X == b.X && a.Y == b.Y;
+        public static bool operator ==(Vector2 a, Vector2 b)
+        {
+            float dx = a.x - b.x;
+            float dy = a.y - b.y;
+            return (dx * dx + dy * dy) < 0.0000001f;
+        }
 
-        public static bool operator !=(Vec2 a, Vec2 b)
+        public static bool operator !=(Vector2 a, Vector2 b)
             => !(a == b);
 
         public override bool Equals(object obj)
         {
-            if (obj is not Vec2 v)
+            if (obj is not Vector2 v)
                 return false;
 
             return this == v;
@@ -125,12 +176,17 @@ namespace Nebula
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(X, Y);
+            return HashCode.Combine(x, y);
         }
 
         public override string ToString()
         {
-            return $"({X}, {Y})";
+            return $"({x}, {y})";
+        }
+
+        public string ToString(string format)
+        {
+            return $"({x.ToString(format)}, {y.ToString(format)})";
         }
     }
 }

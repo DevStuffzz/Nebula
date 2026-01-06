@@ -2,10 +2,10 @@ using System.Runtime.CompilerServices;
 
 namespace Nebula
 {
-    public static class Console
+    public static class Log
     {
         [MethodImpl(MethodImplOptions.InternalCall)]
-        public static extern void Log(string message);
+        public static extern void LogInfo(string message);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern void LogWarning(string message);

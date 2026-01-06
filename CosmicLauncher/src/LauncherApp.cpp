@@ -261,7 +261,7 @@ private:
 			exampleScript << "        public float Speed = 5.0f;\n\n";
 			exampleScript << "        public override void OnCreate()\n";
 			exampleScript << "        {\n";
-			exampleScript << "            Console.Log(\"TopDownController created!\");\n";
+			exampleScript << "            Log.LogInfo(\"TopDownController created!\");\n";
 			exampleScript << "        }\n\n";
 			exampleScript << "        public override void OnUpdate(float deltaTime)\n";
 			exampleScript << "        {\n";

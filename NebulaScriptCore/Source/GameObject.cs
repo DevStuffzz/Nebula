@@ -59,7 +59,7 @@ namespace Nebula
         {
             if (prefab == null)
             {
-                Console.LogError("Cannot instantiate null prefab");
+                Log.LogError("Cannot instantiate null prefab");
                 return null;
             }
 
@@ -91,7 +91,7 @@ namespace Nebula
         {
             if (entity == null)
             {
-                Console.LogWarning("Cannot destroy null entity");
+                Log.LogWarning("Cannot destroy null entity");
                 return;
             }
 
@@ -103,9 +103,145 @@ namespace Nebula
         /// </summary>
         public static void Destroy(ScriptEntity entity, float delay)
         {
-            // TODO: Implement delayed destruction
-            Console.LogWarning("Destroy with delay not yet implemented, destroying immediately");
-            Destroy(entity);
+            if (entity == null)
+            {
+                Log.LogWarning("Cannot destroy null entity");
+                return;
+            }
+
+            InternalCalls.Entity_DestroyDelayed(entity.ID, delay);
         }
+
+        /// <summary>
+        /// Finds a GameObject by tag
+        /// </summary>
+        public static ScriptEntity FindWithTag(string tag)
+        {
+            uint entityID = InternalCalls.Entity_FindByTag(tag);
+            if (entityID == 0)
+                return null;
+
+            return new ScriptEntity { ID = entityID };
+        }
+
+        /// <summary>
+        /// Finds all GameObjects with the specified tag
+        /// </summary>
+        public static ScriptEntity[] FindGameObjectsWithTag(string tag)
+        {
+            uint[] entityIDs = InternalCalls.Entity_FindAllByTag(tag);
+            if (entityIDs == null || entityIDs.Length == 0)
+                return new ScriptEntity[0];
+
+            ScriptEntity[] entities = new ScriptEntity[entityIDs.Length];
+            for (int i = 0; i < entityIDs.Length; i++)
+            {
+                entities[i] = new ScriptEntity { ID = entityIDs[i] };
+            }
+
+            return entities;
+        }
+    }
+
+    internal static class InternalCalls
+    {
+        // Transform methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_GetPosition(uint entityID, out Vector3 position);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetPosition(uint entityID, ref Vector3 position);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_GetRotation(uint entityID, out Vector3 rotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetRotation(uint entityID, ref Vector3 rotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_GetScale(uint entityID, out Vector3 scale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetScale(uint entityID, ref Vector3 scale);
+
+        // Component methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_HasComponent(uint entityID, Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_GetComponent(uint entityID, Type componentType, object outComponent);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_AddComponent(uint entityID, Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_RemoveComponent(uint entityID, Type componentType);
+
+        // Entity management
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string Entity_GetName(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetName(uint entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint[] Entity_GetAllEntitiesWithComponent(Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Entity_FindByName(string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Entity_FindByTag(string tag);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint[] Entity_FindAllByTag(string tag);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Entity_Instantiate(uint prefabID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_Destroy(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_DestroyDelayed(uint entityID, float delay);
+
+        // Script methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern object Entity_GetScriptInstance(uint entityID, Type scriptType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern object Entity_GetScriptByName(uint entityID, string className);
+
+        // Tag/Active methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string Entity_GetTag(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetTag(uint entityID, string tag);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_GetActiveSelf(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_GetActiveInHierarchy(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetActive(uint entityID, bool active);
+
+        // Hierarchy methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Entity_GetParent(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetParent(uint entityID, uint parentID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetParentWithTransform(uint entityID, uint parentID, bool worldPositionStays);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern int Entity_GetChildCount(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Entity_GetChild(uint entityID, int index);
     }
 }

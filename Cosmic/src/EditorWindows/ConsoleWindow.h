@@ -8,30 +8,22 @@
 
 namespace Cosmic {
 
-	enum class LogLevel
-	{
-		Info,
-		Warning,
-		Error
-	};
 
-	struct LogMessage
-	{
-		std::string Message;
-		LogLevel Level;
-	};
 
 	class ConsoleWindow
 	{
 	public:
 		static void OnImGuiRender()
 		{
+			auto& messages = Nebula::Log::GetClientMessages();
+
+
 			Nebula::NebulaGui::Begin("Console");
 
 			// Clear button
 			if (Nebula::NebulaGui::Button("Clear"))
 			{
-				s_Messages.clear();
+				Nebula::Log::ClearClientMessages();
 			}
 
 			Nebula::NebulaGui::SameLine();
@@ -40,7 +32,7 @@ namespace Cosmic {
 			if (Nebula::NebulaGui::Button("Copy All"))
 			{
 				std::string allText;
-				for (const auto& msg : s_Messages)
+				for (const auto& msg : *messages)
 				{
 					allText += msg.Message + "\n";
 				}
@@ -50,20 +42,23 @@ namespace Cosmic {
 			Nebula::NebulaGui::Separator();
 
 			// Display messages with context menu for copying
-			for (size_t i = 0; i < s_Messages.size(); i++)
+			for (size_t i = 0; i < messages->size(); i++)
 			{
-				const auto& msg = s_Messages[i];
+				const auto& msg = messages->at(i);
 				glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 				
 				switch (msg.Level)
 				{
-				case LogLevel::Info:
+				case Nebula::LogLevel::LOG_TRACE:
 					color = { 0.7f, 0.7f, 0.7f, 1.0f };
 					break;
-				case LogLevel::Warning:
+				case Nebula::LogLevel::LOG_INFO:
+					color = { 0.3f, 0.7f, 0.7f, 1.0f };
+					break;
+				case Nebula::LogLevel::LOG_WARN:
 					color = { 1.0f, 0.8f, 0.0f, 1.0f };
 					break;
-				case LogLevel::Error:
+				case Nebula::LogLevel::LOG_ERROR:
 					color = { 1.0f, 0.2f, 0.2f, 1.0f };
 					break;
 				}
@@ -91,27 +86,29 @@ namespace Cosmic {
 			Nebula::NebulaGui::End();
 		}
 
-		static void AddLog(const std::string& message, LogLevel level = LogLevel::Info)
+		static void AddLog(Nebula::LogMessage message)
 		{
-			s_Messages.push_back({ message, level });
+			auto& messages = Nebula::Log::GetClientMessages();
 			
 			// Limit console history to prevent memory issues
-			if (s_Messages.size() > 1000)
+			if (messages->size() > 1000)
 			{
-				s_Messages.erase(s_Messages.begin());
+				messages->erase(messages->begin());
 			}
+			messages->push_back(message);
+		}
+
+		static void AddLog(const std::string& message, Nebula::LogLevel level)
+		{
+			AddLog(Nebula::LogMessage(message, level));
 		}
 
 		static void Clear()
 		{
-			s_Messages.clear();
+			Nebula::Log::ClearClientMessages();
 		}
 
-	private:
-		static std::vector<LogMessage> s_Messages;
 	};
 
-	// Static member initialization
-	inline std::vector<LogMessage> ConsoleWindow::s_Messages;
 
 }

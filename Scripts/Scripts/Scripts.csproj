@@ -45,15 +45,6 @@
   <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Dist|x64' ">
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\EnemySpawner.cs">
-      <Link>EnemySpawner.cs</Link>
-    </Compile>
-    <Compile Include="..\ExampleScript.cs">
-      <Link>ExampleScript.cs</Link>
-    </Compile>
-    <Compile Include="..\PlayerController.cs">
-      <Link>PlayerController.cs</Link>
-    </Compile>
     <Compile Include="obj\Debug\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs" />
     <Compile Include="obj\Debug\net8.0\Scripts.AssemblyInfo.cs" />
   </ItemGroup>

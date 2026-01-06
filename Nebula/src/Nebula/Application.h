@@ -31,6 +31,15 @@ namespace Nebula {
 
 	inline static Application& Get() { return *s_Instance; }
 
+	// Time management
+	inline float GetDeltaTime() const { return m_DeltaTime; }
+	inline float GetTime() const { return m_Time; }
+	inline float GetUnscaledTime() const { return m_UnscaledTime; }
+	inline float GetUnscaledDeltaTime() const { return m_UnscaledDeltaTime; }
+	inline float GetTimeScale() const { return m_TimeScale; }
+	inline void SetTimeScale(float scale) { m_TimeScale = scale; }
+	inline int GetFrameCount() const { return m_FrameCount; }
+
 private:
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
@@ -42,6 +51,12 @@ private:
 	bool m_Running = true;		LayerStack m_LayerStack;
 		
 		float m_LastFrameTime = 0.0f;
+		float m_DeltaTime = 0.0f;
+		float m_Time = 0.0f;
+		float m_UnscaledTime = 0.0f;
+		float m_UnscaledDeltaTime = 0.0f;
+		float m_TimeScale = 1.0f;
+		int m_FrameCount = 0;
 
 	private:
 		static Application* s_Instance;

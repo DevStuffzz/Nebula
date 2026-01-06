@@ -11,6 +11,7 @@
 #include "Platform/OpenGL/OpenGLSkybox.h"
 #include "Nebula/Application.h"
 #include "Nebula/Scripting/ScriptEngine.h"
+#include "Nebula/Scripting/ScriptGlue.h"
 #include "Nebula/Physics/PhysicsWorld.h"
 #include "Nebula/Physics/PhysicsDebugDraw.h"
 #include "Nebula/Audio/AudioEngine.h"
@@ -175,6 +176,9 @@ namespace Nebula {
 
 		// Update C# scripts
 	{
+		ScriptGlue::Update(deltaTime); // Update delayed destroys and other systems
+		ScriptGlue::UpdateMouseState(); // Update mouse delta
+		
 		auto view = m_Registry.view<ScriptComponent>();
 		for (auto entity : view)
 		{

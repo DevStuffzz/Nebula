@@ -7,6 +7,8 @@ namespace Nebula {
 	public:
 		static void RegisterFunctions();
 		static void RegisterComponents();
+		static void Update(float deltaTime);
+		static void UpdateMouseState();
 	};
 
 }

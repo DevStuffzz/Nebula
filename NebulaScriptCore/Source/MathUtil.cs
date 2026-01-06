@@ -27,10 +27,10 @@ namespace Nebula
         // v - 2 * dot(v, n) * n
         // ----------------------------
 
-        public static Vec2 Reflect(Vec2 v, Vec2 normal)
+        public static Vector2 Reflect(Vector2 v, Vector2 normal)
         {
-            Vec2 n = normal.Normalized();
-            return v - 2f * Vec2.Dot(v, n) * n;
+            Vector2 n = normal.Normalized();
+            return v - 2f * Vector2.Dot(v, n) * n;
         }
 
         public static Vector3 Reflect(Vector3 v, Vector3 normal)
@@ -39,30 +39,30 @@ namespace Nebula
             return v - 2f * Vector3.Dot(v, n) * n;
         }
 
-        public static Vec2i Reflect(Vec2i v, Vec2i normal)
+        public static Vector2i Reflect(Vector2i v, Vector2i normal)
         {
             // Integer reflection: convert to float, reflect, round back
-            Vec2 result = Reflect(v.ToVec2(), normal.ToVec2());
-            return Vec2i.FromVec2(result);
+            Vector2 result = Reflect(v.ToVec2(), normal.ToVec2());
+            return Vector2i.FromVec2(result);
         }
 
-        public static Vec3i Reflect(Vec3i v, Vec3i normal)
+        public static Vector3i Reflect(Vector3i v, Vector3i normal)
         {
             Vector3 result = Reflect(v.ToVector3(), normal.ToVector3());
-            return Vec3i.FromVector3(result);
+            return Vector3i.FromVector3(result);
         }
 
         // ----------------------------
         // Project
         // ----------------------------
 
-        public static Vec2 Project(Vec2 v, Vec2 onNormal)
+        public static Vector2 Project(Vector2 v, Vector2 onNormal)
         {
-            float denom = Vec2.Dot(onNormal, onNormal);
+            float denom = Vector2.Dot(onNormal, onNormal);
             if (denom == 0f)
-                return Vec2.Zero;
+                return Vector2.Zero;
 
-            return onNormal * (Vec2.Dot(v, onNormal) / denom);
+            return onNormal * (Vector2.Dot(v, onNormal) / denom);
         }
 
         public static Vector3 Project(Vector3 v, Vector3 onNormal)
@@ -86,9 +86,9 @@ namespace Nebula
             return current + Math.Sign(target - current) * maxDelta;
         }
 
-        public static Vec2 MoveTowards(Vec2 current, Vec2 target, float maxDelta)
+        public static Vector2 MoveTowards(Vector2 current, Vector2 target, float maxDelta)
         {
-            Vec2 delta = target - current;
+            Vector2 delta = target - current;
             float dist = delta.Length();
 
             if (dist <= maxDelta || dist == 0f)
@@ -118,7 +118,7 @@ namespace Nebula
             return a + (b - a) * t;
         }
 
-        public static Vec2 Lerp(Vec2 a, Vec2 b, float t)
+        public static Vector2 Lerp(Vector2 a, Vector2 b, float t)
         {
             t = Clamp(t, 0f, 1f);
             return a + (b - a) * t;
@@ -134,31 +134,31 @@ namespace Nebula
         // Abs
         // ----------------------------
 
-        public static Vec2i Abs(Vec2i v)
+        public static Vector2i Abs(Vector2i v)
         {
-            return new Vec2i(Math.Abs(v.X), Math.Abs(v.Y));
+            return new Vector2i(Math.Abs(v.X), Math.Abs(v.Y));
         }
 
-        public static Vec3i Abs(Vec3i v)
+        public static Vector3i Abs(Vector3i v)
         {
-            return new Vec3i(Math.Abs(v.X), Math.Abs(v.Y), Math.Abs(v.Z));
+            return new Vector3i(Math.Abs(v.X), Math.Abs(v.Y), Math.Abs(v.Z));
         }
 
         // ----------------------------
         // Min / Max
         // ----------------------------
 
-        public static Vec2 Min(Vec2 a, Vec2 b)
+        public static Vector2 Min(Vector2 a, Vector2 b)
         {
-            return new Vec2(
+            return new Vector2(
                 MathF.Min(a.X, b.X),
                 MathF.Min(a.Y, b.Y)
             );
         }
 
-        public static Vec2 Max(Vec2 a, Vec2 b)
+        public static Vector2 Max(Vector2 a, Vector2 b)
         {
-            return new Vec2(
+            return new Vector2(
                 MathF.Max(a.X, b.X),
                 MathF.Max(a.Y, b.Y)
             );
@@ -182,34 +182,34 @@ namespace Nebula
             );
         }
 
-        public static Vec2i Min(Vec2i a, Vec2i b)
+        public static Vector2i Min(Vector2i a, Vector2i b)
         {
-            return new Vec2i(
+            return new Vector2i(
                 Math.Min(a.X, b.X),
                 Math.Min(a.Y, b.Y)
             );
         }
 
-        public static Vec2i Max(Vec2i a, Vec2i b)
+        public static Vector2i Max(Vector2i a, Vector2i b)
         {
-            return new Vec2i(
+            return new Vector2i(
                 Math.Max(a.X, b.X),
                 Math.Max(a.Y, b.Y)
             );
         }
 
-        public static Vec3i Min(Vec3i a, Vec3i b)
+        public static Vector3i Min(Vector3i a, Vector3i b)
         {
-            return new Vec3i(
+            return new Vector3i(
                 Math.Min(a.X, b.X),
                 Math.Min(a.Y, b.Y),
                 Math.Min(a.Z, b.Z)
             );
         }
 
-        public static Vec3i Max(Vec3i a, Vec3i b)
+        public static Vector3i Max(Vector3i a, Vector3i b)
         {
-            return new Vec3i(
+            return new Vector3i(
                 Math.Max(a.X, b.X),
                 Math.Max(a.Y, b.Y),
                 Math.Max(a.Z, b.Z)

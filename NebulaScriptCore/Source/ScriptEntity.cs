@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Nebula
@@ -49,6 +50,74 @@ namespace Nebula
                 InternalCalls.Entity_SetScale(entityID, ref value);
             }
         }
+
+        public Vector3 forward
+        {
+            get
+            {
+                // Calculate forward vector from rotation
+                Quaternion q = Quaternion.Euler(rotation);
+                return q * Vector3.Forward;
+            }
+        }
+
+        public Vector3 right
+        {
+            get
+            {
+                Quaternion q = Quaternion.Euler(rotation);
+                return q * Vector3.Right;
+            }
+        }
+
+        public Vector3 up
+        {
+            get
+            {
+                Quaternion q = Quaternion.Euler(rotation);
+                return q * Vector3.Up;
+            }
+        }
+
+        // Hierarchy
+        public Transform parent
+        {
+            get
+            {
+                uint parentID = InternalCalls.Entity_GetParent(entityID);
+                if (parentID == 0)
+                    return null;
+                return new Transform(parentID);
+            }
+            set
+            {
+                uint parentID = value?.entityID ?? 0;
+                InternalCalls.Entity_SetParent(entityID, parentID);
+            }
+        }
+
+        public int childCount
+        {
+            get { return InternalCalls.Entity_GetChildCount(entityID); }
+        }
+
+        public Transform GetChild(int index)
+        {
+            uint childID = InternalCalls.Entity_GetChild(entityID, index);
+            if (childID == 0)
+                return null;
+            return new Transform(childID);
+        }
+
+        public void SetParent(Transform parent)
+        {
+            this.parent = parent;
+        }
+
+        public void SetParent(Transform parent, bool worldPositionStays)
+        {
+            InternalCalls.Entity_SetParentWithTransform(entityID, parent?.entityID ?? 0, worldPositionStays);
+        }
     }
 
     public class ScriptEntity
@@ -72,15 +141,52 @@ namespace Nebula
             set { InternalCalls.Entity_SetName(ID, value); }
         }
 
-        protected ScriptEntity() { }
+        public string tag
+        {
+            get { return InternalCalls.Entity_GetTag(ID); }
+            set { InternalCalls.Entity_SetTag(ID, value); }
+        }
+
+        public bool activeSelf
+        {
+            get { return InternalCalls.Entity_GetActiveSelf(ID); }
+        }
+
+        public bool activeInHierarchy
+        {
+            get { return InternalCalls.Entity_GetActiveInHierarchy(ID); }
+        }
+
+        public void SetActive(bool active)
+        {
+            InternalCalls.Entity_SetActive(ID, active);
+        }
+
+        internal ScriptEntity() { }
 
         // Unity-like component access methods
-        public T GetComponent<T>() where T : class, new()
+        public T GetComponent<T>() where T : class
         {
+            // Handle Transform specially (returns wrapper)
+            if (typeof(T) == typeof(Transform))
+                return transform as T;
+
+            // Handle ScriptBehavior subclasses (returns script instance)
+            if (typeof(ScriptBehavior).IsAssignableFrom(typeof(T)))
+            {
+                if (!HasComponent<T>())
+                    return null;
+
+                object scriptInstance = InternalCalls.Entity_GetScriptInstance(ID, typeof(T));
+                return scriptInstance as T;
+            }
+
+            // Handle regular data components
             if (!HasComponent<T>())
                 return null;
 
-            T component = new T();
+            // Requires parameterless constructor for data components
+            T component = System.Activator.CreateInstance<T>();
             if (!InternalCalls.Entity_GetComponent(ID, typeof(T), component))
                 return null;
 
@@ -92,11 +198,11 @@ namespace Nebula
             return InternalCalls.Entity_HasComponent(ID, typeof(T));
         }
 
-        public T AddComponent<T>() where T : class, new()
+        public T AddComponent<T>() where T : class
         {
             if (HasComponent<T>())
             {
-                Console.LogWarning($"Entity already has component of type {typeof(T).Name}");
+                Log.LogWarning($"Entity already has component of type {typeof(T).Name}");
                 return GetComponent<T>();
             }
 
@@ -108,11 +214,34 @@ namespace Nebula
         {
             if (!HasComponent<T>())
             {
-                Console.LogWarning($"Entity does not have component of type {typeof(T).Name}");
+                Log.LogWarning($"Entity does not have component of type {typeof(T).Name}");
                 return;
             }
 
             InternalCalls.Entity_RemoveComponent(ID, typeof(T));
+        }
+
+        // GetScript methods for accessing script instances
+        public T GetScript<T>() where T : ScriptBehavior
+        {
+            return GetComponent<T>();
+        }
+
+        public ScriptBehavior GetScript(string className)
+        {
+            object scriptInstance = InternalCalls.Entity_GetScriptByName(ID, className);
+            return scriptInstance as ScriptBehavior;
+        }
+
+        public T GetScriptByName<T>(string className) where T : ScriptBehavior
+        {
+            object scriptInstance = InternalCalls.Entity_GetScriptByName(ID, className);
+            return scriptInstance as T;
+        }
+
+        public bool CompareTag(string tag)
+        {
+            return this.tag == tag;
         }
 
         // Legacy methods for backward compatibility
@@ -148,56 +277,5 @@ namespace Nebula
         {
             InternalCalls.Entity_SetScale(ID, ref scale);
         }
-    }
-
-    internal static class InternalCalls
-    {
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_GetPosition(uint entityID, out Vector3 position);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_SetPosition(uint entityID, ref Vector3 position);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_GetRotation(uint entityID, out Vector3 rotation);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_SetRotation(uint entityID, ref Vector3 rotation);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_GetScale(uint entityID, out Vector3 scale);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_SetScale(uint entityID, ref Vector3 scale);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool Entity_HasComponent(uint entityID, Type componentType);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool Entity_GetComponent(uint entityID, Type componentType, object outComponent);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_AddComponent(uint entityID, Type componentType);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_RemoveComponent(uint entityID, Type componentType);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern string Entity_GetName(uint entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_SetName(uint entityID, string name);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern uint[] Entity_GetAllEntitiesWithComponent(Type componentType);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern uint Entity_FindByName(string name);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern uint Entity_Instantiate(uint prefabID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_Destroy(uint entityID);
     }
 }

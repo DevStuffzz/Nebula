@@ -598,7 +598,7 @@ namespace Cosmic {
 			// Check if scene is saved
 			if (m_CurrentScenePath.empty())
 			{
-				ConsoleWindow::AddLog("Cannot start runtime: You must save the scene before running.", LogLevel::Error);
+				ConsoleWindow::AddLog("Cannot start runtime: You must save the scene before running.", Nebula::LogLevel::LOG_ERROR);
 				NB_CORE_ERROR("Cannot start runtime: Scene must be saved first");
 				return;
 			}
@@ -607,7 +607,7 @@ namespace Cosmic {
 			std::string errorMessage;
 			if (!m_ActiveScene->ValidateAllScripts(errorMessage))
 			{
-				ConsoleWindow::AddLog("Cannot start runtime: " + errorMessage, LogLevel::Error);
+				ConsoleWindow::AddLog("Cannot start runtime: " + errorMessage, Nebula::LogLevel::LOG_ERROR);
 				NB_CORE_ERROR("Cannot start runtime: {0}", errorMessage);
 				return;
 			}
@@ -616,8 +616,8 @@ namespace Cosmic {
 			if (m_HasBuildErrors)
 			{
 				std::string buildError = Nebula::ScriptBuilder::GetLastBuildError();
-				ConsoleWindow::AddLog("Cannot start runtime: Scripts have build errors", LogLevel::Error);
-				ConsoleWindow::AddLog(buildError, LogLevel::Error);
+				ConsoleWindow::AddLog("Cannot start runtime: Scripts have build errors", Nebula::LogLevel::LOG_ERROR);
+				ConsoleWindow::AddLog(buildError, Nebula::LogLevel::LOG_ERROR);
 				NB_CORE_ERROR("Cannot start runtime: Build errors present");
 				return;
 			}
@@ -633,7 +633,7 @@ namespace Cosmic {
 			if (!m_ActiveScene)
 			{
 				NB_CORE_ERROR("Cannot start runtime: No active scene");
-				ConsoleWindow::AddLog("Cannot start runtime: No active scene", LogLevel::Error);
+				ConsoleWindow::AddLog("Cannot start runtime: No active scene", Nebula::LogLevel::LOG_ERROR);
 				m_RuntimeMode = false;
 				MenuBar::SetRuntimeMode(false);
 				return;
@@ -644,7 +644,7 @@ namespace Cosmic {
 			if (entities.empty())
 			{
 				NB_CORE_WARN("Starting runtime with empty scene");
-				ConsoleWindow::AddLog("Warning: Scene has no entities", LogLevel::Warning);
+				ConsoleWindow::AddLog("Warning: Scene has no entities", Nebula::LogLevel::LOG_WARN);
 			}
 
 			// Validate entities with script components have valid scripts
@@ -679,17 +679,17 @@ namespace Cosmic {
 			m_ActiveScene->OnRuntimeStart();
 
 			NB_CORE_INFO("Runtime started");
-			ConsoleWindow::AddLog("Runtime started", LogLevel::Info);
+			ConsoleWindow::AddLog("Runtime started", Nebula::LogLevel::LOG_INFO);
 			
 			// Log script entities for debugging
 			auto scriptView = m_ActiveScene->GetRegistry().view<Nebula::ScriptComponent>();
 			if (scriptView.size() > 0)
 			{
-				ConsoleWindow::AddLog(fmt::format("Found {} entities with scripts", scriptView.size()), LogLevel::Info);
+				ConsoleWindow::AddLog(fmt::format("Found {} entities with scripts", scriptView.size()), Nebula::LogLevel::LOG_INFO);
 			}
 			else
 			{
-				ConsoleWindow::AddLog("No script components found in scene", LogLevel::Warning);
+				ConsoleWindow::AddLog("No script components found in scene", Nebula::LogLevel::LOG_WARN);
 			}
 			
 			// Store the scene path so we can reload it when stopping
@@ -704,7 +704,7 @@ namespace Cosmic {
 		{
 			// Exiting runtime mode
 			NB_CORE_INFO("Runtime stopped");
-			ConsoleWindow::AddLog("Runtime stopped", LogLevel::Info);
+			ConsoleWindow::AddLog("Runtime stopped", Nebula::LogLevel::LOG_INFO);
 			
 			// Stop script runtime
 			if (m_ActiveScene)
@@ -815,13 +815,13 @@ namespace Cosmic {
 		std::ofstream scriptFile(scriptPath);
 		if (scriptFile.is_open())
 		{
-			scriptFile << R"(using NebulaScriptCore;
+			scriptFile << R"(using Nebula;
 
 public class ExampleScript : ScriptBehavior
 {
     public override void OnCreate()
     {
-        Console.Log("ExampleScript Created!");
+        Log.LogInfo("ExampleScript Created!");
     }
 
     public override void OnUpdate(float deltaTime)
@@ -872,7 +872,7 @@ public class ExampleScript : ScriptBehavior
 			if (filesChanged)
 			{
 				NB_CORE_INFO("Script file changes detected, rebuilding...");
-				ConsoleWindow::AddLog("Script changes detected, rebuilding...", LogLevel::Info);
+				ConsoleWindow::AddLog("Script changes detected, rebuilding...", Nebula::LogLevel::LOG_INFO);
 				m_LastScriptModifyTime = std::filesystem::file_time_type::clock::now();
 				RebuildScripts();
 			}
@@ -891,17 +891,17 @@ public class ExampleScript : ScriptBehavior
 		if (success)
 		{
 			m_HasBuildErrors = false;
-			ConsoleWindow::AddLog("Scripts rebuilt successfully!", LogLevel::Info);
+			ConsoleWindow::AddLog("Scripts rebuilt successfully!", Nebula::LogLevel::LOG_INFO);
 			NB_CORE_INFO("Scripts rebuilt successfully!");
 		}
 		else
 		{
 			m_HasBuildErrors = true;
 			std::string errorMsg = Nebula::ScriptBuilder::GetLastBuildError();
-			ConsoleWindow::AddLog("Script build failed!", LogLevel::Error);
+			ConsoleWindow::AddLog("Scripts build failed!", Nebula::LogLevel::LOG_ERROR);
 			if (!errorMsg.empty())
 			{
-				ConsoleWindow::AddLog(errorMsg, LogLevel::Error);
+				ConsoleWindow::AddLog(errorMsg, Nebula::LogLevel::LOG_ERROR);
 			}
 			NB_CORE_ERROR("Failed to rebuild scripts");
 		}
