@@ -26,7 +26,7 @@ namespace Nebula {
 		}
 	};
 
-	class NEBULA_API Log{
+	class NEBULA_API Log {
 	public:
 		static void Init();
 

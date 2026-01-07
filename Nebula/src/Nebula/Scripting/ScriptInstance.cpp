@@ -8,8 +8,6 @@
 
 namespace Nebula {
 
-	extern ScriptEngineData* s_Data;
-
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
 		: m_ScriptClass(scriptClass)
 	{

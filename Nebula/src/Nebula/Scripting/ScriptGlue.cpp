@@ -12,6 +12,8 @@
 #include "Nebula/Scene/Entity.h"
 #include "Nebula/Scene/Components.h"
 
+#include <btBulletDynamicsCommon.h>
+
 #include <mono/jit/jit.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/reflection.h>
@@ -47,7 +49,7 @@ namespace Nebula {
 	{
 		char* cStr = mono_string_to_utf8(message);
 		NB_CORE_ERROR("{0}", cStr);
-		Nebula::Log::LogClientMessage(cStr, LogLevel::LOG_ERROR);
+		Nebula::Log::LogClientMessage(cStr, LOG_ERROR);
 		mono_free(cStr);
 	}
 
@@ -289,28 +291,45 @@ namespace Nebula {
 		MonoType* managedType = mono_reflection_type_get_type(componentType);
 		MonoClass* monoClass = mono_type_get_class(managedType);
 		
+		const char* className = mono_class_get_name(monoClass);
+		
 		// Handle TransformComponent
-		if (entity.HasComponent<TransformComponent>())
+		if (strcmp(className, "TransformComponent") == 0 && entity.HasComponent<TransformComponent>())
 		{
-			const char* className = mono_class_get_name(monoClass);
-			if (strcmp(className, "TransformComponent") == 0)
-			{
-				auto& tc = entity.GetComponent<TransformComponent>();
-				
-				// Set fields
-				MonoClassField* posField = mono_class_get_field_from_name(monoClass, "Position");
-				MonoClassField* rotField = mono_class_get_field_from_name(monoClass, "Rotation");
-				MonoClassField* scaleField = mono_class_get_field_from_name(monoClass, "Scale");
-				
-				if (posField) mono_field_set_value(outComponent, posField, &tc.Position);
-				if (rotField) mono_field_set_value(outComponent, rotField, &tc.Rotation);
-				if (scaleField) mono_field_set_value(outComponent, scaleField, &tc.Scale);
-				
-				return true;
-			}
+			auto& tc = entity.GetComponent<TransformComponent>();
+			
+			// Set fields
+			MonoClassField* posField = mono_class_get_field_from_name(monoClass, "Position");
+			MonoClassField* rotField = mono_class_get_field_from_name(monoClass, "Rotation");
+			MonoClassField* scaleField = mono_class_get_field_from_name(monoClass, "Scale");
+			
+			if (posField) mono_field_set_value(outComponent, posField, &tc.Position);
+			if (rotField) mono_field_set_value(outComponent, rotField, &tc.Rotation);
+			if (scaleField) mono_field_set_value(outComponent, scaleField, &tc.Scale);
+			
+			NB_CORE_INFO("Entity_GetComponent: Successfully marshalled TransformComponent for entity {}", entityID);
+			return true;
+		}
+		
+		// Handle RigidBodyComponent
+		if (strcmp(className, "RigidBodyComponent") == 0 && entity.HasComponent<RigidBodyComponent>())
+		{
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			
+			// Set fields
+			MonoClassField* massField = mono_class_get_field_from_name(monoClass, "Mass");
+			MonoClassField* kinematicField = mono_class_get_field_from_name(monoClass, "IsKinematic");
+			
+			if (massField) mono_field_set_value(outComponent, massField, &rb.Mass);
+			if (kinematicField) mono_field_set_value(outComponent, kinematicField, &rb.IsKinematic);
+			
+			NB_CORE_INFO("Entity_GetComponent: Successfully marshalled RigidBodyComponent for entity {} (Mass={}, IsKinematic={})", 
+				entityID, rb.Mass, rb.IsKinematic);
+			return true;
 		}
 
-		// Add more component types as needed
+		NB_CORE_WARN("Entity_GetComponent: Component type '{}' not handled for entity {}", className, entityID);
+		Log::LogClientMessage(fmt::format("[C++] Entity_GetComponent: Component type '{}' not implemented", className), LOG_WARN);
 		return false;
 	}
 
@@ -799,6 +818,124 @@ namespace Nebula {
 		// TODO: Set physics world gravity
 	}
 
+	// RigidBody API
+	static void RigidBody_AddForce(uint32_t entityID, glm::vec3* force)
+	{
+		NB_CORE_INFO("RigidBody_AddForce called: entityID={}, force=({}, {}, {})", 
+			entityID, force->x, force->y, force->z);
+		
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene)
+		{
+			NB_CORE_ERROR("RigidBody_AddForce: Scene context is null!");
+			Log::LogClientMessage("[C++] RigidBody_AddForce failed: Scene context is null", LOG_ERROR);
+			return;
+		}
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity)
+		{
+			NB_CORE_ERROR("RigidBody_AddForce: Invalid entity ID {}", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForce failed: Invalid entity ID {}", entityID), LOG_ERROR);
+			return;
+		}
+		
+		if (!entity.HasComponent<RigidBodyComponent>())
+		{
+			NB_CORE_ERROR("RigidBody_AddForce: Entity {} does not have RigidBodyComponent", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForce failed: Entity {} has no RigidBodyComponent", entityID), LOG_ERROR);
+			return;
+		}
+
+		auto& rb = entity.GetComponent<RigidBodyComponent>();
+		if (!rb.RuntimeBody)
+		{
+			NB_CORE_ERROR("RigidBody_AddForce: RuntimeBody is null for entity {}", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForce failed: RuntimeBody is null for entity {}. Physics may not be initialized.", entityID), LOG_ERROR);
+			return;
+		}
+		
+		if (rb.IsKinematic)
+		{
+			NB_CORE_WARN("RigidBody_AddForce: Cannot apply force to kinematic body (entity {})", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForce: Entity {} is kinematic (cannot apply forces)", entityID), LOG_WARN);
+			return;
+		}
+		
+		rb.RuntimeBody->activate(true);
+		rb.RuntimeBody->applyCentralForce(btVector3(force->x, force->y, force->z));
+		NB_CORE_INFO("RigidBody_AddForce: Successfully applied force to entity {}", entityID);
+	}
+
+	static void RigidBody_AddForceWithMode(uint32_t entityID, glm::vec3* force, int mode)
+	{
+		NB_CORE_INFO("RigidBody_AddForceWithMode called: entityID={}, force=({}, {}, {}), mode={}", 
+			entityID, force->x, force->y, force->z, mode);
+		
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene)
+		{
+			NB_CORE_ERROR("RigidBody_AddForceWithMode: Scene context is null!");
+			Log::LogClientMessage("[C++] RigidBody_AddForceWithMode failed: Scene context is null", LOG_ERROR);
+			return;
+		}
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity)
+		{
+			NB_CORE_ERROR("RigidBody_AddForceWithMode: Invalid entity ID {}", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForceWithMode failed: Invalid entity ID {}", entityID), LOG_ERROR);
+			return;
+		}
+		
+		if (!entity.HasComponent<RigidBodyComponent>())
+		{
+			NB_CORE_ERROR("RigidBody_AddForceWithMode: Entity {} does not have RigidBodyComponent", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForceWithMode failed: Entity {} has no RigidBodyComponent", entityID), LOG_ERROR);
+			return;
+		}
+
+		auto& rb = entity.GetComponent<RigidBodyComponent>();
+		if (!rb.RuntimeBody)
+		{
+			NB_CORE_ERROR("RigidBody_AddForceWithMode: RuntimeBody is null for entity {}", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForceWithMode failed: RuntimeBody is null for entity {}. Physics may not be initialized.", entityID), LOG_ERROR);
+			return;
+		}
+		
+		if (rb.IsKinematic)
+		{
+			NB_CORE_WARN("RigidBody_AddForceWithMode: Cannot apply force to kinematic body (entity {})", entityID);
+			Log::LogClientMessage(fmt::format("[C++] RigidBody_AddForceWithMode: Entity {} is kinematic (cannot apply forces)", entityID), LOG_WARN);
+			return;
+		}
+		
+		rb.RuntimeBody->activate(true);
+		
+		switch (mode)
+		{
+			case 0: // Force - continuous force using mass
+				rb.RuntimeBody->applyCentralForce(btVector3(force->x, force->y, force->z));
+				break;
+			case 1: // Impulse - instant force using mass
+				rb.RuntimeBody->applyCentralImpulse(btVector3(force->x, force->y, force->z));
+				break;
+			case 2: // VelocityChange - instant velocity change ignoring mass
+			{
+				btVector3 currentVel = rb.RuntimeBody->getLinearVelocity();
+				rb.RuntimeBody->setLinearVelocity(currentVel + btVector3(force->x, force->y, force->z));
+				break;
+			}
+			case 3: // Acceleration - continuous acceleration ignoring mass
+			{
+				float mass = 1.0f / rb.RuntimeBody->getInvMass();
+				rb.RuntimeBody->applyCentralForce(btVector3(force->x * mass, force->y * mass, force->z * mass));
+				break;
+			}
+		}
+		NB_CORE_INFO("RigidBody_AddForceWithMode: Successfully applied force to entity {} with mode {}", entityID, mode);
+	}
+
 	template<typename... Component>
 	static void RegisterComponent()
 	{
@@ -904,6 +1041,11 @@ namespace Nebula {
 		mono_add_internal_call("Nebula.Physics::GetGravity", (void*)Physics_GetGravity);
 		mono_add_internal_call("Nebula.Physics::SetGravity", (void*)Physics_SetGravity);
 		NB_CORE_INFO("  Registered Nebula.Physics functions");
+
+		// Register RigidBody functions (Nebula.InternalCalls class)
+		mono_add_internal_call("Nebula.InternalCalls::RigidBody_AddForce", (void*)RigidBody_AddForce);
+		mono_add_internal_call("Nebula.InternalCalls::RigidBody_AddForceWithMode", (void*)RigidBody_AddForceWithMode);
+		NB_CORE_INFO("  Registered Nebula.RigidBody functions");
 		
 		NB_CORE_INFO("ScriptGlue: All internal calls registered successfully");
 

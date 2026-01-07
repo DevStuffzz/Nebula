@@ -3,6 +3,7 @@
 #include "Nebula/Core.h"
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 extern "C" {
 	typedef struct _MonoClass MonoClass;
@@ -15,6 +16,16 @@ extern "C" {
 }
 
 namespace Nebula {
+
+	// Type aliases
+	template<typename T>
+	using Ref = std::shared_ptr<T>;
+
+	template<typename T, typename... Args>
+	Ref<T> CreateRef(Args&&... args)
+	{
+		return std::make_shared<T>(std::forward<Args>(args)...);
+	}
 
 	enum class ScriptFieldType
 	{
@@ -33,7 +44,7 @@ namespace Nebula {
 		MonoClassField* ClassField;
 	};
 
-	class ScriptClass
+	class NEBULA_API ScriptClass
 	{
 	public:
 		ScriptClass() = default;

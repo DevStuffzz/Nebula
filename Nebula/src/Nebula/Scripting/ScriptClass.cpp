@@ -5,11 +5,8 @@
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/object.h>
-#include <mono/metadata/tabledefs.h>
 
 namespace Nebula {
-
-	extern ScriptEngineData* s_Data;
 
 	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className)
 		: m_ClassNamespace(classNamespace), m_ClassName(className)
@@ -41,19 +38,56 @@ namespace Nebula {
 			MonoClass* exceptionClass = mono_object_get_class(exception);
 			const char* exceptionName = mono_class_get_name(exceptionClass);
 			
+			std::string message = "Unknown error";
+			std::string stackTrace = "";
+			
+			// Get exception message
 			MonoProperty* messageProp = mono_class_get_property_from_name(exceptionClass, "Message");
 			if (messageProp)
 			{
 				MonoMethod* messageGetter = mono_property_get_get_method(messageProp);
 				MonoObject* messageObj = mono_runtime_invoke(messageGetter, exception, nullptr, nullptr);
-				char* message = mono_string_to_utf8((MonoString*)messageObj);
-				NB_CORE_ERROR("Mono exception in InvokeMethod: {} - {}", exceptionName, message);
-				mono_free(message);
+				if (messageObj)
+				{
+					char* msgStr = mono_string_to_utf8((MonoString*)messageObj);
+					message = msgStr;
+					mono_free(msgStr);
+				}
 			}
-			else
+			
+			// Get stack trace
+			MonoProperty* stackTraceProp = mono_class_get_property_from_name(exceptionClass, "StackTrace");
+			if (stackTraceProp)
 			{
-				NB_CORE_ERROR("Mono exception in InvokeMethod: {}", exceptionName);
+				MonoMethod* stackTraceGetter = mono_property_get_get_method(stackTraceProp);
+				MonoObject* stackTraceObj = mono_runtime_invoke(stackTraceGetter, exception, nullptr, nullptr);
+				if (stackTraceObj)
+				{
+					char* stStr = mono_string_to_utf8((MonoString*)stackTraceObj);
+					stackTrace = stStr;
+					mono_free(stStr);
+				}
 			}
+			
+			// Log to both engine and client (editor console)
+			NB_CORE_ERROR("=== C# SCRIPT EXCEPTION ===");
+			NB_CORE_ERROR("Type: {}", exceptionName);
+			NB_CORE_ERROR("Message: {}", message);
+			if (!stackTrace.empty())
+			{
+				NB_CORE_ERROR("Stack Trace:\n{}", stackTrace);
+			}
+			NB_CORE_ERROR("=========================");
+			
+			// Log to client console (editor)
+			Log::LogClientMessage("[C# EXCEPTION] " + std::string(exceptionName) + ": " + message, LOG_ERROR);
+			if (!stackTrace.empty())
+			{
+				Log::LogClientMessage(stackTrace, LOG_ERROR);
+			}
+			
+			// Set flag to stop runtime
+			s_Data->HasScriptException = true;
 		}
 		
 		return result;

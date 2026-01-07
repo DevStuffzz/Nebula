@@ -1,3 +1,5 @@
+using System;
+
 namespace Nebula
 {
     public class TransformComponent
@@ -53,11 +55,84 @@ namespace Nebula
         public float Mass;
         public bool IsKinematic;
 
+        // Internal field to store the entity ID - do not serialize
+        [System.NonSerialized]
+        internal uint _entityID;
+
         public RigidBodyComponent()
         {
             Mass = 1.0f;
             IsKinematic = false;
         }
+
+        public void AddForce(Vector3 force)
+        {
+            Log.LogInfo($"[RigidBodyComponent.AddForce] START - force={force}, _entityID={_entityID}, this={this?.GetHashCode() ?? 0}");
+            
+            if (this == null)
+            {
+                Log.LogError("[RigidBodyComponent.AddForce] ERROR: 'this' is NULL! RigidBodyComponent object itself is null.");
+                throw new NullReferenceException("RigidBodyComponent instance is null");
+            }
+            
+            if (_entityID == 0)
+            {
+                Log.LogError($"[RigidBodyComponent.AddForce] ERROR: _entityID is 0. This component was not properly initialized via GetComponent. Object hash: {this.GetHashCode()}");
+                return;
+            }
+            
+            try
+            {
+                Log.LogInfo($"[RigidBodyComponent.AddForce] Calling InternalCalls.RigidBody_AddForce(_entityID={_entityID}, force={force})");
+                InternalCalls.RigidBody_AddForce(_entityID, ref force);
+                Log.LogInfo($"[RigidBodyComponent.AddForce] SUCCESS - Force applied to entity {_entityID}");
+            }
+            catch (NullReferenceException nre)
+            {
+                Log.LogError($"[RigidBodyComponent.AddForce] NullReferenceException caught!");
+                Log.LogError($"  - _entityID: {_entityID}");
+                Log.LogError($"  - force: {force}");
+                Log.LogError($"  - this: {(this == null ? "NULL" : this.GetHashCode().ToString())}");
+                Log.LogError($"  - Exception: {nre.Message}");
+                Log.LogError($"  - StackTrace: {nre.StackTrace}");
+                throw;
+            }
+            catch (System.Exception ex)
+            {
+                Log.LogError($"[RigidBodyComponent.AddForce] Exception: {ex.GetType().Name} - {ex.Message}\\nStack: {ex.StackTrace}");
+                throw;
+            }
+        }
+
+        public void AddForce(Vector3 force, ForceMode mode)
+        {
+            Log.LogInfo($"AddForce (with mode) called with force={force}, mode={mode}, _entityID={_entityID}");
+            
+            if (_entityID == 0)
+            {
+                Log.LogError("RigidBodyComponent: Cannot AddForce - EntityID not set. Make sure to use GetComponent to retrieve the component.");
+                return;
+            }
+            
+            try
+            {
+                InternalCalls.RigidBody_AddForceWithMode(_entityID, ref force, mode);
+                Log.LogInfo($"AddForceWithMode completed successfully for entity {_entityID}");
+            }
+            catch (System.Exception ex)
+            {
+                Log.LogError($"Exception in AddForceWithMode: {ex.Message}\\nStack: {ex.StackTrace}");
+                throw;
+            }
+        }
+    }
+
+    public enum ForceMode
+    {
+        Force = 0,      // Continuous force (uses mass)
+        Impulse = 1,    // Instant force (uses mass)
+        VelocityChange = 2, // Instant velocity change (ignores mass)
+        Acceleration = 3    // Continuous acceleration (ignores mass)
     }
 
     public class BoxColliderComponent

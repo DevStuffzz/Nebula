@@ -68,28 +68,10 @@ namespace Nebula {
 		return ScriptFieldType::None;
 	}
 
-	struct ScriptEngineData
-	{
-		MonoDomain* RootDomain = nullptr;
-		MonoDomain* AppDomain = nullptr;
+	// Definition of the script engine data pointer
+	ScriptEngineData* s_Data = nullptr;
 
-		MonoAssembly* CoreAssembly = nullptr;
-		MonoImage* CoreAssemblyImage = nullptr;
-
-		MonoAssembly* AppAssembly = nullptr;
-		MonoImage* AppAssemblyImage = nullptr;
-
-	Ref<ScriptClass> EntityClass;
-
-	std::unordered_map<std::string, Ref<ScriptClass>> EntityClasses;
-	std::unordered_map<uint32_t, Ref<ScriptInstance>> EntityInstances;
-
-	Scene* SceneContext = nullptr;
-};
-
-static ScriptEngineData* s_Data = nullptr;
-
-static void PrintAssemblyTypes(MonoAssembly* assembly)
+	static void PrintAssemblyTypes(MonoAssembly* assembly)
 {
 	MonoImage* image = mono_assembly_get_image(assembly);
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
@@ -134,15 +116,16 @@ void ScriptEngine::Shutdown()
 }
 
 void ScriptEngine::OnRuntimeStart(Scene* scene)
-	{
-		s_Data->SceneContext = scene;
-	}
+{
+	s_Data->SceneContext = scene;
+	s_Data->HasScriptException = false;  // Reset exception flag
+}
 
-	void ScriptEngine::OnRuntimeStop()
-	{
-		s_Data->SceneContext = nullptr;
-		s_Data->EntityInstances.clear();
-	}
+void ScriptEngine::OnRuntimeStop()
+{
+	s_Data->SceneContext = nullptr;
+	s_Data->EntityInstances.clear();
+}
 
 	bool ScriptEngine::EntityClassExists(const std::string& fullClassName)
 	{
@@ -183,6 +166,19 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 
 	void ScriptEngine::OnUpdateEntity(Entity entity, float deltaTime)
 	{
+		// Check if script exception occurred - stop runtime if so
+		if (s_Data->HasScriptException)
+		{
+			if (s_Data->SceneContext)
+			{
+				NB_CORE_WARN("Stopping runtime due to C# script exception");
+				Log::LogClientMessage("Runtime stopped due to C# script exception", LOG_WARN);
+				s_Data->SceneContext->OnRuntimeStop();
+				s_Data->HasScriptException = false;  // Reset flag
+			}
+			return;
+		}
+		
 		uint32_t entityID = (uint32_t)entity;
 		if (s_Data->EntityInstances.find(entityID) != s_Data->EntityInstances.end())
 		{
@@ -419,145 +415,6 @@ void ScriptEngine::OnRuntimeStart(Scene* scene)
 	MonoImage* ScriptEngine::GetCoreAssemblyImage()
 	{
 		return s_Data->CoreAssemblyImage;
-	}
-
-	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className)
-		: m_ClassNamespace(classNamespace), m_ClassName(className)
-	{
-		m_MonoClass = mono_class_from_name(s_Data->CoreAssemblyImage, classNamespace.c_str(), className.c_str());
-		if (!m_MonoClass)
-			m_MonoClass = mono_class_from_name(s_Data->AppAssemblyImage, classNamespace.c_str(), className.c_str());
-	}
-
-	MonoObject* ScriptClass::Instantiate()
-	{
-		MonoObject* instance = mono_object_new(s_Data->AppDomain, m_MonoClass);
-		mono_runtime_object_init(instance);  // Call default constructor
-		return instance;
-	}
-
-	MonoMethod* ScriptClass::GetMethod(const std::string& name, int parameterCount)
-	{
-		return mono_class_get_method_from_name(m_MonoClass, name.c_str(), parameterCount);
-	}
-
-	MonoObject* ScriptClass::InvokeMethod(MonoObject* instance, MonoMethod* method, void** params)
-	{
-		MonoObject* exception = nullptr;
-		MonoObject* result = mono_runtime_invoke(method, instance, params, &exception);
-		
-		if (exception)
-		{
-			MonoClass* exceptionClass = mono_object_get_class(exception);
-			const char* exceptionName = mono_class_get_name(exceptionClass);
-			
-			// Try to get the exception message
-			MonoProperty* messageProp = mono_class_get_property_from_name(exceptionClass, "Message");
-			if (messageProp)
-			{
-				MonoMethod* messageGetter = mono_property_get_get_method(messageProp);
-				MonoObject* messageObj = mono_runtime_invoke(messageGetter, exception, nullptr, nullptr);
-				char* message = mono_string_to_utf8((MonoString*)messageObj);
-				NB_CORE_ERROR("Mono exception in InvokeMethod: {} - {}", exceptionName, message);
-				mono_free(message);
-			}
-			else
-			{
-				NB_CORE_ERROR("Mono exception in InvokeMethod: {}", exceptionName);
-			}
-		}
-		
-		return result;
-	}
-
-	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
-		: m_ScriptClass(scriptClass)
-	{
-		m_Instance = scriptClass->Instantiate();
-
-		m_Constructor = s_Data->EntityClass->GetMethod(".ctor", 0);
-		m_OnCreateMethod = scriptClass->GetMethod("OnCreate", 0);
-		m_OnUpdateMethod = scriptClass->GetMethod("OnUpdate", 1);
-		m_OnDestroyMethod = scriptClass->GetMethod("OnDestroy", 0);
-
-		// Set the Entity property on the script instance
-		{
-			uint32_t entityID = (uint32_t)entity;
-			
-			// Get the Entity property from ScriptBehavior base class
-			MonoClass* scriptBehaviorClass = mono_class_from_name(s_Data->CoreAssemblyImage, "Nebula", "ScriptBehavior");
-			MonoProperty* entityProperty = mono_class_get_property_from_name(scriptBehaviorClass, "Entity");
-			
-			if (entityProperty)
-			{
-				// Create a ScriptEntity instance and set its ID
-				MonoClass* scriptEntityClass = mono_class_from_name(s_Data->CoreAssemblyImage, "Nebula", "ScriptEntity");
-				MonoObject* entityInstance = mono_object_new(s_Data->AppDomain, scriptEntityClass);
-				mono_runtime_object_init(entityInstance);
-				
-				// Set the ID property on the ScriptEntity
-				MonoProperty* idProperty = mono_class_get_property_from_name(scriptEntityClass, "ID");
-				MonoMethod* idSetter = mono_property_get_set_method(idProperty);
-				void* idParams[1] = { &entityID };
-				mono_runtime_invoke(idSetter, entityInstance, idParams, nullptr);
-				
-				// Set the Entity property on the ScriptBehavior instance
-				MonoMethod* entitySetter = mono_property_get_set_method(entityProperty);
-				void* entityParams[1] = { entityInstance };
-				mono_runtime_invoke(entitySetter, m_Instance, entityParams, nullptr);
-				
-				NB_CORE_INFO("Entity property set successfully for entity ID {}", entityID);
-			}
-			else
-			{
-				NB_CORE_ERROR("Could not find Entity property in ScriptBehavior!");
-			}
-		}
-	}
-
-	void ScriptInstance::InvokeOnCreate()
-	{
-		if (m_OnCreateMethod)
-			m_ScriptClass->InvokeMethod(m_Instance, m_OnCreateMethod, nullptr);
-	}
-
-	void ScriptInstance::InvokeOnUpdate(float deltaTime)
-	{
-		if (m_OnUpdateMethod)
-		{
-			void* param = &deltaTime;
-			m_ScriptClass->InvokeMethod(m_Instance, m_OnUpdateMethod, &param);
-		}
-	}
-
-	void ScriptInstance::InvokeOnDestroy()
-	{
-		if (m_OnDestroyMethod)
-			m_ScriptClass->InvokeMethod(m_Instance, m_OnDestroyMethod, nullptr);
-	}
-
-	bool ScriptInstance::GetFieldValueInternal(const std::string& name, void* buffer)
-	{
-		const auto& fields = m_ScriptClass->GetFields();
-		auto it = fields.find(name);
-		if (it == fields.end())
-			return false;
-
-		const ScriptField& field = it->second;
-		mono_field_get_value(m_Instance, field.ClassField, buffer);
-		return true;
-	}
-
-	bool ScriptInstance::SetFieldValueInternal(const std::string& name, const void* value)
-	{
-		const auto& fields = m_ScriptClass->GetFields();
-		auto it = fields.find(name);
-		if (it == fields.end())
-			return false;
-
-		const ScriptField& field = it->second;
-		mono_field_set_value(m_Instance, field.ClassField, (void*)value);
-		return true;
 	}
 
 }

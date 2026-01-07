@@ -243,5 +243,12 @@ namespace Nebula
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint Entity_GetChild(uint entityID, int index);
+
+        // RigidBody methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RigidBody_AddForce(uint entityID, ref Vector3 force);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RigidBody_AddForceWithMode(uint entityID, ref Vector3 force, ForceMode mode);
     }
 }

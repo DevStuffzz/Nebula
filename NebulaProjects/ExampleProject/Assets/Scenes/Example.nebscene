@@ -1,0 +1,209 @@
+{
+    "Entities": [
+        {
+            "BoxColliderComponent": {
+                "Offset": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Size": [
+                    2.0,
+                    2.0,
+                    2.0
+                ]
+            },
+            "ID": 3,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        0.6127451062202454,
+                        0.6127451062202454,
+                        0.6127451062202454,
+                        1.0
+                    ],
+                    "HasTexture": true,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "TextureFilterNearest": false,
+                    "TexturePath": "assets\\Textures\\grass.jpg",
+                    "TextureRepeat": true,
+                    "TextureTiling": [
+                        100.0,
+                        100.0
+                    ],
+                    "UseTexture": 1
+                },
+                "MeshID": 1,
+                "MeshSource": "Library/models/Cube.obj"
+            },
+            "RigidBodyComponent": {
+                "AngularDrag": 0.05000000074505806,
+                "FreezeRotation": false,
+                "IsKinematic": false,
+                "LinearDrag": 0.0,
+                "Mass": 1.0,
+                "Type": 0,
+                "UseGravity": false
+            },
+            "TagComponent": {
+                "Tag": "Ground"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    -3.200000047683716,
+                    0.0
+                ],
+                "Rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    100.0,
+                    1.0,
+                    100.0
+                ]
+            }
+        },
+        {
+            "DirectionalLightComponent": {
+                "Color": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "Intensity": 1.0
+            },
+            "ID": 2,
+            "TagComponent": {
+                "Tag": "Sun"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Rotation": [
+                    -39.653690338134766,
+                    44.33686447143555,
+                    -6.820320777478628e-06
+                ],
+                "Scale": [
+                    0.9999998807907104,
+                    0.9999999403953552,
+                    0.9999996423721313
+                ]
+            }
+        },
+        {
+            "BoxColliderComponent": {
+                "Offset": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Size": [
+                    2.0,
+                    2.0,
+                    2.0
+                ]
+            },
+            "ID": 1,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "HasTexture": false,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "UseTexture": 0
+                },
+                "MeshID": 1,
+                "MeshSource": "Library/models/Cube.obj"
+            },
+            "RigidBodyComponent": {
+                "AngularDrag": 0.05000000074505806,
+                "FreezeRotation": false,
+                "IsKinematic": false,
+                "LinearDrag": 0.0,
+                "Mass": 1.0,
+                "Type": 1,
+                "UseGravity": true
+            },
+            "ScriptComponent": {
+                "ClassName": "ExampleProject.TopDownController"
+            },
+            "TagComponent": {
+                "Tag": "Box"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "CameraComponent": {
+                "OrthographicFar": 1.0,
+                "OrthographicNear": -1.0,
+                "OrthographicSize": 10.0,
+                "PerspectiveFOV": 45.0,
+                "PerspectiveFar": 1000.0,
+                "PerspectiveNear": 0.10000000149011612,
+                "Primary": true,
+                "ProjectionType": "Perspective"
+            },
+            "ID": 1048576,
+            "SkyboxComponent": {
+                "DirectoryPath": "assets\\skyboxes\\day"
+            },
+            "TagComponent": {
+                "Tag": "Main Camera"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    2.5,
+                    14.399999618530273
+                ],
+                "Rotation": [
+                    -6.571000099182129,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        }
+    ],
+    "Scene": {
+        "Name": "Example Scene",
+        "Version": "1.0"
+    }
+}

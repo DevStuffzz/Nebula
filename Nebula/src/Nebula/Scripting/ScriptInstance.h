@@ -40,8 +40,8 @@ namespace Nebula {
 			SetFieldValueInternal(name, &value);
 		}
 
-		NEBULA_API bool GetFieldValueInternal(const std::string& name, void* buffer);
-		NEBULA_API bool SetFieldValueInternal(const std::string& name, const void* value);
+		bool GetFieldValueInternal(const std::string& name, void* buffer);
+		bool SetFieldValueInternal(const std::string& name, const void* value);
 
 	private:
 		Ref<ScriptClass> m_ScriptClass;
