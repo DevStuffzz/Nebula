@@ -21,6 +21,10 @@ namespace Cosmic {
 		EditorLayer(const std::string& projectPath = "");
 		virtual ~EditorLayer() = default;
 
+		void SetRuntime(bool runtime) {
+			m_RuntimeMode = runtime;
+		}
+
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 		virtual void OnUpdate(Nebula::Timestep ts) override;
@@ -55,28 +59,33 @@ namespace Cosmic {
 		bool m_RuntimeMode = false;
 		bool m_ShowScriptEditor = false;
 		bool m_HasBuildErrors = false;
-		
-		// Script file watching
-		std::filesystem::file_time_type m_LastScriptModifyTime;
-		std::filesystem::path m_ScriptsDirectory;
-		
-		// Editor Windows
-		SceneListWindow m_SceneListWindow;
-		
-		// Camera
-		glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 5.0f };
-		glm::vec3 m_CameraRotation = { -90.0f, 0.0f, 0.0f }; // pitch (x), yaw (y), roll (z)
-		float m_LastMouseX = 0.0f;
-		float m_LastMouseY = 0.0f;
-		bool m_FirstMouse = true;
+	
+	// Cursor state tracking for runtime
+	int m_SavedCursorLockMode = 0;
+	bool m_SavedCursorVisible = true;
+	bool m_CursorStateOverridden = false;
+	
+	// Script file watching
+	std::filesystem::file_time_type m_LastScriptModifyTime;
+	std::filesystem::path m_ScriptsDirectory;
+	
+	// Editor Windows
+	SceneListWindow m_SceneListWindow;
+	
+	// Camera
+	glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 5.0f };
+	glm::vec3 m_CameraRotation = { -90.0f, 0.0f, 0.0f }; // pitch (x), yaw (y), roll (z)
+	float m_LastMouseX = 0.0f;
+	float m_LastMouseY = 0.0f;
+	bool m_FirstMouse = true;
 
-		// Line renderer for debug visualization
-		std::shared_ptr<Nebula::LineRenderer> m_LineRenderer;
+	// Line renderer for debug visualization
+	std::shared_ptr<Nebula::LineRenderer> m_LineRenderer;
 
-	public:
-		// Allow setting a scene from outside
-		void SetActiveScene(std::shared_ptr<Nebula::Scene> scene) { m_ActiveScene = scene; }
-		std::shared_ptr<Nebula::Scene> GetActiveScene() { return m_ActiveScene; }
+public:
+	// Allow setting a scene from outside
+	void SetActiveScene(std::shared_ptr<Nebula::Scene> scene) { m_ActiveScene = scene; }
+	std::shared_ptr<Nebula::Scene> GetActiveScene() { return m_ActiveScene; }
 	};
 
 }

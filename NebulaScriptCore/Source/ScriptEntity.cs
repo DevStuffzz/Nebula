@@ -167,12 +167,9 @@ namespace Nebula
         // Unity-like component access methods
         public T GetComponent<T>() where T : class
         {
-            Log.LogInfo($"GetComponent<{typeof(T).Name}> called on entity {ID} ('{name}')");
-            
             // Handle Transform specially (returns wrapper)
             if (typeof(T) == typeof(Transform))
             {
-                Log.LogInfo($"Returning Transform for entity {ID}");
                 return transform as T;
             }
 
@@ -180,59 +177,52 @@ namespace Nebula
             if (typeof(ScriptBehavior).IsAssignableFrom(typeof(T)))
             {
                 if (!HasComponent<T>())
-                {
-                    Log.LogWarning($"Entity {ID} ('{name}') does not have script component {typeof(T).Name}");
                     return null;
-                }
 
                 object scriptInstance = InternalCalls.Entity_GetScriptInstance(ID, typeof(T));
-                if (scriptInstance == null)
-                {
-                    Log.LogError($"Entity_GetScriptInstance returned null for {typeof(T).Name} on entity {ID}");
-                }
                 return scriptInstance as T;
             }
 
             // Handle regular data components
             if (!HasComponent<T>())
-            {
-                Log.LogWarning($"Entity {ID} ('{name}') does not have component {typeof(T).Name}");
                 return null;
-            }
-
-            Log.LogInfo($"Creating instance of {typeof(T).Name} for entity {ID}");
             
             // Requires parameterless constructor for data components
             T component = System.Activator.CreateInstance<T>();
             if (component == null)
-            {
-                Log.LogError($"Failed to create instance of {typeof(T).Name} - Activator.CreateInstance returned null");
                 return null;
-            }
             
             // Set entity ID BEFORE getting component data for components that need it
             if (component is RigidBodyComponent rigidBody)
             {
-                Log.LogInfo($"Setting RigidBodyComponent._entityID to {ID} BEFORE Entity_GetComponent");
                 rigidBody._entityID = ID;
             }
-            
-            Log.LogInfo($"Calling Entity_GetComponent for {typeof(T).Name} on entity {ID}");
-            if (!InternalCalls.Entity_GetComponent(ID, typeof(T), component))
+            else if (component is AudioSourceComponent audioSource)
             {
-                Log.LogError($"Entity_GetComponent failed for {typeof(T).Name} on entity {ID} - component may not exist in C++");
-                return null;
+                audioSource._entityID = ID;
             }
+            else if (component is LineRendererComponent lineRenderer)
+            {
+                lineRenderer._entityID = ID;
+            }
+            
+            if (!InternalCalls.Entity_GetComponent(ID, typeof(T), component))
+                return null;
 
             // Ensure entity ID is set AFTER getting component data (in case it was overwritten)
             if (component is RigidBodyComponent rigidBodyAfter)
             {
-                Log.LogInfo($"Re-setting RigidBodyComponent._entityID to {ID} AFTER Entity_GetComponent");
                 rigidBodyAfter._entityID = ID;
-                Log.LogInfo($"Final RigidBodyComponent._entityID = {rigidBodyAfter._entityID}");
+            }
+            else if (component is AudioSourceComponent audioSourceAfter)
+            {
+                audioSourceAfter._entityID = ID;
+            }
+            else if (component is LineRendererComponent lineRendererAfter)
+            {
+                lineRendererAfter._entityID = ID;
             }
 
-            Log.LogInfo($"Successfully got component {typeof(T).Name} for entity {ID}");
             return component;
         }
 

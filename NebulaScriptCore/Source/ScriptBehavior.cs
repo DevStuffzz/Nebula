@@ -54,6 +54,11 @@ namespace Nebula
             return GameObject.Find(name);
         }
 
+        public static ScriptEntity GetEntityByName(string name)
+        {
+            return GameObject.Find(name);
+        }
+
         public static ScriptEntity Instantiate(ScriptEntity prefab)
         {
             return GameObject.Instantiate(prefab);

@@ -7,6 +7,62 @@ namespace Nebula
     /// </summary>
     public struct Quaternion
     {
+        // Helper methods for Mono compatibility
+        private static float Sqrt(float value)
+        {
+            return (float)System.Math.Sqrt(value);
+        }
+
+        private static float Sin(float value)
+        {
+            return (float)System.Math.Sin(value);
+        }
+
+        private static float Cos(float value)
+        {
+            return (float)System.Math.Cos(value);
+        }
+
+        private static float Acos(float value)
+        {
+            return (float)System.Math.Acos(value);
+        }
+
+        private static float Asin(float value)
+        {
+            return (float)System.Math.Asin(value);
+        }
+
+        private static float Atan2(float y, float x)
+        {
+            return (float)System.Math.Atan2(y, x);
+        }
+
+        private const float PI = 3.14159265359f;
+
+        private static float Clamp(float value, float min, float max)
+        {
+            if (value < min) return min;
+            if (value > max) return max;
+            return value;
+        }
+
+        private static float CopySign(float value, float sign)
+        {
+            float absValue = value >= 0 ? value : -value;
+            return sign >= 0 ? absValue : -absValue;
+        }
+
+        private static float Min(float a, float b)
+        {
+            return a < b ? a : b;
+        }
+
+        private static float Abs(float value)
+        {
+            return value >= 0 ? value : -value;
+        }
+
         public float x, y, z, w;
 
         public Quaternion(float x, float y, float z, float w)
@@ -22,7 +78,7 @@ namespace Nebula
         /// <summary>
         /// Returns the length of the quaternion
         /// </summary>
-        public float magnitude => MathF.Sqrt(x * x + y * y + z * z + w * w);
+        public float magnitude => Sqrt(x * x + y * y + z * z + w * w);
 
         /// <summary>
         /// Returns a normalized version of this quaternion
@@ -69,8 +125,8 @@ namespace Nebula
         public static Quaternion FromToRotation(Vector3 fromDirection, Vector3 toDirection)
         {
             Vector3 axis = Vector3.Cross(fromDirection, toDirection);
-            float angle = MathF.Acos(Vector3.Dot(fromDirection.Normalized(), toDirection.Normalized()));
-            return AngleAxis(angle * 180f / MathF.PI, axis);
+            float angle = Acos(Vector3.Dot(fromDirection.Normalized(), toDirection.Normalized()));
+            return AngleAxis(angle * 180f / PI, axis);
         }
 
         /// <summary>
@@ -97,7 +153,7 @@ namespace Nebula
 
             if (trace > 0f)
             {
-                float s = MathF.Sqrt(trace + 1f) * 2f;
+                float s = Sqrt(trace + 1f) * 2f;
                 q.w = 0.25f * s;
                 q.x = (m21 - m12) / s;
                 q.y = (m02 - m20) / s;
@@ -105,7 +161,7 @@ namespace Nebula
             }
             else if (m00 > m11 && m00 > m22)
             {
-                float s = MathF.Sqrt(1f + m00 - m11 - m22) * 2f;
+                float s = Sqrt(1f + m00 - m11 - m22) * 2f;
                 q.w = (m21 - m12) / s;
                 q.x = 0.25f * s;
                 q.y = (m01 + m10) / s;
@@ -113,7 +169,7 @@ namespace Nebula
             }
             else if (m11 > m22)
             {
-                float s = MathF.Sqrt(1f + m11 - m00 - m22) * 2f;
+                float s = Sqrt(1f + m11 - m00 - m22) * 2f;
                 q.w = (m02 - m20) / s;
                 q.x = (m01 + m10) / s;
                 q.y = 0.25f * s;
@@ -121,7 +177,7 @@ namespace Nebula
             }
             else
             {
-                float s = MathF.Sqrt(1f + m22 - m00 - m11) * 2f;
+                float s = Sqrt(1f + m22 - m00 - m11) * 2f;
                 q.w = (m10 - m01) / s;
                 q.x = (m02 + m20) / s;
                 q.y = (m12 + m21) / s;
@@ -137,14 +193,14 @@ namespace Nebula
         public static Quaternion AngleAxis(float angle, Vector3 axis)
         {
             axis = axis.Normalized();
-            float halfAngle = angle * MathF.PI / 360f;
-            float s = MathF.Sin(halfAngle);
+            float halfAngle = angle * PI / 360f;
+            float s = Sin(halfAngle);
 
             return new Quaternion(
                 axis.X * s,
                 axis.Y * s,
                 axis.Z * s,
-                MathF.Cos(halfAngle)
+                Cos(halfAngle)
             );
         }
 
@@ -153,7 +209,7 @@ namespace Nebula
         /// </summary>
         public static Quaternion Slerp(Quaternion a, Quaternion b, float t)
         {
-            t = Math.Clamp(t, 0f, 1f);
+            t = Clamp(t, 0f, 1f);
 
             float dot = Dot(a, b);
 
@@ -168,11 +224,11 @@ namespace Nebula
                 return Lerp(a, b, t);
             }
 
-            float theta = MathF.Acos(dot);
-            float sinTheta = MathF.Sin(theta);
+            float theta = Acos(dot);
+            float sinTheta = Sin(theta);
 
-            float wa = MathF.Sin((1f - t) * theta) / sinTheta;
-            float wb = MathF.Sin(t * theta) / sinTheta;
+            float wa = Sin((1f - t) * theta) / sinTheta;
+            float wb = Sin(t * theta) / sinTheta;
 
             return new Quaternion(
                 wa * a.x + wb * b.x,
@@ -187,7 +243,7 @@ namespace Nebula
         /// </summary>
         public static Quaternion Lerp(Quaternion a, Quaternion b, float t)
         {
-            t = Math.Clamp(t, 0f, 1f);
+            t = Clamp(t, 0f, 1f);
             return new Quaternion(
                 a.x + (b.x - a.x) * t,
                 a.y + (b.y - a.y) * t,
@@ -210,7 +266,7 @@ namespace Nebula
         public static float Angle(Quaternion a, Quaternion b)
         {
             float dot = Dot(a, b);
-            return MathF.Acos(Math.Min(Math.Abs(dot), 1f)) * 2f * 180f / MathF.PI;
+            return Acos(Min(Abs(dot), 1f)) * 2f * 180f / PI;
         }
 
         // Operators
@@ -277,16 +333,16 @@ namespace Nebula
         private static Quaternion FromEulerAngles(Vector3 euler)
         {
             // Convert degrees to radians
-            float xRad = euler.X * MathF.PI / 180f;
-            float yRad = euler.Y * MathF.PI / 180f;
-            float zRad = euler.Z * MathF.PI / 180f;
+            float xRad = euler.X * PI / 180f;
+            float yRad = euler.Y * PI / 180f;
+            float zRad = euler.Z * PI / 180f;
 
-            float cx = MathF.Cos(xRad * 0.5f);
-            float sx = MathF.Sin(xRad * 0.5f);
-            float cy = MathF.Cos(yRad * 0.5f);
-            float sy = MathF.Sin(yRad * 0.5f);
-            float cz = MathF.Cos(zRad * 0.5f);
-            float sz = MathF.Sin(zRad * 0.5f);
+            float cx = Cos(xRad * 0.5f);
+            float sx = Sin(xRad * 0.5f);
+            float cy = Cos(yRad * 0.5f);
+            float sy = Sin(yRad * 0.5f);
+            float cz = Cos(zRad * 0.5f);
+            float sz = Sin(zRad * 0.5f);
 
             return new Quaternion(
                 sx * cy * cz + cx * sy * sz,
@@ -303,24 +359,24 @@ namespace Nebula
             // Roll (x-axis rotation)
             float sinr_cosp = 2f * (q.w * q.x + q.y * q.z);
             float cosr_cosp = 1f - 2f * (q.x * q.x + q.y * q.y);
-            euler.X = MathF.Atan2(sinr_cosp, cosr_cosp);
+            euler.X = Atan2(sinr_cosp, cosr_cosp);
 
             // Pitch (y-axis rotation)
             float sinp = 2f * (q.w * q.y - q.z * q.x);
-            if (MathF.Abs(sinp) >= 1f)
-                euler.Y = MathF.CopySign(MathF.PI / 2f, sinp);
+            if (Abs(sinp) >= 1f)
+                euler.Y = CopySign(PI / 2f, sinp);
             else
-                euler.Y = MathF.Asin(sinp);
+                euler.Y = Asin(sinp);
 
             // Yaw (z-axis rotation)
             float siny_cosp = 2f * (q.w * q.z + q.x * q.y);
             float cosy_cosp = 1f - 2f * (q.y * q.y + q.z * q.z);
-            euler.Z = MathF.Atan2(siny_cosp, cosy_cosp);
+            euler.Z = Atan2(siny_cosp, cosy_cosp);
 
             // Convert to degrees
-            euler.X *= 180f / MathF.PI;
-            euler.Y *= 180f / MathF.PI;
-            euler.Z *= 180f / MathF.PI;
+            euler.X *= 180f / PI;
+            euler.Y *= 180f / PI;
+            euler.Z *= 180f / PI;
 
             return euler;
         }

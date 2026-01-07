@@ -44,7 +44,11 @@ namespace Nebula {
 
 		virtual void SetCursorMode(bool disabled) = 0;
 		
-		// Returns the Native Window (ie GLFWwindow* for GLFW, HWIND for DX etc)
+		// Cursor lock modes: 0=None/Free, 1=Locked/Disabled, 2=Confined
+		virtual void SetCursorLockMode(int mode) = 0;
+		virtual void SetCursorVisible(bool visible) = 0;
+	virtual int GetCursorLockMode() const = 0;
+	virtual bool GetCursorVisible() const = 0;
 		virtual void* GetNativeWindow() const = 0;
 		
 		// Creates Window based on the current platform; GLFW only for now.

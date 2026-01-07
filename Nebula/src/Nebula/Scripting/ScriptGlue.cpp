@@ -27,6 +27,11 @@ namespace Nebula {
 	static glm::vec2 s_LastMousePos = glm::vec2(0.0f);
 	static glm::vec2 s_MouseDelta = glm::vec2(0.0f);
 	static glm::vec2 s_MouseScrollDelta = glm::vec2(0.0f);
+	
+	// Application API
+	static void Application_Exit(int code) {
+		Application::Get().Exit(code);
+	}
 
 	// Log API
 	static void Log_LogInfo(MonoString* message)
@@ -111,6 +116,19 @@ namespace Nebula {
 	static void Input_GetMouseScrollDelta(glm::vec2* outScroll)
 	{
 		*outScroll = s_MouseScrollDelta;
+	}
+
+	// Cursor API
+	static void Cursor_SetLockMode(int mode)
+	{
+		Application& app = Application::Get();
+		app.GetWindow().SetCursorLockMode(mode);
+	}
+
+	static void Cursor_SetVisible(bool visible)
+	{
+		Application& app = Application::Get();
+		app.GetWindow().SetCursorVisible(visible);
 	}
 
 	static float Input_GetAxisValue(MonoString* axisName)
@@ -297,17 +315,13 @@ namespace Nebula {
 		if (strcmp(className, "TransformComponent") == 0 && entity.HasComponent<TransformComponent>())
 		{
 			auto& tc = entity.GetComponent<TransformComponent>();
-			
-			// Set fields
 			MonoClassField* posField = mono_class_get_field_from_name(monoClass, "Position");
 			MonoClassField* rotField = mono_class_get_field_from_name(monoClass, "Rotation");
 			MonoClassField* scaleField = mono_class_get_field_from_name(monoClass, "Scale");
-			
 			if (posField) mono_field_set_value(outComponent, posField, &tc.Position);
 			if (rotField) mono_field_set_value(outComponent, rotField, &tc.Rotation);
 			if (scaleField) mono_field_set_value(outComponent, scaleField, &tc.Scale);
-			
-			NB_CORE_INFO("Entity_GetComponent: Successfully marshalled TransformComponent for entity {}", entityID);
+			NB_CORE_INFO("Entity_GetComponent: TransformComponent for entity {}", entityID);
 			return true;
 		}
 		
@@ -315,21 +329,127 @@ namespace Nebula {
 		if (strcmp(className, "RigidBodyComponent") == 0 && entity.HasComponent<RigidBodyComponent>())
 		{
 			auto& rb = entity.GetComponent<RigidBodyComponent>();
-			
-			// Set fields
 			MonoClassField* massField = mono_class_get_field_from_name(monoClass, "Mass");
 			MonoClassField* kinematicField = mono_class_get_field_from_name(monoClass, "IsKinematic");
-			
 			if (massField) mono_field_set_value(outComponent, massField, &rb.Mass);
 			if (kinematicField) mono_field_set_value(outComponent, kinematicField, &rb.IsKinematic);
-			
-			NB_CORE_INFO("Entity_GetComponent: Successfully marshalled RigidBodyComponent for entity {} (Mass={}, IsKinematic={})", 
-				entityID, rb.Mass, rb.IsKinematic);
+			NB_CORE_INFO("Entity_GetComponent: RigidBodyComponent for entity {} (Mass={}, IsKinematic={})", entityID, rb.Mass, rb.IsKinematic);
+			return true;
+		}
+		
+		// Handle TagComponent
+		if (strcmp(className, "TagComponent") == 0 && entity.HasComponent<TagComponent>())
+		{
+			auto& tc = entity.GetComponent<TagComponent>();
+			MonoClassField* tagField = mono_class_get_field_from_name(monoClass, "Tag");
+			if (tagField) {
+				MonoString* tagStr = mono_string_new(mono_domain_get(), tc.Tag.c_str());
+				mono_field_set_value(outComponent, tagField, tagStr);
+			}
+			return true;
+		}
+		
+		// Handle CameraComponent
+		if (strcmp(className, "CameraComponent") == 0 && entity.HasComponent<CameraComponent>())
+		{
+			auto& cc = entity.GetComponent<CameraComponent>();
+			MonoClassField* primaryField = mono_class_get_field_from_name(monoClass, "Primary");
+			MonoClassField* fovField = mono_class_get_field_from_name(monoClass, "FOV");
+			MonoClassField* nearField = mono_class_get_field_from_name(monoClass, "NearClip");
+			MonoClassField* farField = mono_class_get_field_from_name(monoClass, "FarClip");
+			if (primaryField) mono_field_set_value(outComponent, primaryField, &cc.Primary);
+			if (fovField) mono_field_set_value(outComponent, fovField, &cc.PerspectiveFOV);
+			if (nearField) mono_field_set_value(outComponent, nearField, &cc.PerspectiveNear);
+			if (farField) mono_field_set_value(outComponent, farField, &cc.PerspectiveFar);
+			return true;
+		}
+		
+		// Handle BoxColliderComponent
+		if (strcmp(className, "BoxColliderComponent") == 0 && entity.HasComponent<BoxColliderComponent>())
+		{
+			auto& bc = entity.GetComponent<BoxColliderComponent>();
+			MonoClassField* sizeField = mono_class_get_field_from_name(monoClass, "Size");
+			MonoClassField* offsetField = mono_class_get_field_from_name(monoClass, "Offset");
+			if (sizeField) mono_field_set_value(outComponent, sizeField, &bc.Size);
+			if (offsetField) mono_field_set_value(outComponent, offsetField, &bc.Offset);
+			return true;
+		}
+		
+		// Handle SphereColliderComponent
+		if (strcmp(className, "SphereColliderComponent") == 0 && entity.HasComponent<SphereColliderComponent>())
+		{
+			auto& sc = entity.GetComponent<SphereColliderComponent>();
+			MonoClassField* radiusField = mono_class_get_field_from_name(monoClass, "Radius");
+			MonoClassField* offsetField = mono_class_get_field_from_name(monoClass, "Offset");
+			if (radiusField) mono_field_set_value(outComponent, radiusField, &sc.Radius);
+			if (offsetField) mono_field_set_value(outComponent, offsetField, &sc.Offset);
+			return true;
+		}
+		
+		// Handle AudioSourceComponent
+		if (strcmp(className, "AudioSourceComponent") == 0 && entity.HasComponent<AudioSourceComponent>())
+		{
+			auto& ac = entity.GetComponent<AudioSourceComponent>();
+			MonoClassField* volumeField = mono_class_get_field_from_name(monoClass, "Volume");
+			MonoClassField* pitchField = mono_class_get_field_from_name(monoClass, "Pitch");
+			MonoClassField* loopField = mono_class_get_field_from_name(monoClass, "Loop");
+			MonoClassField* playOnAwakeField = mono_class_get_field_from_name(monoClass, "PlayOnAwake");
+			MonoClassField* spatialField = mono_class_get_field_from_name(monoClass, "Spatial");
+			if (volumeField) mono_field_set_value(outComponent, volumeField, &ac.Volume);
+			if (pitchField) mono_field_set_value(outComponent, pitchField, &ac.Pitch);
+			if (loopField) mono_field_set_value(outComponent, loopField, &ac.Loop);
+			if (playOnAwakeField) mono_field_set_value(outComponent, playOnAwakeField, &ac.PlayOnAwake);
+			if (spatialField) mono_field_set_value(outComponent, spatialField, &ac.Spatial);
+			return true;
+		}
+		
+		// Handle LineRendererComponent
+		if (strcmp(className, "LineRendererComponent") == 0 && entity.HasComponent<LineRendererComponent>())
+		{
+			auto& lc = entity.GetComponent<LineRendererComponent>();
+			MonoClassField* colorField = mono_class_get_field_from_name(monoClass, "Color");
+			MonoClassField* widthField = mono_class_get_field_from_name(monoClass, "Width");
+			MonoClassField* loopField = mono_class_get_field_from_name(monoClass, "Loop");
+			if (colorField) mono_field_set_value(outComponent, colorField, &lc.Color);
+			if (widthField) mono_field_set_value(outComponent, widthField, &lc.Width);
+			if (loopField) mono_field_set_value(outComponent, loopField, &lc.Loop);
+			return true;
+		}
+		
+		// Handle MeshRendererComponent
+		if (strcmp(className, "MeshRendererComponent") == 0 && entity.HasComponent<MeshRendererComponent>())
+		{
+			// MeshRendererComponent has no fields to sync currently (Mesh and Material are C++ only)
+			return true;
+		}
+		
+		// Handle PointLightComponent
+		if (strcmp(className, "PointLightComponent") == 0 && entity.HasComponent<PointLightComponent>())
+		{
+			auto& pl = entity.GetComponent<PointLightComponent>();
+			MonoClassField* positionField = mono_class_get_field_from_name(monoClass, "Position");
+			MonoClassField* colorField = mono_class_get_field_from_name(monoClass, "Color");
+			MonoClassField* intensityField = mono_class_get_field_from_name(monoClass, "Intensity");
+			MonoClassField* radiusField = mono_class_get_field_from_name(monoClass, "Radius");
+			if (positionField) mono_field_set_value(outComponent, positionField, &pl.Position);
+			if (colorField) mono_field_set_value(outComponent, colorField, &pl.Color);
+			if (intensityField) mono_field_set_value(outComponent, intensityField, &pl.Intensity);
+			if (radiusField) mono_field_set_value(outComponent, radiusField, &pl.Radius);
+			return true;
+		}
+		
+		// Handle DirectionalLightComponent
+		if (strcmp(className, "DirectionalLightComponent") == 0 && entity.HasComponent<DirectionalLightComponent>())
+		{
+			auto& dl = entity.GetComponent<DirectionalLightComponent>();
+			MonoClassField* colorField = mono_class_get_field_from_name(monoClass, "Color");
+			MonoClassField* intensityField = mono_class_get_field_from_name(monoClass, "Intensity");
+			if (colorField) mono_field_set_value(outComponent, colorField, &dl.Color);
+			if (intensityField) mono_field_set_value(outComponent, intensityField, &dl.Intensity);
 			return true;
 		}
 
 		NB_CORE_WARN("Entity_GetComponent: Component type '{}' not handled for entity {}", className, entityID);
-		Log::LogClientMessage(fmt::format("[C++] Entity_GetComponent: Component type '{}' not implemented", className), LOG_WARN);
 		return false;
 	}
 
@@ -381,6 +501,21 @@ namespace Nebula {
 			if (!entity.HasComponent<AudioSourceComponent>())
 				entity.AddComponent<AudioSourceComponent>();
 		}
+		else if (strcmp(className, "LineRendererComponent") == 0)
+		{
+			if (!entity.HasComponent<LineRendererComponent>())
+				entity.AddComponent<LineRendererComponent>();
+		}
+		else if (strcmp(className, "PointLightComponent") == 0)
+		{
+			if (!entity.HasComponent<PointLightComponent>())
+				entity.AddComponent<PointLightComponent>();
+		}
+		else if (strcmp(className, "DirectionalLightComponent") == 0)
+		{
+			if (!entity.HasComponent<DirectionalLightComponent>())
+				entity.AddComponent<DirectionalLightComponent>();
+		}
 		// Add more component types as needed
 	}
 
@@ -431,6 +566,21 @@ namespace Nebula {
 		{
 			if (entity.HasComponent<AudioSourceComponent>())
 				entity.RemoveComponent<AudioSourceComponent>();
+		}
+		else if (strcmp(className, "LineRendererComponent") == 0)
+		{
+			if (entity.HasComponent<LineRendererComponent>())
+				entity.RemoveComponent<LineRendererComponent>();
+		}
+		else if (strcmp(className, "PointLightComponent") == 0)
+		{
+			if (entity.HasComponent<PointLightComponent>())
+				entity.RemoveComponent<PointLightComponent>();
+		}
+		else if (strcmp(className, "DirectionalLightComponent") == 0)
+		{
+			if (entity.HasComponent<DirectionalLightComponent>())
+				entity.RemoveComponent<DirectionalLightComponent>();
 		}
 		// Add more component types as needed
 	}
@@ -936,6 +1086,137 @@ namespace Nebula {
 		NB_CORE_INFO("RigidBody_AddForceWithMode: Successfully applied force to entity {} with mode {}", entityID, mode);
 	}
 
+	static void RigidBody_GetVelocity(uint32_t entityID, glm::vec3* outVelocity)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene || !outVelocity) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<RigidBodyComponent>())
+		{
+			*outVelocity = glm::vec3(0.0f);
+			return;
+		}
+
+		auto& rb = entity.GetComponent<RigidBodyComponent>();
+		if (rb.RuntimeBody)
+		{
+			btVector3 velocity = rb.RuntimeBody->getLinearVelocity();
+			*outVelocity = glm::vec3(velocity.x(), velocity.y(), velocity.z());
+		}
+		else
+		{
+			*outVelocity = glm::vec3(0.0f);
+		}
+	}
+
+	static void RigidBody_SetVelocity(uint32_t entityID, glm::vec3* velocity)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene || !velocity) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<RigidBodyComponent>())
+			return;
+
+		auto& rb = entity.GetComponent<RigidBodyComponent>();
+		if (rb.RuntimeBody)
+		{
+			rb.RuntimeBody->setLinearVelocity(btVector3(velocity->x, velocity->y, velocity->z));
+			rb.RuntimeBody->activate();
+		}
+	}
+
+	// AudioSource Component API
+	static void AudioSource_Play(uint32_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<AudioSourceComponent>()) return;
+
+		auto& audioSource = entity.GetComponent<AudioSourceComponent>();
+		// TODO: Implement audio playback via AudioEngine
+		NB_CORE_INFO("AudioSource_Play called for entity {}", entityID);
+	}
+
+	static void AudioSource_Stop(uint32_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<AudioSourceComponent>()) return;
+
+		auto& audioSource = entity.GetComponent<AudioSourceComponent>();
+		// TODO: Implement audio stop via AudioEngine
+		NB_CORE_INFO("AudioSource_Stop called for entity {}", entityID);
+	}
+
+	static void AudioSource_Pause(uint32_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<AudioSourceComponent>()) return;
+
+		auto& audioSource = entity.GetComponent<AudioSourceComponent>();
+		// TODO: Implement audio pause via AudioEngine
+		NB_CORE_INFO("AudioSource_Pause called for entity {}", entityID);
+	}
+
+	// LineRenderer Component API
+	static void LineRenderer_SetPoints(uint32_t entityID, MonoArray* pointsArray, int count)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<LineRendererComponent>()) return;
+
+		auto& lineRenderer = entity.GetComponent<LineRendererComponent>();
+		lineRenderer.Points.clear();
+		lineRenderer.Points.reserve(count);
+
+		for (int i = 0; i < count; i++)
+		{
+			glm::vec3* point = (glm::vec3*)mono_array_addr_with_size(pointsArray, sizeof(glm::vec3), i);
+			lineRenderer.Points.push_back(*point);
+		}
+
+		NB_CORE_INFO("LineRenderer_SetPoints: Set {} points for entity {}", count, entityID);
+	}
+
+	static void LineRenderer_AddPoint(uint32_t entityID, glm::vec3* point)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<LineRendererComponent>()) return;
+
+		auto& lineRenderer = entity.GetComponent<LineRendererComponent>();
+		lineRenderer.Points.push_back(*point);
+
+		NB_CORE_INFO("LineRenderer_AddPoint: Added point to entity {}, total points: {}", entityID, lineRenderer.Points.size());
+	}
+
+	static void LineRenderer_ClearPoints(uint32_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		if (!scene) return;
+
+		Entity entity{ (entt::entity)entityID, scene };
+		if (!entity || !entity.HasComponent<LineRendererComponent>()) return;
+
+		auto& lineRenderer = entity.GetComponent<LineRendererComponent>();
+		lineRenderer.Points.clear();
+
+		NB_CORE_INFO("LineRenderer_ClearPoints: Cleared all points for entity {}", entityID);
+	}
+
 	template<typename... Component>
 	static void RegisterComponent()
 	{
@@ -966,6 +1247,10 @@ namespace Nebula {
 	{
 		NB_CORE_INFO("ScriptGlue: Registering internal calls...");
 		
+		// Register Application functions (Nebula.Application class)
+		mono_add_internal_call("Nebula.Application::Exit", (void*)Application_Exit);
+		NB_CORE_INFO("  Registered Nebula.Application functions");
+
 		// Register Log functions (Nebula.Log class)
 		mono_add_internal_call("Nebula.Log::LogInfo", (void*)Log_LogInfo);
 		mono_add_internal_call("Nebula.Log::LogWarning", (void*)Log_LogWarning);
@@ -987,6 +1272,11 @@ namespace Nebula {
 		mono_add_internal_call("Nebula.Input::GetAxisValue", (void*)Input_GetAxisValue);
 		mono_add_internal_call("Nebula.Input::GetAxisRawValue", (void*)Input_GetAxisRawValue);
 		NB_CORE_INFO("  Registered Nebula.Input functions");
+
+		// Register Cursor functions (Nebula.Cursor class)
+		mono_add_internal_call("Nebula.Cursor::SetCursorLockMode", (void*)Cursor_SetLockMode);
+		mono_add_internal_call("Nebula.Cursor::SetCursorVisible", (void*)Cursor_SetVisible);
+		NB_CORE_INFO("  Registered Nebula.Cursor functions");
 
 		// Register Time functions (Nebula.Time class)
 		mono_add_internal_call("Nebula.Time::GetDeltaTime", (void*)Time_GetDeltaTime);
@@ -1045,6 +1335,20 @@ namespace Nebula {
 		// Register RigidBody functions (Nebula.InternalCalls class)
 		mono_add_internal_call("Nebula.InternalCalls::RigidBody_AddForce", (void*)RigidBody_AddForce);
 		mono_add_internal_call("Nebula.InternalCalls::RigidBody_AddForceWithMode", (void*)RigidBody_AddForceWithMode);
+		mono_add_internal_call("Nebula.InternalCalls::RigidBody_GetVelocity", (void*)RigidBody_GetVelocity);
+		mono_add_internal_call("Nebula.InternalCalls::RigidBody_SetVelocity", (void*)RigidBody_SetVelocity);
+		
+		// Register AudioSource functions
+		mono_add_internal_call("Nebula.InternalCalls::AudioSource_Play", (void*)AudioSource_Play);
+		mono_add_internal_call("Nebula.InternalCalls::AudioSource_Stop", (void*)AudioSource_Stop);
+		mono_add_internal_call("Nebula.InternalCalls::AudioSource_Pause", (void*)AudioSource_Pause);
+		NB_CORE_INFO("  Registered AudioSource functions");
+		
+		// Register LineRenderer functions
+		mono_add_internal_call("Nebula.InternalCalls::LineRenderer_SetPoints", (void*)LineRenderer_SetPoints);
+		mono_add_internal_call("Nebula.InternalCalls::LineRenderer_AddPoint", (void*)LineRenderer_AddPoint);
+		mono_add_internal_call("Nebula.InternalCalls::LineRenderer_ClearPoints", (void*)LineRenderer_ClearPoints);
+		NB_CORE_INFO("  Registered LineRenderer functions");
 		NB_CORE_INFO("  Registered Nebula.RigidBody functions");
 		
 		NB_CORE_INFO("ScriptGlue: All internal calls registered successfully");

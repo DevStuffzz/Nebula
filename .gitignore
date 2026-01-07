@@ -36,3 +36,7 @@ Nebula/vendor/mono-build/*
 
 NebulaScriptCore/NebulaScriptCore/obj/
 NebulaScriptCore/NebulaScriptCore/bin/
+
+
+Scripts/Scripts/obj/
+Scripts/Scripts/bin/

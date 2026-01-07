@@ -273,10 +273,29 @@ namespace Nebula {
 		if (mass != 0.0f)
 			shape->calculateLocalInertia(mass, localInertia);
 
+		// Calculate final position including collider offset
+		glm::vec3 finalPosition = transform.Position;
+		if (entity.HasComponent<BoxColliderComponent>())
+		{
+			auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
+			// Apply rotation to offset
+			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
+			glm::vec3 rotatedOffset = rotQuat * boxCollider.Offset;
+			finalPosition += rotatedOffset;
+		}
+		else if (entity.HasComponent<SphereColliderComponent>())
+		{
+			auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
+			// Apply rotation to offset
+			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
+			glm::vec3 rotatedOffset = rotQuat * sphereCollider.Offset;
+			finalPosition += rotatedOffset;
+		}
+
 		// Set initial transform
 		btTransform startTransform;
 		startTransform.setIdentity();
-		startTransform.setOrigin(btVector3(transform.Position.x, transform.Position.y, transform.Position.z));
+		startTransform.setOrigin(btVector3(finalPosition.x, finalPosition.y, finalPosition.z));
 		
 		// Convert euler angles to quaternion
 		glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
@@ -482,12 +501,28 @@ namespace Nebula {
 
 			// Update position
 			btVector3 origin = btTrans.getOrigin();
-			transform.Position = glm::vec3(origin.x(), origin.y(), origin.z());
+			glm::vec3 physicsPosition = glm::vec3(origin.x(), origin.y(), origin.z());
 
-			// Update rotation
+			// Update rotation first (needed for offset calculation)
 			btQuaternion rotation = btTrans.getRotation();
 			glm::quat glmQuat(rotation.w(), rotation.x(), rotation.y(), rotation.z());
 			transform.Rotation = glm::degrees(glm::eulerAngles(glmQuat));
+
+			// Remove collider offset from physics position to get entity position
+			if (entity.HasComponent<BoxColliderComponent>())
+			{
+				auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
+				glm::vec3 rotatedOffset = glmQuat * boxCollider.Offset;
+				physicsPosition -= rotatedOffset;
+			}
+			else if (entity.HasComponent<SphereColliderComponent>())
+			{
+				auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
+				glm::vec3 rotatedOffset = glmQuat * sphereCollider.Offset;
+				physicsPosition -= rotatedOffset;
+			}
+
+			transform.Position = physicsPosition;
 
 			// Sync velocities
 			btVector3 linVel = rb.RuntimeBody->getLinearVelocity();

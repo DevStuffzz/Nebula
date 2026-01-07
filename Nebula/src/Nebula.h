@@ -9,6 +9,7 @@
 #include "Nebula/Application.h"
 #include "Nebula/Input.h"
 #include "Nebula/MouseButtonCodes.h"
+#include "Nebula/Window.h"
 
 #include "Nebula/Keycodes.h"
 #include "Nebula/Layer.h"

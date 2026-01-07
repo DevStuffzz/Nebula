@@ -15,12 +15,21 @@ public:
 			NB_INFO("Launching with project: {0}", projectPath);
 		}
 		
-		PushLayer(new Cosmic::EditorLayer(projectPath));
+		m_EditorLayer = new Cosmic::EditorLayer(projectPath);
+		PushLayer(m_EditorLayer);
 	}
 
 	~CosmicEditor()
 	{
 	}
+
+	void Exit(int code = 0) override {
+		m_EditorLayer->SetRuntime(false);
+		GetWindow().SetCursorVisible(true);
+		GetWindow().SetCursorLockMode(0);
+	}
+private:
+	Cosmic::EditorLayer* m_EditorLayer;
 };
 
 Nebula::Application* Nebula::CreateApplication(int argc, char** argv)

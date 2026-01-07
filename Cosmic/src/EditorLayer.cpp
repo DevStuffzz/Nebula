@@ -155,7 +155,9 @@ namespace Cosmic {
 			selectedEntity = SceneHierarchy::GetSelectedEntity();
 		}
 
-		// Camera movement (available in both editor and runtime modes)
+// Editor camera controls (only in editor mode, not during runtime)
+	if (!m_RuntimeMode)
+	{
 		float moveSpeed = 2.5f * ts;
 		
 		// Speed up camera when shift is held
@@ -226,57 +228,79 @@ namespace Cosmic {
 				Nebula::Application::Get().GetWindow().SetCursorMode(false); // Unlock cursor
 				m_FirstMouse = true;
 			}
+	} // End of editor camera controls (!m_RuntimeMode)
 
-		// --- Render Editor Viewport ---
-		// Set application camera to editor camera
-		auto& editorCamera = Nebula::Application::Get().GetCamera();
-		if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&editorCamera))
-		{
-			perspCam->SetPosition(m_CameraPosition);
-			perspCam->SetRotation(m_CameraRotation);
-			// Guard against zero aspect ratio
-			float editorAspect = m_ViewportSize.y > 0.0f ? (m_ViewportSize.x / m_ViewportSize.y) : 16.0f / 9.0f;
-			perspCam->SetProjection(45.0f, editorAspect, 0.1f, 1000.0f);
-		}
-		
-		m_Framebuffer->Bind();
-		Nebula::RenderCommand::SetViewport(0, 0, (uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-		Nebula::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
-		Nebula::RenderCommand::Clear();
+	// --- Render Editor Viewport ---
+	// Set application camera to editor camera
+	auto& editorCamera = Nebula::Application::Get().GetCamera();
+	if (auto* perspCam = dynamic_cast<Nebula::PerspectiveCamera*>(&editorCamera))
+	{
+		perspCam->SetPosition(m_CameraPosition);
+		perspCam->SetRotation(m_CameraRotation);
+		// Guard against zero aspect ratio
+		float editorAspect = m_ViewportSize.y > 0.0f ? (m_ViewportSize.x / m_ViewportSize.y) : 16.0f / 9.0f;
+		perspCam->SetProjection(45.0f, editorAspect, 0.1f, 1000.0f);
+	}
+	
+	m_Framebuffer->Bind();
+	Nebula::RenderCommand::SetViewport(0, 0, (uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+	Nebula::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1.0f });
+	Nebula::RenderCommand::Clear();
 
-		if (m_ActiveScene)
+	if (m_ActiveScene)
+	{
+		// Only update physics and scripts when in runtime mode
+		if (m_RuntimeMode)
 		{
-			// Only update physics and scripts when in runtime mode
-			if (m_RuntimeMode)
+			// Allow Escape key to unlock cursor during runtime (editor only)
+			if (Nebula::Input::IsKeyPressed(NB_KEY_ESCAPE) && !m_CursorStateOverridden)
 			{
-				// Process any pending scene loads BEFORE update
-				if (Nebula::SceneManager::Get().HasPendingSceneLoad())
+				// Save current cursor state before overriding
+				m_SavedCursorLockMode = Nebula::Application::Get().GetWindow().GetCursorLockMode();
+				m_SavedCursorVisible = Nebula::Application::Get().GetWindow().GetCursorVisible();
+				
+				// Override cursor state
+				Nebula::Application::Get().GetWindow().SetCursorLockMode(0); // Unlock cursor
+				Nebula::Application::Get().GetWindow().SetCursorVisible(true);
+				m_CursorStateOverridden = true;
+			}
+			
+			// Restore cursor state when game view is clicked/focused
+			if (m_CursorStateOverridden && GameView::IsGameViewFocused() && Nebula::Input::IsMouseButtonPressed(NB_MOUSE_BUTTON_1))
+			{
+				Nebula::Application::Get().GetWindow().SetCursorLockMode(m_SavedCursorLockMode);
+				Nebula::Application::Get().GetWindow().SetCursorVisible(m_SavedCursorVisible);
+				m_CursorStateOverridden = false;
+			}
+
+			// Process any pending scene loads BEFORE update
+			if (Nebula::SceneManager::Get().HasPendingSceneLoad())
+			{
+				// Just stop audio, don't destroy - let Scene destructor handle cleanup
+				if (m_ActiveScene && m_ActiveScene->GetAudioEngine())
 				{
-					// Just stop audio, don't destroy - let Scene destructor handle cleanup
-					if (m_ActiveScene && m_ActiveScene->GetAudioEngine())
-					{
-						m_ActiveScene->GetAudioEngine()->StopAll();
-					}
-					
-					Nebula::SceneManager::Get().ProcessPendingSceneLoad();
-					m_ActiveScene = Nebula::SceneManager::Get().GetActiveScene();
+					m_ActiveScene->GetAudioEngine()->StopAll();
 				}
 				
-				m_ActiveScene->OnUpdate(ts);
+				Nebula::SceneManager::Get().ProcessPendingSceneLoad();
+				m_ActiveScene = Nebula::SceneManager::Get().GetActiveScene();
 			}
-			m_ActiveScene->OnRender();
 			
-			// Always draw physics debug visualization
-			if (m_LineRenderer)
+			m_ActiveScene->OnUpdate(ts);
+		}
+		m_ActiveScene->OnRender();
+		
+		// Always draw physics debug visualization
+		if (m_LineRenderer)
+		{
+			m_ActiveScene->SetPhysicsDebugDraw(true);
+			if (m_ActiveScene->GetPhysicsWorld())
 			{
-				m_ActiveScene->SetPhysicsDebugDraw(true);
-				if (m_ActiveScene->GetPhysicsWorld())
+				// Sync all entity transforms to physics bodies before debug drawing (only in editor mode)
+				if (!m_RuntimeMode)
 				{
-					// Sync all entity transforms to physics bodies before debug drawing (only in editor mode)
-					if (!m_RuntimeMode)
-					{
-						m_ActiveScene->GetPhysicsWorld()->SyncAllRigidBodyTransforms(m_ActiveScene.get());
-					}
+					m_ActiveScene->GetPhysicsWorld()->SyncAllRigidBodyTransforms(m_ActiveScene.get());
+				}
 					
 					m_ActiveScene->GetPhysicsWorld()->DebugDraw();
 					
@@ -705,6 +729,13 @@ namespace Cosmic {
 			// Exiting runtime mode
 			NB_CORE_INFO("Runtime stopped");
 			ConsoleWindow::AddLog("Runtime stopped", Nebula::LogLevel::LOG_INFO);
+			
+			// Reset cursor override flag
+			m_CursorStateOverridden = false;
+			
+			// Restore normal cursor state (unlocked and visible)
+			Nebula::Application::Get().GetWindow().SetCursorLockMode(0);
+			Nebula::Application::Get().GetWindow().SetCursorVisible(true);
 			
 			// Stop script runtime
 			if (m_ActiveScene)

@@ -240,6 +240,55 @@ namespace Nebula {
 		else
 			glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	}
+
+	void GLFWWindow::SetCursorLockMode(int mode)
+	{
+		switch (mode)
+		{
+			case 0: // None - free cursor
+				glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+				break;
+			case 1: // Locked - hidden and locked to center
+				glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+				break;
+			case 2: // Confined - constrained to window
+				glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+				// Note: GLFW doesn't have direct window confinement
+				break;
+		}
+	}
+
+	void GLFWWindow::SetCursorVisible(bool visible)
+	{
+		// Only apply visibility if cursor is not locked (DISABLED mode hides it automatically)
+		int currentMode = glfwGetInputMode(m_Window, GLFW_CURSOR);
+		if (currentMode != GLFW_CURSOR_DISABLED)
+		{
+			if (visible)
+				glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			else
+				glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+		}
+	}
+
+	int GLFWWindow::GetCursorLockMode() const
+	{
+		int currentMode = glfwGetInputMode(m_Window, GLFW_CURSOR);
+		
+		// Map GLFW cursor mode to our enum
+		if (currentMode == GLFW_CURSOR_DISABLED)
+			return 1; // Locked
+		else if (currentMode == GLFW_CURSOR_NORMAL)
+			return 0; // None/Free
+		else
+			return 0; // Default to free
+	}
+
+	bool GLFWWindow::GetCursorVisible() const
+	{
+		int currentMode = glfwGetInputMode(m_Window, GLFW_CURSOR);
+		return (currentMode != GLFW_CURSOR_HIDDEN && currentMode != GLFW_CURSOR_DISABLED);
+	}
 	
 	void GLFWWindow::Shutdown()
 	{

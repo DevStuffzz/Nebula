@@ -150,6 +150,12 @@ public:
 	~Runtime() {
 
 	}
+
+	void Exit(int code = 0) override {
+		SetRunning(false);
+		GetWindow().SetCursorVisible(true);
+		GetWindow().SetCursorLockMode(0);
+	}
 };
 
 

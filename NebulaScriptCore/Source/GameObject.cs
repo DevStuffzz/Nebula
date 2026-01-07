@@ -250,5 +250,31 @@ namespace Nebula
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void RigidBody_AddForceWithMode(uint entityID, ref Vector3 force, ForceMode mode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RigidBody_GetVelocity(uint entityID, out Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RigidBody_SetVelocity(uint entityID, ref Vector3 velocity);
+
+        // AudioSource methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AudioSource_Play(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AudioSource_Stop(uint entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AudioSource_Pause(uint entityID);
+
+        // LineRenderer methods
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void LineRenderer_SetPoints(uint entityID, Vector3[] points, int count);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void LineRenderer_AddPoint(uint entityID, ref Vector3 point);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void LineRenderer_ClearPoints(uint entityID);
     }
 }

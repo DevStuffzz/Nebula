@@ -28,7 +28,9 @@ namespace Nebula {
 		void SetFullscreen(bool fullscreen);
 
 		void SetCursorMode(bool disabled) override;
-
+		void SetCursorLockMode(int mode) override;
+		void SetCursorVisible(bool visible) override;	int GetCursorLockMode() const override;
+	bool GetCursorVisible() const override;
 		inline void* GetNativeWindow() const override { return m_Window; }
 	private:
 		virtual void Init(const WindowProps& props);

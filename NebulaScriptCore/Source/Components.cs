@@ -65,65 +65,49 @@ namespace Nebula
             IsKinematic = false;
         }
 
+        public Vector3 velocity
+        {
+            get
+            {
+                if (_entityID == 0)
+                {
+                    Log.LogError("RigidBodyComponent: Cannot get velocity - EntityID not set");
+                    return Vector3.Zero;
+                }
+                InternalCalls.RigidBody_GetVelocity(_entityID, out Vector3 vel);
+                return vel;
+            }
+            set
+            {
+                if (_entityID == 0)
+                {
+                    Log.LogError("RigidBodyComponent: Cannot set velocity - EntityID not set");
+                    return;
+                }
+                InternalCalls.RigidBody_SetVelocity(_entityID, ref value);
+            }
+        }
+
         public void AddForce(Vector3 force)
         {
-            Log.LogInfo($"[RigidBodyComponent.AddForce] START - force={force}, _entityID={_entityID}, this={this?.GetHashCode() ?? 0}");
-            
-            if (this == null)
-            {
-                Log.LogError("[RigidBodyComponent.AddForce] ERROR: 'this' is NULL! RigidBodyComponent object itself is null.");
-                throw new NullReferenceException("RigidBodyComponent instance is null");
-            }
-            
             if (_entityID == 0)
             {
-                Log.LogError($"[RigidBodyComponent.AddForce] ERROR: _entityID is 0. This component was not properly initialized via GetComponent. Object hash: {this.GetHashCode()}");
+                Log.LogError("RigidBodyComponent: Cannot AddForce - EntityID not set");
                 return;
             }
             
-            try
-            {
-                Log.LogInfo($"[RigidBodyComponent.AddForce] Calling InternalCalls.RigidBody_AddForce(_entityID={_entityID}, force={force})");
-                InternalCalls.RigidBody_AddForce(_entityID, ref force);
-                Log.LogInfo($"[RigidBodyComponent.AddForce] SUCCESS - Force applied to entity {_entityID}");
-            }
-            catch (NullReferenceException nre)
-            {
-                Log.LogError($"[RigidBodyComponent.AddForce] NullReferenceException caught!");
-                Log.LogError($"  - _entityID: {_entityID}");
-                Log.LogError($"  - force: {force}");
-                Log.LogError($"  - this: {(this == null ? "NULL" : this.GetHashCode().ToString())}");
-                Log.LogError($"  - Exception: {nre.Message}");
-                Log.LogError($"  - StackTrace: {nre.StackTrace}");
-                throw;
-            }
-            catch (System.Exception ex)
-            {
-                Log.LogError($"[RigidBodyComponent.AddForce] Exception: {ex.GetType().Name} - {ex.Message}\\nStack: {ex.StackTrace}");
-                throw;
-            }
+            InternalCalls.RigidBody_AddForce(_entityID, ref force);
         }
 
         public void AddForce(Vector3 force, ForceMode mode)
         {
-            Log.LogInfo($"AddForce (with mode) called with force={force}, mode={mode}, _entityID={_entityID}");
-            
             if (_entityID == 0)
             {
-                Log.LogError("RigidBodyComponent: Cannot AddForce - EntityID not set. Make sure to use GetComponent to retrieve the component.");
+                Log.LogError("RigidBodyComponent: Cannot AddForce - EntityID not set");
                 return;
             }
             
-            try
-            {
-                InternalCalls.RigidBody_AddForceWithMode(_entityID, ref force, mode);
-                Log.LogInfo($"AddForceWithMode completed successfully for entity {_entityID}");
-            }
-            catch (System.Exception ex)
-            {
-                Log.LogError($"Exception in AddForceWithMode: {ex.Message}\\nStack: {ex.StackTrace}");
-                throw;
-            }
+            InternalCalls.RigidBody_AddForceWithMode(_entityID, ref force, mode);
         }
     }
 
@@ -175,40 +159,127 @@ namespace Nebula
 
     public class AudioSourceComponent
     {
-        public bool PlayOnAwake;
-        public bool Loop;
         public float Volume;
         public float Pitch;
+        public bool Loop;
+        public bool PlayOnAwake;
+        public bool Spatial;
+
+        [System.NonSerialized]
+        internal uint _entityID;
 
         public AudioSourceComponent()
         {
-            PlayOnAwake = false;
-            Loop = false;
             Volume = 1.0f;
             Pitch = 1.0f;
+            Loop = false;
+            PlayOnAwake = false;
+            Spatial = true;
+        }
+
+        public void Play()
+        {
+            if (_entityID == 0)
+            {
+                Log.LogError("AudioSourceComponent: Cannot Play - EntityID not set.");
+                return;
+            }
+            InternalCalls.AudioSource_Play(_entityID);
+        }
+
+        public void Stop()
+        {
+            if (_entityID == 0)
+            {
+                Log.LogError("AudioSourceComponent: Cannot Stop - EntityID not set.");
+                return;
+            }
+            InternalCalls.AudioSource_Stop(_entityID);
+        }
+
+        public void Pause()
+        {
+            if (_entityID == 0)
+            {
+                Log.LogError("AudioSourceComponent: Cannot Pause - EntityID not set.");
+                return;
+            }
+            InternalCalls.AudioSource_Pause(_entityID);
         }
     }
 
-    public class LightComponent
+    public class LineRendererComponent
     {
-        public enum LightType
+        public Vector3 Color;
+        public float Width;
+        public bool Loop;
+
+        [System.NonSerialized]
+        internal uint _entityID;
+
+        public LineRendererComponent()
         {
-            Directional,
-            Point,
-            Spot
+            Color = new Vector3(1.0f, 1.0f, 1.0f);
+            Width = 1.0f;
+            Loop = false;
         }
 
-        public LightType Type;
+        public void SetPoints(Vector3[] points)
+        {
+            if (_entityID == 0)
+            {
+                Log.LogError("LineRendererComponent: Cannot SetPoints - EntityID not set.");
+                return;
+            }
+            InternalCalls.LineRenderer_SetPoints(_entityID, points, points.Length);
+        }
+
+        public void AddPoint(Vector3 point)
+        {
+            if (_entityID == 0)
+            {
+                Log.LogError("LineRendererComponent: Cannot AddPoint - EntityID not set.");
+                return;
+            }
+            InternalCalls.LineRenderer_AddPoint(_entityID, ref point);
+        }
+
+        public void ClearPoints()
+        {
+            if (_entityID == 0)
+            {
+                Log.LogError("LineRendererComponent: Cannot ClearPoints - EntityID not set.");
+                return;
+            }
+            InternalCalls.LineRenderer_ClearPoints(_entityID);
+        }
+    }
+
+    public class PointLightComponent
+    {
+        public Vector3 Position;
         public Vector3 Color;
         public float Intensity;
-        public float Range;
+        public float Radius;
 
-        public LightComponent()
+        public PointLightComponent()
         {
-            Type = LightType.Point;
+            Position = Vector3.Zero;
             Color = new Vector3(1.0f, 1.0f, 1.0f);
             Intensity = 1.0f;
-            Range = 10.0f;
+            Radius = 5.0f;
+        }
+    }
+
+    public class DirectionalLightComponent
+    {
+        public Vector3 Color;
+        public float Intensity;
+
+        public DirectionalLightComponent()
+        {
+            Color = new Vector3(1.0f, 1.0f, 1.0f);
+            Intensity = 1.0f;
         }
     }
 }

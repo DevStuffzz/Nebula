@@ -2,7 +2,8 @@ project "NebulaScriptCore"
     location "NebulaScriptCore"
     kind "SharedLib"
     language "C#"
-    dotnetframework "net8.0"
+    dotnetframework "netstandard2.1"
+    csversion "9.0"
     
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
