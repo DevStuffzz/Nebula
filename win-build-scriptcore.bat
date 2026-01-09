@@ -40,11 +40,10 @@ echo.
 REM Build Debug configuration
 echo Building NebulaScriptCore (Debug)...
 echo ----------------------------------------
-"%MSBUILD_PATH%" "NebulaScriptCore\NebulaScriptCore\NebulaScriptCore.csproj" /p:Configuration=Debug /p:Platform=x64 /t:Rebuild /v:minimal
+"%MSBUILD_PATH%" "NebulaScriptCore\NebulaScriptCore\NebulaScriptCore.csproj" /p:Configuration=Debug /p:Platform=x64 /t:Build /v:minimal
 if %errorlevel% neq 0 (
     echo.
     echo ERROR: Debug build failed!
-    pause
     exit /b %errorlevel%
 )
 
@@ -55,11 +54,10 @@ echo.
 REM Build Release configuration
 echo Building NebulaScriptCore (Release)...
 echo ----------------------------------------
-"%MSBUILD_PATH%" "NebulaScriptCore\NebulaScriptCore\NebulaScriptCore.csproj" /p:Configuration=Release /p:Platform=x64 /t:Rebuild /v:minimal
+"%MSBUILD_PATH%" "NebulaScriptCore\NebulaScriptCore\NebulaScriptCore.csproj" /p:Configuration=Release /p:Platform=x64 /t:Build /v:minimal
 if %errorlevel% neq 0 (
     echo.
     echo ERROR: Release build failed!
-    pause
     exit /b %errorlevel%
 )
 
@@ -71,5 +69,3 @@ echo.
 echo Output locations:
 echo   Debug:   bin\Debug-windows-x86_64\NebulaScriptCore\
 echo   Release: bin\Release-windows-x86_64\NebulaScriptCore\
-echo.
-pause

@@ -38,6 +38,7 @@ namespace Nebula {
 		void SetDebugDrawEnabled(bool enabled);
 		bool IsDebugDrawEnabled() const { return m_DebugDrawEnabled; }
 		void DebugDraw();
+		void DebugDrawAllColliders(Scene* scene); // Draw all colliders in scene regardless of runtime bodies
 		PhysicsDebugDraw* GetDebugDrawer() { return m_DebugDrawer.get(); }
 		
 		// Get debug line data without exposing PhysicsDebugDraw header

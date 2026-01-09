@@ -296,28 +296,30 @@ namespace Cosmic {
 			m_ActiveScene->SetPhysicsDebugDraw(true);
 			if (m_ActiveScene->GetPhysicsWorld())
 			{
-				// Sync all entity transforms to physics bodies before debug drawing (only in editor mode)
+				// In editor mode (not runtime), draw all colliders from scene entities
+				// In runtime mode, draw from physics world (shows active simulation)
 				if (!m_RuntimeMode)
 				{
-					m_ActiveScene->GetPhysicsWorld()->SyncAllRigidBodyTransforms(m_ActiveScene.get());
+					m_ActiveScene->GetPhysicsWorld()->DebugDrawAllColliders(m_ActiveScene.get());
 				}
-					
+				else
+				{
 					m_ActiveScene->GetPhysicsWorld()->DebugDraw();
+				}
+				
+				// Render physics debug lines
+				const auto& lineVertices = m_ActiveScene->GetPhysicsWorld()->GetDebugLineVertices();
+				const auto& lineColors = m_ActiveScene->GetPhysicsWorld()->GetDebugLineColors();
+				
+				if (!lineVertices.empty() && !lineColors.empty())
+				{
+					// Set view projection from the editor camera
+					auto& camera = Nebula::Application::Get().GetCamera();
+					m_LineRenderer->SetViewProjection(camera.GetViewProjectionMatrix());
 					
-					// Render physics debug lines
-					const auto& lineVertices = m_ActiveScene->GetPhysicsWorld()->GetDebugLineVertices();
-					const auto& lineColors = m_ActiveScene->GetPhysicsWorld()->GetDebugLineColors();
-					
-					if (!lineVertices.empty() && !lineColors.empty())
-					{
-						// Set view projection from the editor camera
-						auto& camera = Nebula::Application::Get().GetCamera();
-						m_LineRenderer->SetViewProjection(camera.GetViewProjectionMatrix());
-						
-						m_LineRenderer->Begin();
-						m_LineRenderer->DrawLines(lineVertices, lineColors);
-						m_LineRenderer->End();
-					}
+					m_LineRenderer->Begin();
+					m_LineRenderer->DrawLines(lineVertices, lineColors);
+					m_LineRenderer->End();
 				}
 			}
 		}
@@ -388,6 +390,7 @@ namespace Cosmic {
 			m_GameViewFramebuffer->Unbind();
 		}
 	}
+}
 
 	void EditorLayer::OnImGuiRender()
 	{

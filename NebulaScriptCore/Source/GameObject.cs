@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace Nebula
 {
     /// <summary>
-    /// Unity-like GameObject class for entity management
+    /// GameObject class for entity management
     /// </summary>
     public static class GameObject
     {

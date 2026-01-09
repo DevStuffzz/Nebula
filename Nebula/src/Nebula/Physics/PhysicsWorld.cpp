@@ -120,6 +120,85 @@ namespace Nebula {
 		}
 	}
 
+	void PhysicsWorld::DebugDrawAllColliders(Scene* scene)
+	{
+		if (!m_DebugDrawer || !m_DebugDrawEnabled || !scene)
+			return;
+
+		m_DebugDrawer->ClearLines();
+
+		// Draw all box colliders
+		auto boxColliderView = scene->GetRegistry().view<BoxColliderComponent, TransformComponent>();
+		for (auto entity : boxColliderView)
+		{
+			Entity ent{ entity, scene };
+			auto& collider = boxColliderView.get<BoxColliderComponent>(entity);
+			auto& transform = boxColliderView.get<TransformComponent>(entity);
+
+			// Calculate final size with scale
+			glm::vec3 finalSize = collider.Size * transform.Scale;
+
+			// Calculate position with offset
+			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
+			glm::vec3 rotatedOffset = rotQuat * collider.Offset;
+			glm::vec3 finalPosition = transform.Position + rotatedOffset;
+
+			// Create temporary transform
+			btTransform btTrans;
+			btTrans.setIdentity();
+			btTrans.setOrigin(btVector3(finalPosition.x, finalPosition.y, finalPosition.z));
+			btTrans.setRotation(btQuaternion(rotQuat.x, rotQuat.y, rotQuat.z, rotQuat.w));
+
+			// Create temporary box shape
+			btBoxShape tempShape(btVector3(finalSize.x * 0.5f, finalSize.y * 0.5f, finalSize.z * 0.5f));
+
+			// Draw the collider in green to show it's visible
+			if (m_DynamicsWorld && m_DynamicsWorld->getDebugDrawer())
+			{
+				m_DynamicsWorld->getDebugDrawer()->drawBox(
+					btVector3(-finalSize.x * 0.5f, -finalSize.y * 0.5f, -finalSize.z * 0.5f),
+					btVector3(finalSize.x * 0.5f, finalSize.y * 0.5f, finalSize.z * 0.5f),
+					btTrans,
+					btVector3(0.0f, 1.0f, 0.0f) // Green color
+				);
+			}
+		}
+
+		// Draw all sphere colliders
+		auto sphereColliderView = scene->GetRegistry().view<SphereColliderComponent, TransformComponent>();
+		for (auto entity : sphereColliderView)
+		{
+			Entity ent{ entity, scene };
+			auto& collider = sphereColliderView.get<SphereColliderComponent>(entity);
+			auto& transform = sphereColliderView.get<TransformComponent>(entity);
+
+			// Calculate final radius with scale (use max component)
+			float maxScale = glm::max(glm::max(transform.Scale.x, transform.Scale.y), transform.Scale.z);
+			float finalRadius = collider.Radius * maxScale;
+
+			// Calculate position with offset
+			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
+			glm::vec3 rotatedOffset = rotQuat * collider.Offset;
+			glm::vec3 finalPosition = transform.Position + rotatedOffset;
+
+			// Create temporary transform
+			btTransform btTrans;
+			btTrans.setIdentity();
+			btTrans.setOrigin(btVector3(finalPosition.x, finalPosition.y, finalPosition.z));
+			btTrans.setRotation(btQuaternion(rotQuat.x, rotQuat.y, rotQuat.z, rotQuat.w));
+
+			// Draw the sphere collider in green
+			if (m_DynamicsWorld && m_DynamicsWorld->getDebugDrawer())
+			{
+				m_DynamicsWorld->getDebugDrawer()->drawSphere(
+					finalRadius,
+					btTrans,
+					btVector3(0.0f, 1.0f, 0.0f) // Green color
+				);
+			}
+		}
+	}
+
 	const std::vector<glm::vec3>& PhysicsWorld::GetDebugLineVertices() const
 	{
 		static std::vector<glm::vec3> empty;
@@ -403,12 +482,28 @@ namespace Nebula {
 
 		if (rb.RuntimeBody)
 		{
+			// Calculate rotation first (needed for offset calculation)
+			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
+
+			// Calculate final position including collider offset
+			glm::vec3 finalPosition = transform.Position;
+			if (entity.HasComponent<BoxColliderComponent>())
+			{
+				auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
+				glm::vec3 rotatedOffset = rotQuat * boxCollider.Offset;
+				finalPosition += rotatedOffset;
+			}
+			else if (entity.HasComponent<SphereColliderComponent>())
+			{
+				auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
+				glm::vec3 rotatedOffset = rotQuat * sphereCollider.Offset;
+				finalPosition += rotatedOffset;
+			}
+
 			// Update position and rotation
 			btTransform btTrans;
 			btTrans.setIdentity();
-			btTrans.setOrigin(btVector3(transform.Position.x, transform.Position.y, transform.Position.z));
-			
-			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
+			btTrans.setOrigin(btVector3(finalPosition.x, finalPosition.y, finalPosition.z));
 			btTrans.setRotation(btQuaternion(rotQuat.x, rotQuat.y, rotQuat.z, rotQuat.w));
 
 			rb.RuntimeBody->setWorldTransform(btTrans);
