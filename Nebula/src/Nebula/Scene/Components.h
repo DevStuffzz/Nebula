@@ -140,6 +140,9 @@ namespace Nebula {
 	struct NEBULA_API ScriptComponent
 	{
 		std::string ClassName; // Fully qualified C# class name (e.g., "MyScripts.PlayerController")
+		
+		// Storage for field values in editor mode (before instantiation)
+		std::unordered_map<std::string, ScriptVariable> FieldValues;
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;

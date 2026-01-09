@@ -421,43 +421,111 @@ namespace Cosmic {
 							// Get the script instance for this entity (if running)
 							auto instance = Nebula::ScriptEngine::GetEntityScriptInstance((uint32_t)s_SelectedEntity);
 							
+							// If not running, create a temporary instance to get default values
+							Nebula::Ref<Nebula::ScriptInstance> tempInstance = nullptr;
+							if (!instance)
+							{
+								tempInstance = Nebula::CreateRef<Nebula::ScriptInstance>(scriptClass, s_SelectedEntity);
+							}
+							
 							for (const auto& [fieldName, field] : fields)
 							{
-								if (instance)
+								// Initialize default values if not already set
+								if (script.FieldValues.find(fieldName) == script.FieldValues.end())
 								{
-									// Display and edit field values during runtime
+									auto valueSource = instance ? instance : tempInstance;
 									switch (field.Type)
 									{
 									case Nebula::ScriptFieldType::Float:
 									{
-										float value = instance->GetFieldValue<float>(fieldName);
-										if (Nebula::NebulaGui::DragFloat(fieldName.c_str(), &value, 0.1f))
-											instance->SetFieldValue(fieldName, value);
+										float value = valueSource->GetFieldValue<float>(fieldName);
+										script.FieldValues[fieldName] = Nebula::ScriptVariable(fieldName, value);
 										break;
 									}
 									case Nebula::ScriptFieldType::Int:
 									{
-										int value = instance->GetFieldValue<int>(fieldName);
-										if (Nebula::NebulaGui::DragInt(fieldName.c_str(), &value, 1.0f))
-											instance->SetFieldValue(fieldName, value);
+										int value = valueSource->GetFieldValue<int>(fieldName);
+										script.FieldValues[fieldName] = Nebula::ScriptVariable(fieldName, value);
 										break;
 									}
 									case Nebula::ScriptFieldType::Bool:
 									{
-										bool value = instance->GetFieldValue<bool>(fieldName);
-										if (Nebula::NebulaGui::Checkbox(fieldName.c_str(), &value))
-											instance->SetFieldValue(fieldName, value);
+										bool value = valueSource->GetFieldValue<bool>(fieldName);
+										script.FieldValues[fieldName] = Nebula::ScriptVariable(fieldName, value);
 										break;
 									}
-									default:
-										Nebula::NebulaGui::Text("%s: %s (not editable yet)", fieldName.c_str(), Nebula::ScriptFieldTypeToString(field.Type));
-										break;
 									}
 								}
-								else
+								
+								// Display and edit field values
+								switch (field.Type)
 								{
-									// Just show field names in editor mode (when not running)
-									Nebula::NebulaGui::Text("%s: %s", fieldName.c_str(), Nebula::ScriptFieldTypeToString(field.Type));
+								case Nebula::ScriptFieldType::Float:
+								{
+									float value = 0.0f;
+									if (instance)
+									{
+										value = instance->GetFieldValue<float>(fieldName);
+									}
+									else if (script.FieldValues.find(fieldName) != script.FieldValues.end())
+									{
+										value = script.FieldValues[fieldName].FloatValue;
+									}
+									
+									if (Nebula::NebulaGui::DragFloat(fieldName.c_str(), &value, 0.1f))
+									{
+										if (instance)
+											instance->SetFieldValue(fieldName, value);
+										else
+											script.FieldValues[fieldName] = Nebula::ScriptVariable(fieldName, value);
+									}
+									break;
+								}
+								case Nebula::ScriptFieldType::Int:
+								{
+									int value = 0;
+									if (instance)
+									{
+										value = instance->GetFieldValue<int>(fieldName);
+									}
+									else if (script.FieldValues.find(fieldName) != script.FieldValues.end())
+									{
+										value = script.FieldValues[fieldName].IntValue;
+									}
+									
+									if (Nebula::NebulaGui::DragInt(fieldName.c_str(), &value, 1.0f))
+									{
+										if (instance)
+											instance->SetFieldValue(fieldName, value);
+										else
+											script.FieldValues[fieldName] = Nebula::ScriptVariable(fieldName, value);
+									}
+									break;
+								}
+								case Nebula::ScriptFieldType::Bool:
+								{
+									bool value = false;
+									if (instance)
+									{
+										value = instance->GetFieldValue<bool>(fieldName);
+									}
+									else if (script.FieldValues.find(fieldName) != script.FieldValues.end())
+									{
+										value = script.FieldValues[fieldName].BoolValue;
+									}
+									
+									if (Nebula::NebulaGui::Checkbox(fieldName.c_str(), &value))
+									{
+										if (instance)
+											instance->SetFieldValue(fieldName, value);
+										else
+											script.FieldValues[fieldName] = Nebula::ScriptVariable(fieldName, value);
+									}
+									break;
+								}
+								default:
+									Nebula::NebulaGui::Text("%s: %s (not editable yet)", fieldName.c_str(), Nebula::ScriptFieldTypeToString(field.Type));
+									break;
 								}
 							}
 						}

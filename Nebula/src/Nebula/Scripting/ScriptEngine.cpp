@@ -161,6 +161,25 @@ void ScriptEngine::OnRuntimeStop()
 			Ref<ScriptInstance> instance = CreateRef<ScriptInstance>(s_Data->EntityClasses[sc.ClassName], entity);
 			s_Data->EntityInstances[entityID] = instance;
 
+			// Apply stored field values from component to instance
+			for (const auto& [fieldName, fieldValue] : sc.FieldValues)
+			{
+				switch (fieldValue.VarType)
+				{
+				case ScriptVariable::Type::Float:
+					instance->SetFieldValue(fieldName, fieldValue.FloatValue);
+					break;
+				case ScriptVariable::Type::Int:
+					instance->SetFieldValue(fieldName, fieldValue.IntValue);
+					break;
+				case ScriptVariable::Type::Bool:
+					instance->SetFieldValue(fieldName, fieldValue.BoolValue);
+					break;
+				default:
+					break;
+				}
+			}
+
 			// Call OnCreate
 			NB_CORE_INFO("Calling OnCreate for entity {}", entityID);
 			instance->InvokeOnCreate();
