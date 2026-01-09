@@ -8,6 +8,9 @@
 
 namespace Nebula {
 
+	// Define the global field value buffer
+	char g_ScriptFieldValueBuffer[16];
+
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
 		: m_ScriptClass(scriptClass)
 	{

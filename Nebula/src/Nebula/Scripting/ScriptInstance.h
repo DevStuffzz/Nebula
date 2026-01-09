@@ -26,11 +26,11 @@ namespace Nebula {
 		{
 			static_assert(sizeof(T) <= 16, "Type too large!");
 
-			bool success = GetFieldValueInternal(name, s_FieldValueBuffer);
+			bool success = GetFieldValueInternal(name, g_ScriptFieldValueBuffer);
 			if (!success)
 				return T();
 
-			return *(T*)s_FieldValueBuffer;
+			return *(T*)g_ScriptFieldValueBuffer;
 		}
 
 		template<typename T>
@@ -54,10 +54,11 @@ namespace Nebula {
 		MonoMethod* m_OnCollisionEnterMethod = nullptr;
 		MonoMethod* m_OnCollisionStayMethod = nullptr;
 		MonoMethod* m_OnCollisionExitMethod = nullptr;
-		
-		inline static char s_FieldValueBuffer[16];
 
 		friend struct ScriptFieldInstance;
 	};
+
+	// Static buffer for field value retrieval (exported for DLL)
+	extern NEBULA_API char g_ScriptFieldValueBuffer[16];
 
 }

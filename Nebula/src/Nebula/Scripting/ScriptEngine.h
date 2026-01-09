@@ -29,8 +29,8 @@ namespace Nebula {
 	{
 	};
 
-	const char* ScriptFieldTypeToString(ScriptFieldType type);
-	ScriptFieldType MonoTypeToScriptFieldType(MonoType* monoType);
+	NEBULA_API const char* ScriptFieldTypeToString(ScriptFieldType type);
+	NEBULA_API ScriptFieldType MonoTypeToScriptFieldType(MonoType* monoType);
 
 	class NEBULA_API ScriptEngine
 	{
@@ -44,8 +44,7 @@ namespace Nebula {
 		static void OnRuntimeStart(Scene* scene);
 		static void OnRuntimeStop();
 
-		static bool EntityClassExists(const std::string& fullClassName);	static std::vector<std::string> GetEntityClassNames();
-		static void OnCreateEntity(Entity entity);
+		static bool EntityClassExists(const std::string& fullClassName);	static std::vector<std::string> GetEntityClassNames();	static Ref<ScriptClass> GetEntityScriptClass(const std::string& fullClassName);		static void OnCreateEntity(Entity entity);
 		static void OnUpdateEntity(Entity entity, float deltaTime);
 		static void OnDestroyEntity(Entity entity);
 

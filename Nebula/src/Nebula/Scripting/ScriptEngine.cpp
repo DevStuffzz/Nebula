@@ -142,6 +142,13 @@ void ScriptEngine::OnRuntimeStop()
 		return classNames;
 	}
 
+	Ref<ScriptClass> ScriptEngine::GetEntityScriptClass(const std::string& fullClassName)
+	{
+		if (s_Data->EntityClasses.find(fullClassName) != s_Data->EntityClasses.end())
+			return s_Data->EntityClasses[fullClassName];
+		return nullptr;
+	}
+
 	void ScriptEngine::OnCreateEntity(Entity entity)
 	{
 		const auto& sc = entity.GetComponent<ScriptComponent>();
@@ -395,11 +402,43 @@ void ScriptEngine::OnRuntimeStop()
 			{
 				const char* fieldName = mono_field_get_name(field);
 				uint32_t flags = mono_field_get_flags(field);
-				if (flags & MONO_FIELD_ATTR_PUBLIC)
+				
+				// Check if field is public or has [SerializeField] attribute
+				bool isPublic = flags & MONO_FIELD_ATTR_PUBLIC;
+				bool hasSerializeField = false;
+				bool hasHideInInspector = false;
+				
+				// Check for attributes
+				MonoCustomAttrInfo* attrInfo = mono_custom_attrs_from_field(monoClass, field);
+				if (attrInfo)
+				{
+					MonoArray* attrs = mono_custom_attrs_construct(attrInfo);
+					if (attrs)
+					{
+						int attrCount = mono_array_length(attrs);
+						for (int i = 0; i < attrCount; i++)
+						{
+							MonoObject* attr = mono_array_get(attrs, MonoObject*, i);
+							MonoClass* attrClass = mono_object_get_class(attr);
+							const char* attrName = mono_class_get_name(attrClass);
+							
+							if (strcmp(attrName, "SerializeFieldAttribute") == 0)
+								hasSerializeField = true;
+							if (strcmp(attrName, "HideInInspectorAttribute") == 0)
+								hasHideInInspector = true;
+						}
+					}
+				}
+				
+				// Include field if it's public (and not hidden) or has SerializeField
+				bool shouldSerialize = (isPublic && !hasHideInInspector) || hasSerializeField;
+				
+				if (shouldSerialize)
 				{
 					MonoType* type = mono_field_get_type(field);
 					ScriptFieldType fieldType = MonoTypeToScriptFieldType(type);
-					NB_CORE_WARN("  {} ({})", fieldName, ScriptFieldTypeToString(fieldType));
+					NB_CORE_WARN("  {} ({}) {}", fieldName, ScriptFieldTypeToString(fieldType), 
+						hasSerializeField ? "[SerializeField]" : "");
 
 					scriptClass->m_Fields[fieldName] = { fieldType, fieldName, field };
 				}

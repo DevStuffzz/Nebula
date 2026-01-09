@@ -405,6 +405,64 @@ namespace Cosmic {
 					}
 					Nebula::NebulaGui::EndCombo();
 				}
+				
+				// Display script fields if a class is selected
+				if (!script.ClassName.empty())
+				{
+					auto scriptClass = Nebula::ScriptEngine::GetEntityScriptClass(script.ClassName);
+					if (scriptClass)
+					{
+						auto& fields = scriptClass->GetFields();
+						if (!fields.empty())
+						{
+							Nebula::NebulaGui::Separator();
+							Nebula::NebulaGui::Text("Script Fields:");
+							
+							// Get the script instance for this entity (if running)
+							auto instance = Nebula::ScriptEngine::GetEntityScriptInstance((uint32_t)s_SelectedEntity);
+							
+							for (const auto& [fieldName, field] : fields)
+							{
+								if (instance)
+								{
+									// Display and edit field values during runtime
+									switch (field.Type)
+									{
+									case Nebula::ScriptFieldType::Float:
+									{
+										float value = instance->GetFieldValue<float>(fieldName);
+										if (Nebula::NebulaGui::DragFloat(fieldName.c_str(), &value, 0.1f))
+											instance->SetFieldValue(fieldName, value);
+										break;
+									}
+									case Nebula::ScriptFieldType::Int:
+									{
+										int value = instance->GetFieldValue<int>(fieldName);
+										if (Nebula::NebulaGui::DragInt(fieldName.c_str(), &value, 1.0f))
+											instance->SetFieldValue(fieldName, value);
+										break;
+									}
+									case Nebula::ScriptFieldType::Bool:
+									{
+										bool value = instance->GetFieldValue<bool>(fieldName);
+										if (Nebula::NebulaGui::Checkbox(fieldName.c_str(), &value))
+											instance->SetFieldValue(fieldName, value);
+										break;
+									}
+									default:
+										Nebula::NebulaGui::Text("%s: %s (not editable yet)", fieldName.c_str(), Nebula::ScriptFieldTypeToString(field.Type));
+										break;
+									}
+								}
+								else
+								{
+									// Just show field names in editor mode (when not running)
+									Nebula::NebulaGui::Text("%s: %s", fieldName.c_str(), Nebula::ScriptFieldTypeToString(field.Type));
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 

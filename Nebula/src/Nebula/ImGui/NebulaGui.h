@@ -21,6 +21,7 @@ namespace Nebula {
 		static bool DragFloat2(const char* label, float* v, float speed = 1.0f, float min = 0.0f, float max = 0.0f);
 		static bool DragFloat3(const char* label, float* v, float speed = 1.0f, float min = 0.0f, float max = 0.0f);
 		static bool DragFloat4(const char* label, float* v, float speed = 1.0f, float min = 0.0f, float max = 0.0f);
+		static bool DragInt(const char* label, int* v, float speed = 1.0f, int min = 0, int max = 0);
 		static bool SliderFloat(const char* label, float* v, float min, float max);
 
 		// Text/Label
