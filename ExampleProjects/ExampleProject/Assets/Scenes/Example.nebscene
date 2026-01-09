@@ -13,7 +13,7 @@
                     2.0
                 ]
             },
-            "ID": 5,
+            "ID": 3145734,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -36,7 +36,7 @@
                     ],
                     "UseTexture": 1
                 },
-                "MeshID": 2,
+                "MeshID": 1,
                 "MeshSource": "assets\\Models\\Cube.obj"
             },
             "RigidBodyComponent": {
@@ -82,7 +82,7 @@
                     2.0
                 ]
             },
-            "ID": 4,
+            "ID": 2097157,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -105,7 +105,7 @@
                     ],
                     "UseTexture": 1
                 },
-                "MeshID": 2,
+                "MeshID": 1,
                 "MeshSource": "assets\\Models\\Cube.obj"
             },
             "RigidBodyComponent": {
@@ -163,7 +163,7 @@
                 "Primary": true,
                 "ProjectionType": "Perspective"
             },
-            "ID": 3,
+            "ID": 2097156,
             "ScriptComponent": {
                 "ClassName": "ExampleProject.CameraController"
             },
@@ -200,7 +200,7 @@
                 ],
                 "Intensity": 1.0
             },
-            "ID": 2,
+            "ID": 2097155,
             "TagComponent": {
                 "Tag": "Sun"
             },
@@ -235,7 +235,7 @@
                     2.0
                 ]
             },
-            "ID": 1,
+            "ID": 2097154,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -258,7 +258,7 @@
                     ],
                     "UseTexture": 1
                 },
-                "MeshID": 2,
+                "MeshID": 1,
                 "MeshSource": "assets\\Models\\Cube.obj"
             },
             "RigidBodyComponent": {
@@ -304,7 +304,7 @@
                     2.0
                 ]
             },
-            "ID": 1048576,
+            "ID": 2097153,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -320,7 +320,7 @@
                     "Roughness": 0.0,
                     "UseTexture": 0
                 },
-                "MeshID": 1,
+                "MeshID": 2,
                 "MeshSource": "assets\\Models\\Cylinder.obj"
             },
             "RigidBodyComponent": {
@@ -353,6 +353,78 @@
                     1.0,
                     1.0,
                     1.0
+                ]
+            }
+        },
+        {
+            "BoxColliderComponent": {
+                "Offset": [
+                    0.0,
+                    3.9000000953674316,
+                    0.0
+                ],
+                "Size": [
+                    4.0,
+                    4.0,
+                    4.0
+                ]
+            },
+            "ID": 3145728,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "HasTexture": true,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "TextureFilterNearest": true,
+                    "TexturePath": "assets\\Models\\ToyCar\\diffuse.jpg",
+                    "TextureRepeat": true,
+                    "TextureTiling": [
+                        1.0,
+                        1.0
+                    ],
+                    "UseTexture": 1
+                },
+                "MeshID": 3,
+                "MeshSource": "assets\\Models\\ToyCar\\toycar.obj"
+            },
+            "RigidBodyComponent": {
+                "AngularDrag": 0.05000000074505806,
+                "FreezeRotation": false,
+                "IsKinematic": false,
+                "LinearDrag": 0.0,
+                "Mass": 1.0,
+                "Type": 0,
+                "UseGravity": true
+            },
+            "SkyboxComponent": {
+                "DirectoryPath": ""
+            },
+            "TagComponent": {
+                "Tag": "ToyCar"
+            },
+            "TransformComponent": {
+                "Position": [
+                    -14.1841402053833,
+                    0.7129038572311401,
+                    -9.49843692779541
+                ],
+                "Rotation": [
+                    -89.9999771118164,
+                    -0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    0.9999998211860657,
+                    0.9999998211860657
                 ]
             }
         }
