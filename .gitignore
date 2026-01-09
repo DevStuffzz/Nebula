@@ -15,6 +15,7 @@ bin-int/
 *.vcxproj
 *.user
 *.filters
+*.csproj
 
 # Generated Makefiles (from premake)
 Makefile

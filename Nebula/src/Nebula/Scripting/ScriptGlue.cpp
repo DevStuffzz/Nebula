@@ -237,7 +237,6 @@ namespace Nebula {
 		NEB_CORE_ASSERT(entity, "Invalid entity!");
 
 		*outPosition = entity.GetComponent<TransformComponent>().Position;
-		NB_CORE_INFO("GetPosition called for entity {}: ({}, {}, {})", entityID, outPosition->x, outPosition->y, outPosition->z);
 	}
 
 	static void TransformComponent_SetPosition(uint32_t entityID, glm::vec3* position)
@@ -248,7 +247,6 @@ namespace Nebula {
 		Entity entity{ (entt::entity)entityID, scene };
 		NEB_CORE_ASSERT(entity, "Invalid entity!");
 
-		NB_CORE_INFO("SetPosition called for entity {}: ({}, {}, {})", entityID, position->x, position->y, position->z);
 		entity.GetComponent<TransformComponent>().Position = *position;
 	}
 
@@ -333,7 +331,6 @@ namespace Nebula {
 			MonoClassField* kinematicField = mono_class_get_field_from_name(monoClass, "IsKinematic");
 			if (massField) mono_field_set_value(outComponent, massField, &rb.Mass);
 			if (kinematicField) mono_field_set_value(outComponent, kinematicField, &rb.IsKinematic);
-			NB_CORE_INFO("Entity_GetComponent: RigidBodyComponent for entity {} (Mass={}, IsKinematic={})", entityID, rb.Mass, rb.IsKinematic);
 			return true;
 		}
 		
@@ -971,8 +968,7 @@ namespace Nebula {
 	// RigidBody API
 	static void RigidBody_AddForce(uint32_t entityID, glm::vec3* force)
 	{
-		NB_CORE_INFO("RigidBody_AddForce called: entityID={}, force=({}, {}, {})", 
-			entityID, force->x, force->y, force->z);
+
 		
 		Scene* scene = ScriptEngine::GetSceneContext();
 		if (!scene)
@@ -1014,13 +1010,10 @@ namespace Nebula {
 		
 		rb.RuntimeBody->activate(true);
 		rb.RuntimeBody->applyCentralForce(btVector3(force->x, force->y, force->z));
-		NB_CORE_INFO("RigidBody_AddForce: Successfully applied force to entity {}", entityID);
 	}
 
 	static void RigidBody_AddForceWithMode(uint32_t entityID, glm::vec3* force, int mode)
 	{
-		NB_CORE_INFO("RigidBody_AddForceWithMode called: entityID={}, force=({}, {}, {}), mode={}", 
-			entityID, force->x, force->y, force->z, mode);
 		
 		Scene* scene = ScriptEngine::GetSceneContext();
 		if (!scene)
@@ -1083,7 +1076,6 @@ namespace Nebula {
 				break;
 			}
 		}
-		NB_CORE_INFO("RigidBody_AddForceWithMode: Successfully applied force to entity {} with mode {}", entityID, mode);
 	}
 
 	static void RigidBody_GetVelocity(uint32_t entityID, glm::vec3* outVelocity)

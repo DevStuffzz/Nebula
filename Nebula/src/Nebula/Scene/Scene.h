@@ -94,7 +94,8 @@ namespace Nebula {
 
 		// Physics
 		std::unique_ptr<PhysicsWorld> m_PhysicsWorld;
-
+	// Runtime state
+	bool m_IsRuntimeActive = false;
 		friend class Entity;
 		friend class SceneHierarchyPanel;
 		friend class SceneSerializer;

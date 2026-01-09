@@ -120,34 +120,73 @@ namespace Nebula {
 
 		// Find data chunk
 		char dataHeader[4];
-		uint32_t dataSize;
-		while (file.read(dataHeader, 4))
+	uint32_t dataSize = 0;
+	bool foundDataChunk = false;
+	while (file.read(dataHeader, 4))
+	{
+		file.read(reinterpret_cast<char*>(&dataSize), 4);
+		if (std::strncmp(dataHeader, "data", 4) == 0)
 		{
-			file.read(reinterpret_cast<char*>(&dataSize), 4);
-			if (std::strncmp(dataHeader, "data", 4) == 0)
-				break;
-			// Skip this chunk
-			file.seekg(dataSize, std::ios::cur);
+			foundDataChunk = true;
+			break;
 		}
+		// Skip this chunk
+		file.seekg(dataSize, std::ios::cur);
+	}
 
-		// Store properties
-		m_SampleRate = sampleRate;
-		m_Channels = numChannels;
-		m_Duration = static_cast<float>(dataSize) / static_cast<float>(byteRate);
+	if (!foundDataChunk)
+	{
+		NB_CORE_ERROR("Failed to find data chunk in WAV file: {0}", filepath);
+		return false;
+	}
 
-		// Read audio data
-		std::vector<char> audioData(dataSize);
-		file.read(audioData.data(), dataSize);
-		file.close();
+	// Check for invalid data size (0xFFFFFFFF means size is unknown or corrupted)
+	std::vector<char> audioData;
+	if (dataSize == 0 || dataSize == 0xFFFFFFFF)
+	{
+		NB_CORE_WARN("WAV file has invalid data size ({0}), reading until EOF: {1}", dataSize, filepath);
+		
+		// Get current position
+		std::streampos dataStart = file.tellg();
+		// Seek to end
+		file.seekg(0, std::ios::end);
+		std::streampos fileEnd = file.tellg();
+		// Calculate actual data size
+		dataSize = static_cast<uint32_t>(fileEnd - dataStart);
+		// Seek back to data start
+		file.seekg(dataStart);
+		
+		if (dataSize == 0)
+		{
+			NB_CORE_ERROR("No audio data found in WAV file: {0}", filepath);
+			return false;
+		}
+	}
 
-		// Determine OpenAL format
-		ALenum format = 0;
-		std::vector<int16_t> convertedData;
-		const char* dataToUpload = audioData.data();
-		size_t uploadSize = audioData.size();
+	// Store properties
+	m_SampleRate = sampleRate;
+	m_Channels = numChannels;
+	m_Duration = static_cast<float>(dataSize) / static_cast<float>(byteRate);
 
-		if (numChannels == 1 && bitsPerSample == 8)
-			format = AL_FORMAT_MONO8;
+	// Read audio data
+	audioData.resize(dataSize);	file.read(audioData.data(), dataSize);
+	
+	if (file.gcount() != dataSize)
+	{
+		NB_CORE_ERROR("Failed to read complete audio data from WAV file: {0} (read {1}/{2} bytes)", 
+			filepath, file.gcount(), dataSize);
+		return false;
+	}
+	
+	file.close();
+
+	// Determine OpenAL format
+	ALenum format = 0;
+	std::vector<int16_t> convertedData;
+	const char* dataToUpload = audioData.data();
+	size_t uploadSize = audioData.size();
+
+	if (numChannels == 1 && bitsPerSample == 8)			format = AL_FORMAT_MONO8;
 		else if (numChannels == 1 && bitsPerSample == 16)
 			format = AL_FORMAT_MONO16;
 		else if (numChannels == 2 && bitsPerSample == 8)
@@ -181,29 +220,28 @@ namespace Nebula {
 			return false;
 		}
 
-		// Upload to OpenAL buffer
-		alBufferData(m_BufferID, format, dataToUpload, static_cast<ALsizei>(uploadSize), sampleRate);
-
-		// Check for errors
-		ALenum error = alGetError();
-		if (error != AL_NO_ERROR)
-		{
-			NB_CORE_ERROR("OpenAL error loading WAV: {0}", error);
-			return false;
-		}
-
-		NB_CORE_INFO("Loaded WAV audio: {0} ({1} channels, {2} Hz, {3:.2f}s)", filepath, m_Channels, m_SampleRate, m_Duration);
-		return true;
+	// Validate buffer data before uploading
+	if (uploadSize == 0 || format == 0)
+	{
+		NB_CORE_ERROR("Invalid buffer data for WAV file: {0} (size: {1}, format: {2})", filepath, uploadSize, format);
+		return false;
 	}
 
-	bool OpenALAudioClip::LoadMP3(const std::string& filepath)
+	// Upload to OpenAL buffer
+	alBufferData(m_BufferID, format, dataToUpload, static_cast<ALsizei>(uploadSize), sampleRate);
+
+NB_CORE_INFO("Loaded WAV audio: {0} ({1} channels, {2} Hz, {3:.2f}s)", filepath, m_Channels, m_SampleRate, m_Duration);
+	return true;
+}
+
+bool OpenALAudioClip::LoadMP3(const std::string& filepath)
+{
+	drmp3_config config;
+	drmp3_uint64 totalFrameCount;
+	drmp3_int16* pSampleData = drmp3_open_file_and_read_pcm_frames_s16(filepath.c_str(), &config, &totalFrameCount, nullptr);
+	
+	if (pSampleData == nullptr)
 	{
-		drmp3_config config;
-		drmp3_uint64 totalFrameCount;
-		drmp3_int16* pSampleData = drmp3_open_file_and_read_pcm_frames_s16(filepath.c_str(), &config, &totalFrameCount, nullptr);
-		
-		if (pSampleData == nullptr)
-		{
 			NB_CORE_ERROR("Failed to decode MP3 file: {0}", filepath);
 			return false;
 		}

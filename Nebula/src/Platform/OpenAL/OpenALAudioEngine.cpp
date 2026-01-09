@@ -193,7 +193,10 @@ namespace Nebula {
 	{
 		for (const auto& pair : m_Sources)
 		{
-			alSourceStop(pair.second);
+			ALuint source = pair.second;
+			alSourceStop(source);
+			// Rewind to beginning to fully reset the source
+			alSourceRewind(source);
 		}
 	}
 

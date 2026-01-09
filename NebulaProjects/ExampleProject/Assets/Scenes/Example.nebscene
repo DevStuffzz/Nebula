@@ -4,12 +4,12 @@
             "BoxColliderComponent": {
                 "Offset": [
                     0.0,
-                    1.0,
+                    0.0,
                     0.0
                 ],
                 "Size": [
                     2.0,
-                    4.0,
+                    2.0,
                     2.0
                 ]
             },
@@ -24,12 +24,19 @@
                         1.0,
                         1.0
                     ],
-                    "HasTexture": false,
+                    "HasTexture": true,
                     "Metallic": 0.0,
                     "Roughness": 0.0,
-                    "UseTexture": 0
+                    "TextureFilterNearest": false,
+                    "TexturePath": "assets\\Textures\\bricks.jpg",
+                    "TextureRepeat": true,
+                    "TextureTiling": [
+                        2.0,
+                        1.0
+                    ],
+                    "UseTexture": 1
                 },
-                "MeshID": 3,
+                "MeshID": 1,
                 "MeshSource": "assets\\Models\\Cylinder.obj"
             },
             "RigidBodyComponent": {
@@ -38,29 +45,26 @@
                 "IsKinematic": false,
                 "LinearDrag": 0.0,
                 "Mass": 1.0,
-                "Type": 1,
+                "Type": 0,
                 "UseGravity": true
             },
-            "ScriptComponent": {
-                "ClassName": "ExampleProject.TopDownController"
-            },
             "TagComponent": {
-                "Tag": "Player"
+                "Tag": "Wall2"
             },
             "TransformComponent": {
                 "Position": [
-                    0.0,
-                    0.0,
-                    0.0
+                    12.908210754394531,
+                    0.63287353515625,
+                    -0.8979041576385498
                 ],
                 "Rotation": [
                     0.0,
-                    0.0,
+                    90.0,
                     0.0
                 ],
                 "Scale": [
-                    1.0,
-                    1.0,
+                    10.0,
+                    5.0,
                     1.0
                 ]
             }
@@ -79,6 +83,159 @@
                 ]
             },
             "ID": 1048580,
+            "MeshRendererComponent": {
+                "HasMaterial": true,
+                "HasMesh": true,
+                "Material": {
+                    "Color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ],
+                    "HasTexture": true,
+                    "Metallic": 0.0,
+                    "Roughness": 0.0,
+                    "TextureFilterNearest": true,
+                    "TexturePath": "assets\\Textures\\bricks.jpg",
+                    "TextureRepeat": true,
+                    "TextureTiling": [
+                        2.0,
+                        1.0
+                    ],
+                    "UseTexture": 1
+                },
+                "MeshID": 1,
+                "MeshSource": "assets\\Models\\Cylinder.obj"
+            },
+            "RigidBodyComponent": {
+                "AngularDrag": 0.05000000074505806,
+                "FreezeRotation": false,
+                "IsKinematic": false,
+                "LinearDrag": 0.0,
+                "Mass": 1.0,
+                "Type": 0,
+                "UseGravity": true
+            },
+            "TagComponent": {
+                "Tag": "Wall1"
+            },
+            "TransformComponent": {
+                "Position": [
+                    3.8874664306640625,
+                    0.5862036943435669,
+                    -9.646018028259277
+                ],
+                "Rotation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ],
+                "Scale": [
+                    10.0,
+                    5.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "AudioListenerComponent": {
+                "Active": true
+            },
+            "AudioSourceComponent": {
+                "AudioClipPath": "assets\\Audio\\wet-hands.wav",
+                "Loop": true,
+                "MaxDistance": 100.0,
+                "Pitch": 1.0,
+                "PlayOnAwake": true,
+                "ReferenceDistance": 1.0,
+                "RolloffFactor": 1.0,
+                "Spatial": false,
+                "Volume": 1.0
+            },
+            "CameraComponent": {
+                "OrthographicFar": 1.0,
+                "OrthographicNear": -1.0,
+                "OrthographicSize": 10.0,
+                "PerspectiveFOV": 45.0,
+                "PerspectiveFar": 1000.0,
+                "PerspectiveNear": 0.10000000149011612,
+                "Primary": true,
+                "ProjectionType": "Perspective"
+            },
+            "ID": 1048579,
+            "ScriptComponent": {
+                "ClassName": "ExampleProject.CameraController"
+            },
+            "SkyboxComponent": {
+                "DirectoryPath": "assets\\skyboxes\\day"
+            },
+            "TagComponent": {
+                "Tag": "Main Camera"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    2.5,
+                    14.399999618530273
+                ],
+                "Rotation": [
+                    -6.571000099182129,
+                    0.0,
+                    0.0
+                ],
+                "Scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "DirectionalLightComponent": {
+                "Color": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "Intensity": 1.0
+            },
+            "ID": 1048578,
+            "TagComponent": {
+                "Tag": "Sun"
+            },
+            "TransformComponent": {
+                "Position": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Rotation": [
+                    -39.653690338134766,
+                    44.33686447143555,
+                    -6.820320777478628e-06
+                ],
+                "Scale": [
+                    0.9999998807907104,
+                    0.9999999403953552,
+                    0.9999996423721313
+                ]
+            }
+        },
+        {
+            "BoxColliderComponent": {
+                "Offset": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Size": [
+                    2.0,
+                    2.0,
+                    2.0
+                ]
+            },
+            "ID": 1048577,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -135,154 +292,15 @@
             }
         },
         {
-            "DirectionalLightComponent": {
-                "Color": [
-                    1.0,
-                    1.0,
-                    1.0
-                ],
-                "Intensity": 1.0
-            },
-            "ID": 1048579,
-            "TagComponent": {
-                "Tag": "Sun"
-            },
-            "TransformComponent": {
-                "Position": [
-                    0.0,
-                    0.0,
-                    0.0
-                ],
-                "Rotation": [
-                    -39.653690338134766,
-                    44.33686447143555,
-                    -6.820320777478628e-06
-                ],
-                "Scale": [
-                    0.9999998807907104,
-                    0.9999999403953552,
-                    0.9999996423721313
-                ]
-            }
-        },
-        {
-            "CameraComponent": {
-                "OrthographicFar": 1.0,
-                "OrthographicNear": -1.0,
-                "OrthographicSize": 10.0,
-                "PerspectiveFOV": 45.0,
-                "PerspectiveFar": 1000.0,
-                "PerspectiveNear": 0.10000000149011612,
-                "Primary": true,
-                "ProjectionType": "Perspective"
-            },
-            "ID": 1048578,
-            "ScriptComponent": {
-                "ClassName": "ExampleProject.CameraController"
-            },
-            "SkyboxComponent": {
-                "DirectoryPath": "assets\\skyboxes\\day"
-            },
-            "TagComponent": {
-                "Tag": "Main Camera"
-            },
-            "TransformComponent": {
-                "Position": [
-                    0.0,
-                    2.5,
-                    14.399999618530273
-                ],
-                "Rotation": [
-                    -6.571000099182129,
-                    0.0,
-                    0.0
-                ],
-                "Scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
             "BoxColliderComponent": {
                 "Offset": [
                     0.0,
-                    0.0,
+                    1.0,
                     0.0
                 ],
                 "Size": [
                     2.0,
-                    2.0,
-                    2.0
-                ]
-            },
-            "ID": 1048577,
-            "MeshRendererComponent": {
-                "HasMaterial": true,
-                "HasMesh": true,
-                "Material": {
-                    "Color": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                    ],
-                    "HasTexture": true,
-                    "Metallic": 0.0,
-                    "Roughness": 0.0,
-                    "TextureFilterNearest": true,
-                    "TexturePath": "assets\\Textures\\bricks.jpg",
-                    "TextureRepeat": true,
-                    "TextureTiling": [
-                        2.0,
-                        1.0
-                    ],
-                    "UseTexture": 1
-                },
-                "MeshID": 1,
-                "MeshSource": "Library/models/Cube.obj"
-            },
-            "RigidBodyComponent": {
-                "AngularDrag": 0.05000000074505806,
-                "FreezeRotation": false,
-                "IsKinematic": false,
-                "LinearDrag": 0.0,
-                "Mass": 1.0,
-                "Type": 0,
-                "UseGravity": true
-            },
-            "TagComponent": {
-                "Tag": "Wall1"
-            },
-            "TransformComponent": {
-                "Position": [
-                    3.8874664306640625,
-                    0.5862036943435669,
-                    -9.646018028259277
-                ],
-                "Rotation": [
-                    0.0,
-                    -0.0,
-                    0.0
-                ],
-                "Scale": [
-                    10.0,
-                    5.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "BoxColliderComponent": {
-                "Offset": [
-                    0.0,
-                    0.0,
-                    0.0
-                ],
-                "Size": [
-                    2.0,
-                    2.0,
+                    4.0,
                     2.0
                 ]
             },
@@ -297,20 +315,13 @@
                         1.0,
                         1.0
                     ],
-                    "HasTexture": true,
+                    "HasTexture": false,
                     "Metallic": 0.0,
                     "Roughness": 0.0,
-                    "TextureFilterNearest": false,
-                    "TexturePath": "assets\\Textures\\bricks.jpg",
-                    "TextureRepeat": true,
-                    "TextureTiling": [
-                        2.0,
-                        1.0
-                    ],
-                    "UseTexture": 1
+                    "UseTexture": 0
                 },
                 "MeshID": 1,
-                "MeshSource": "Library/models/Cube.obj"
+                "MeshSource": "assets\\Models\\Cylinder.obj"
             },
             "RigidBodyComponent": {
                 "AngularDrag": 0.05000000074505806,
@@ -318,26 +329,29 @@
                 "IsKinematic": false,
                 "LinearDrag": 0.0,
                 "Mass": 1.0,
-                "Type": 0,
+                "Type": 1,
                 "UseGravity": true
             },
+            "ScriptComponent": {
+                "ClassName": "ExampleProject.TopDownController"
+            },
             "TagComponent": {
-                "Tag": "Wall2"
+                "Tag": "Player"
             },
             "TransformComponent": {
                 "Position": [
-                    12.908210754394531,
-                    0.63287353515625,
-                    -0.8979041576385498
+                    0.0,
+                    0.0,
+                    0.0
                 ],
                 "Rotation": [
                     0.0,
-                    90.0,
+                    0.0,
                     0.0
                 ],
                 "Scale": [
-                    10.0,
-                    5.0,
+                    1.0,
+                    1.0,
                     1.0
                 ]
             }

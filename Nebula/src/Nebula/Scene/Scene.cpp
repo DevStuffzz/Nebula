@@ -117,6 +117,8 @@ namespace Nebula {
 
 	void Scene::OnRuntimeStart()
 	{
+		m_IsRuntimeActive = true;
+		
 		// Initialize script engine with this scene
 		ScriptEngine::OnRuntimeStart(this);
 
@@ -135,19 +137,45 @@ namespace Nebula {
 
 	void Scene::OnRuntimeStop()
 	{
-		// Destroy all script instances
-		auto view = m_Registry.view<ScriptComponent>();
-		for (auto entity : view)
-		{
-			Entity ent = { entity, this };
-			ScriptEngine::OnDestroyEntity(ent);
-		}
-
-		// Shutdown script engine runtime
-		ScriptEngine::OnRuntimeStop();
+	m_IsRuntimeActive = false;
+	
+	// Stop and destroy all audio sources
+	if (m_AudioEngine)
+	{
+		m_AudioEngine->StopAll();
 	}
 
-	void Scene::OnUpdate(float deltaTime)
+	// Reset all audio source runtime state and destroy sources
+	auto audioView = m_Registry.view<AudioSourceComponent>();
+	for (auto entity : audioView)
+	{
+		auto& audioSource = audioView.get<AudioSourceComponent>(entity);
+		audioSource.IsPlaying = false;
+		
+		// Destroy the runtime audio source
+		if (audioSource.RuntimeSourceID != 0)
+		{
+			m_AudioEngine->DestroySource(audioSource.RuntimeSourceID);
+			audioSource.RuntimeSourceID = 0;
+		}
+	}
+
+	// Destroy all script instances
+	auto view = m_Registry.view<ScriptComponent>();
+	for (auto entity : view)
+	{
+		Entity ent = { entity, this };
+		ScriptEngine::OnDestroyEntity(ent);
+	}
+
+	// Shutdown script engine runtime
+	ScriptEngine::OnRuntimeStop();
+}
+
+void Scene::OnUpdate(float deltaTime)
+{
+	// Only update physics, scripts, and audio during runtime
+	if (m_IsRuntimeActive)
 	{
 		// Check for script file changes (hot-reloading)
 		// TODO: Re-implement hot-reloading for C# scripts
@@ -175,17 +203,18 @@ namespace Nebula {
 		}
 
 		// Update C# scripts
-	{
-		ScriptGlue::Update(deltaTime); // Update delayed destroys and other systems
-		ScriptGlue::UpdateMouseState(); // Update mouse delta
-		
-		auto view = m_Registry.view<ScriptComponent>();
-		for (auto entity : view)
 		{
-			Entity ent = { entity, this };
-			ScriptEngine::OnUpdateEntity(ent, deltaTime);
+			ScriptGlue::Update(deltaTime); // Update delayed destroys and other systems
+			ScriptGlue::UpdateMouseState(); // Update mouse delta
+			
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity ent = { entity, this };
+				ScriptEngine::OnUpdateEntity(ent, deltaTime);
+			}
 		}
-	}
+
 		// Update audio listener (find active camera with listener component)
 		if (m_AudioEngine)
 		{
@@ -194,29 +223,29 @@ namespace Nebula {
 			{
 				auto& listener = listenerView.get<AudioListenerComponent>(entityID);
 				if (listener.Active)
-				{
-					auto& transform = listenerView.get<TransformComponent>(entityID);
-					m_AudioEngine->SetListenerPosition(transform.Position);
-					
-					// Calculate forward and up vectors from rotation
-					glm::vec3 forward(0.0f, 0.0f, -1.0f);
-					glm::vec3 up(0.0f, 1.0f, 0.0f);
-					glm::quat rotation = glm::quat(glm::radians(transform.Rotation));
-					forward = rotation * forward;
-					up = rotation * up;
-					m_AudioEngine->SetListenerOrientation(forward, up);
-					
-					break; // Only one active listener
+					{
+						auto& transform = listenerView.get<TransformComponent>(entityID);
+						m_AudioEngine->SetListenerPosition(transform.Position);
+						
+						// Calculate forward and up vectors from rotation
+						glm::vec3 forward(0.0f, 0.0f, -1.0f);
+						glm::vec3 up(0.0f, 1.0f, 0.0f);
+						glm::quat rotation = glm::quat(glm::radians(transform.Rotation));
+						forward = rotation * forward;
+						up = rotation * up;
+						m_AudioEngine->SetListenerOrientation(forward, up);
+						
+						break; // Only one active listener
+					}
 				}
-			}
 
-			// Update audio sources
-			auto audioView = m_Registry.view<AudioSourceComponent, TransformComponent>();
-			for (auto entityID : audioView)
-			{
-				Entity entity = { entityID, this };
-				auto& audioSource = audioView.get<AudioSourceComponent>(entityID);
-				auto& transform = audioView.get<TransformComponent>(entityID);
+				// Update audio sources
+				auto audioView = m_Registry.view<AudioSourceComponent, TransformComponent>();
+				for (auto entityID : audioView)
+				{
+					Entity entity = { entityID, this };
+					auto& audioSource = audioView.get<AudioSourceComponent>(entityID);
+					auto& transform = audioView.get<TransformComponent>(entityID);
 
 				// Load audio clip if not already loaded
 				if (!audioSource.Clip && !audioSource.AudioClipPath.empty())
@@ -246,14 +275,14 @@ namespace Nebula {
 							m_AudioEngine->SetSourceClip(audioSource.RuntimeSourceID, audioSource.Clip.get());
 						}
 
-						// Play on awake
-						if (audioSource.PlayOnAwake)
-						{
-							m_AudioEngine->PlaySource(audioSource.RuntimeSourceID);
-							audioSource.IsPlaying = true;
-						}
+					// Play on awake (only in runtime mode)
+					if (audioSource.PlayOnAwake && m_IsRuntimeActive)
+					{
+						m_AudioEngine->PlaySource(audioSource.RuntimeSourceID);
+						audioSource.IsPlaying = true;
 					}
 				}
+			}
 
 				// Update position for spatial audio
 				if (audioSource.RuntimeSourceID != 0 && audioSource.Spatial)
@@ -261,22 +290,23 @@ namespace Nebula {
 					m_AudioEngine->SetSourcePosition(audioSource.RuntimeSourceID, transform.Position);
 				}
 
-				// Update playing state
-				if (audioSource.RuntimeSourceID != 0)
-				{
-					audioSource.IsPlaying = m_AudioEngine->IsSourcePlaying(audioSource.RuntimeSourceID);
+					// Update playing state
+					if (audioSource.RuntimeSourceID != 0)
+					{
+						audioSource.IsPlaying = m_AudioEngine->IsSourcePlaying(audioSource.RuntimeSourceID);
+					}
 				}
+
+				// Update audio engine
+				m_AudioEngine->Update();
 			}
 
-			// Update audio engine
-			m_AudioEngine->Update();
-		}
-
-		// Update physics debug drawing
-		if (m_PhysicsWorld)
-		{
-			m_PhysicsWorld->DebugDraw();
-		}
+			// Update physics debug drawing
+			if (m_PhysicsWorld)
+			{
+				m_PhysicsWorld->DebugDraw();
+			}
+		} // End runtime check
 	}
 
 	void Scene::RenderShadowMaps()
