@@ -10,6 +10,13 @@ typedef int ImGuiPopupFlags;
 
 namespace Nebula {
 
+	// ImGui Style Variables
+	enum NebulaGuiStyleVar_
+	{
+		NebulaGuiStyleVar_FramePadding = 11,    // ImVec2    FramePadding
+		NebulaGuiStyleVar_ItemSpacing = 14,     // ImVec2    ItemSpacing
+	};
+
 	class NEBULA_API NebulaGui {
 	public:
 		// Window

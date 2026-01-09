@@ -76,6 +76,16 @@ namespace Nebula {
 			: Tag(tag) {}
 	};
 
+	// Hierarchy Component - Parent-child relationships
+	struct NEBULA_API HierarchyComponent
+	{
+		uint32_t Parent = 0; // 0 means no parent
+		std::vector<uint32_t> Children;
+
+		HierarchyComponent() = default;
+		HierarchyComponent(const HierarchyComponent&) = default;
+	};
+
 	// Mesh Renderer Component
 	struct NEBULA_API MeshRendererComponent
 	{

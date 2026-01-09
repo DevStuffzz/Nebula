@@ -60,11 +60,12 @@ namespace Cosmic {
                     Nebula::NebulaGui::EndPopup();
                 }
 
+                // Check for F2 key press to start rename
                 // List entities
-                std::vector<Nebula::Entity> entities = s_Context->GetAllEntities();
-                for (const Nebula::Entity& entity : entities)
+                std::vector<Nebula::Entity> entities = s_Context->GetRootEntities();
+                for (size_t i = 0; i < entities.size(); i++)
                 {
-                    DrawEntityNode(entity);
+                    DrawEntityNode(entities[i], i);
                 }
             }
 
@@ -87,42 +88,180 @@ namespace Cosmic {
             meshRenderer.Material = material;
         }
 
-        static void DrawEntityNode(Nebula::Entity entity)
+        static void DrawEntityNode(Nebula::Entity entity, size_t entityIndex)
         {
             std::string name = "Unnamed Entity";
 
             if (entity.HasComponent<Nebula::TagComponent>())
             {
                 auto& tag = entity.GetComponent<Nebula::TagComponent>();
-                name = tag.Tag;
+                name = tag.Tag.empty() ? "Unnamed Entity" : tag.Tag;
             }
 
             bool isSelected = (s_SelectionContext == entity);
+            bool isRenaming = (s_RenamingEntity == entity);
             
-            if (Nebula::NebulaGui::Selectable(name.c_str(), isSelected))
+            // Check if entity has children
+            bool hasChildren = entity.HasComponent<Nebula::HierarchyComponent>() && 
+                             !entity.GetComponent<Nebula::HierarchyComponent>().Children.empty();
+            
+            // If renaming this entity, show input field
+            if (isRenaming)
             {
-                s_SelectionContext = entity;
-            }
-
-            // Right-click context menu for entity
-            if (Nebula::NebulaGui::BeginPopupContextItem())
-            {
-                if (Nebula::NebulaGui::MenuItem("Delete Entity"))
+                if (Nebula::NebulaGui::InputText("##rename", s_RenameBuffer, sizeof(s_RenameBuffer)))
                 {
-                    if (s_SelectionContext == entity)
-                        s_SelectionContext = {};
-                    s_Context->DestroyEntity(entity);
+                    // Enter pressed - apply rename
+                    if (entity.HasComponent<Nebula::TagComponent>())
+                    {
+                        auto& tag = entity.GetComponent<Nebula::TagComponent>();
+                        tag.Tag = s_RenameBuffer;
+                    }
+                    s_RenamingEntity = {};
                 }
-                Nebula::NebulaGui::EndPopup();
+            }
+            else
+            {
+                // Only draw drop zone separator if not the first entity (entityIndex > 0)
+                if (entityIndex > 0)
+                {
+                    // Create drop zone with separator centered in it
+                    // Add spacing before separator
+                    Nebula::NebulaGui::Dummy(glm::vec2(0.0f, 6.0f));
+                    
+                    // Draw separator
+                    Nebula::NebulaGui::Separator();
+                    
+                    // Apply drop target to the separator
+                    if (Nebula::NebulaGui::BeginDragDropTarget())
+                    {
+                        const void* payload = Nebula::NebulaGui::AcceptDragDropPayload("ENTITY_DRAG");
+                        if (payload)
+                        {
+                            uint32_t sourceEntityID = *(const uint32_t*)payload;
+                            Nebula::Entity sourceEntity = { (entt::entity)sourceEntityID, s_Context.get() };
+                            if (sourceEntity != entity) // Don't reorder to same position
+                            {
+                                s_Context->ReorderEntity(sourceEntity, entityIndex);
+                            }
+                        }
+                        Nebula::NebulaGui::EndDragDropTarget();
+                    }
+                    
+                    // Add spacing after separator
+                    Nebula::NebulaGui::Dummy(glm::vec2(0.0f, 6.0f));
+                }
+                
+                // Draw entity - either as tree node if it has children, or as selectable
+                bool nodeOpen = false;
+                if (hasChildren)
+                {
+                    std::string label = name + "##" + std::to_string((uint32_t)entity);
+                    nodeOpen = Nebula::NebulaGui::CollapsingHeader(label.c_str(), false);
+                    
+                    // Check if clicked for selection (CollapsingHeader returns true when clicked)
+                    if (Nebula::NebulaGui::IsWindowHovered())
+                    {
+                        // Selection handled by context menu or direct click detection
+                        // For now, we'll use the context menu to select
+                    }
+                }
+                else
+                {
+                    if (Nebula::NebulaGui::Selectable(name.c_str(), isSelected))
+                    {
+                        s_SelectionContext = entity;
+                    }
+                }
+                
+                // Drag source for both reordering and parenting
+                if (Nebula::NebulaGui::BeginDragDropSource())
+                {
+                    uint32_t entityID = (uint32_t)entity;
+                    // Single payload type - action determined by drop target
+                    Nebula::NebulaGui::SetDragDropPayload("ENTITY_DRAG", &entityID, sizeof(uint32_t));
+                    Nebula::NebulaGui::Text("%s", name.c_str());
+                    Nebula::NebulaGui::EndDragDropSource();
+                }
+                
+                // Drop target for parenting (drop onto entity itself)
+                if (Nebula::NebulaGui::BeginDragDropTarget())
+                {
+                    const void* payload = Nebula::NebulaGui::AcceptDragDropPayload("ENTITY_DRAG");
+                    if (payload)
+                    {
+                        uint32_t sourceEntityID = *(const uint32_t*)payload;
+                        Nebula::Entity sourceEntity = { (entt::entity)sourceEntityID, s_Context.get() };
+                        if (sourceEntity != entity) // Don't parent to self
+                        {
+                            s_Context->SetParent(sourceEntity, entity);
+                        }
+                    }
+                    Nebula::NebulaGui::EndDragDropTarget();
+                }
+
+                // Right-click context menu for entity
+                if (Nebula::NebulaGui::BeginPopupContextItem())
+                {
+                    // Select entity when opening context menu
+                    s_SelectionContext = entity;
+                    
+                    if (Nebula::NebulaGui::MenuItem("Rename"))
+                    {
+                        s_RenamingEntity = entity;
+                        if (entity.HasComponent<Nebula::TagComponent>())
+                        {
+                            auto& tag = entity.GetComponent<Nebula::TagComponent>();
+                            strncpy_s(s_RenameBuffer, tag.Tag.c_str(), sizeof(s_RenameBuffer) - 1);
+                        }
+                        else
+                        {
+                            s_RenameBuffer[0] = '\0';
+                        }
+                    }
+                    
+                    if (entity.HasComponent<Nebula::HierarchyComponent>() && 
+                        entity.GetComponent<Nebula::HierarchyComponent>().Parent != 0)
+                    {
+                        if (Nebula::NebulaGui::MenuItem("Unparent"))
+                        {
+                            s_Context->RemoveParent(entity);
+                        }
+                    }
+                    
+                    if (Nebula::NebulaGui::MenuItem("Delete Entity"))
+                    {
+                        if (s_SelectionContext == entity)
+                            s_SelectionContext = {};
+                        if (s_RenamingEntity == entity)
+                            s_RenamingEntity = {};
+                        s_Context->DestroyEntity(entity);
+                    }
+                    Nebula::NebulaGui::EndPopup();
+                }
+                
+                // Draw children if node is open
+                if (hasChildren && nodeOpen)
+                {
+                    auto& hierarchy = entity.GetComponent<Nebula::HierarchyComponent>();
+                    for (size_t i = 0; i < hierarchy.Children.size(); i++)
+                    {
+                        Nebula::Entity child = { (entt::entity)hierarchy.Children[i], s_Context.get() };
+                        DrawEntityNode(child, i);
+                    }
+                }
             }
         }
 
     private:
         static std::shared_ptr<Nebula::Scene> s_Context;
         static Nebula::Entity s_SelectionContext;
+        static Nebula::Entity s_RenamingEntity;
+        static char s_RenameBuffer[256];
     };
 
     // Static variable definitions
     inline std::shared_ptr<Nebula::Scene> SceneHierarchy::s_Context = nullptr;
     inline Nebula::Entity SceneHierarchy::s_SelectionContext = {};
+    inline Nebula::Entity SceneHierarchy::s_RenamingEntity = {};
+    inline char SceneHierarchy::s_RenameBuffer[256] = "";
 }

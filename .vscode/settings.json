@@ -90,5 +90,6 @@
         "any": "cpp",
         "codecvt": "cpp",
         "valarray": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "D:/dev/Nebula/Nebula/vendor/bullet3"
 }

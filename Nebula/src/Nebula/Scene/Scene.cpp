@@ -86,6 +86,7 @@ namespace Nebula {
 	Entity Scene::CreateEntity(const std::string& name)
 	{
 		Entity entity = { m_Registry.create(), this };
+		m_EntityOrder.push_back(entity.m_EntityHandle);
 		
 		// Every entity gets a transform and tag component by default
 		entity.AddComponent<TransformComponent>();
@@ -96,12 +97,16 @@ namespace Nebula {
 
 	void Scene::DestroyEntity(Entity entity)
 	{
+		auto it = std::find(m_EntityOrder.begin(), m_EntityOrder.end(), entity.m_EntityHandle);
+		if (it != m_EntityOrder.end())
+			m_EntityOrder.erase(it);
 		m_Registry.destroy(entity);
 	}
 
 	void Scene::Clear()
 	{
 		m_Registry.clear();
+		m_EntityOrder.clear();
 		
 		// Clear script initialization tracking
 		// TODO: Re-implement for C# scripts
@@ -544,14 +549,128 @@ void Scene::OnUpdate(float deltaTime)
 	std::vector<Entity> Scene::GetAllEntities() const
 	{
 		std::vector<Entity> entities;
-
-		auto view = m_Registry.view<entt::entity>();
-		for (auto entityID : view)
+		for (auto entityHandle : m_EntityOrder)
 		{
-			entities.emplace_back(entityID, const_cast<Scene*>(this));
+			if (m_Registry.valid(entityHandle))
+				entities.push_back({ entityHandle, const_cast<Scene*>(this) });
+		}
+		return entities;
+	}
+
+	std::vector<Entity> Scene::GetRootEntities() const
+	{
+		std::vector<Entity> rootEntities;
+		for (auto entityHandle : m_EntityOrder)
+		{
+			if (m_Registry.valid(entityHandle))
+			{
+				Entity entity = { entityHandle, const_cast<Scene*>(this) };
+				// Only include entities without parents
+				if (!entity.HasComponent<HierarchyComponent>() || entity.GetComponent<HierarchyComponent>().Parent == 0)
+					rootEntities.push_back(entity);
+			}
+		}
+		return rootEntities;
+	}
+
+	void Scene::ReorderEntity(Entity entity, size_t newIndex)
+	{
+		uint32_t entityID = (uint32_t)entity;
+		
+		// Check if entity has a parent
+		if (entity.HasComponent<HierarchyComponent>())
+		{
+			auto& hierarchy = entity.GetComponent<HierarchyComponent>();
+			if (hierarchy.Parent != 0)
+			{
+				// Reorder within parent's children
+				Entity parent = { (entt::entity)hierarchy.Parent, this };
+				if (parent.HasComponent<HierarchyComponent>())
+				{
+					auto& parentHierarchy = parent.GetComponent<HierarchyComponent>();
+					auto it = std::find(parentHierarchy.Children.begin(), parentHierarchy.Children.end(), entityID);
+					if (it != parentHierarchy.Children.end())
+					{
+						parentHierarchy.Children.erase(it);
+						if (newIndex >= parentHierarchy.Children.size())
+							parentHierarchy.Children.push_back(entityID);
+						else
+							parentHierarchy.Children.insert(parentHierarchy.Children.begin() + newIndex, entityID);
+					}
+				}
+				return;
+			}
+		}
+		
+		// Reorder in root entity list
+		auto it = std::find(m_EntityOrder.begin(), m_EntityOrder.end(), entity.m_EntityHandle);
+		if (it != m_EntityOrder.end())
+		{
+			auto entityHandle = *it;
+			m_EntityOrder.erase(it);
+			if (newIndex >= m_EntityOrder.size())
+				m_EntityOrder.push_back(entityHandle);
+			else
+				m_EntityOrder.insert(m_EntityOrder.begin() + newIndex, entityHandle);
+		}
+	}
+
+	void Scene::SetParent(Entity child, Entity parent)
+	{
+		uint32_t childID = (uint32_t)child;
+		uint32_t parentID = (uint32_t)parent;
+
+		// Remove from old parent if exists
+		if (child.HasComponent<HierarchyComponent>())
+		{
+			auto& childHierarchy = child.GetComponent<HierarchyComponent>();
+			if (childHierarchy.Parent != 0)
+			{
+				Entity oldParent = { (entt::entity)childHierarchy.Parent, this };
+				if (oldParent.HasComponent<HierarchyComponent>())
+				{
+					auto& oldParentHierarchy = oldParent.GetComponent<HierarchyComponent>();
+					auto it = std::find(oldParentHierarchy.Children.begin(), oldParentHierarchy.Children.end(), childID);
+					if (it != oldParentHierarchy.Children.end())
+						oldParentHierarchy.Children.erase(it);
+				}
+			}
+			childHierarchy.Parent = parentID;
+		}
+		else
+		{
+			auto& childHierarchy = child.AddComponent<HierarchyComponent>();
+			childHierarchy.Parent = parentID;
 		}
 
-		return entities;
+		// Add to new parent
+		if (!parent.HasComponent<HierarchyComponent>())
+			parent.AddComponent<HierarchyComponent>();
+
+		auto& parentHierarchy = parent.GetComponent<HierarchyComponent>();
+		if (std::find(parentHierarchy.Children.begin(), parentHierarchy.Children.end(), childID) == parentHierarchy.Children.end())
+			parentHierarchy.Children.push_back(childID);
+	}
+
+	void Scene::RemoveParent(Entity child)
+	{
+		if (!child.HasComponent<HierarchyComponent>())
+			return;
+
+		auto& childHierarchy = child.GetComponent<HierarchyComponent>();
+		if (childHierarchy.Parent != 0)
+		{
+			Entity parent = { (entt::entity)childHierarchy.Parent, this };
+			if (parent.HasComponent<HierarchyComponent>())
+			{
+				auto& parentHierarchy = parent.GetComponent<HierarchyComponent>();
+				uint32_t childID = (uint32_t)child;
+				auto it = std::find(parentHierarchy.Children.begin(), parentHierarchy.Children.end(), childID);
+				if (it != parentHierarchy.Children.end())
+					parentHierarchy.Children.erase(it);
+			}
+		}
+		childHierarchy.Parent = 0;
 	}
 
 	bool Scene::ValidateAllScripts(std::string& errorMessage)

@@ -42,6 +42,10 @@ namespace Nebula {
 		void SetName(const std::string& name) { m_Name = name; }
 
 		std::vector<Entity> GetAllEntities() const;
+		std::vector<Entity> GetRootEntities() const;
+		void ReorderEntity(Entity entity, size_t newIndex);
+		void SetParent(Entity child, Entity parent);
+		void RemoveParent(Entity child);
 
 		const std::string& GetName() const { return m_Name; }		
 		entt::registry& GetRegistry() { return m_Registry; }
@@ -62,6 +66,7 @@ namespace Nebula {
 	private:
 		std::string m_Name;
 		entt::registry m_Registry;
+		std::vector<entt::entity> m_EntityOrder;
 		std::unordered_map<std::pair<entt::entity, std::string>, bool, PairHash> m_LuaScriptInitialized;
 
 		// Scene-wide list of point lights

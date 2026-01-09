@@ -78,6 +78,14 @@ namespace Nebula {
 			entityJson["TagComponent"]["Tag"] = tag.Tag;
 		}
 
+		// Hierarchy Component
+		if (entity.HasComponent<HierarchyComponent>())
+		{
+			auto& hierarchy = entity.GetComponent<HierarchyComponent>();
+			entityJson["HierarchyComponent"]["Parent"] = hierarchy.Parent;
+			entityJson["HierarchyComponent"]["Children"] = hierarchy.Children;
+		}
+
 		// Transform Component (always present)
 		if (entity.HasComponent<TransformComponent>())
 		{
@@ -249,16 +257,8 @@ namespace Nebula {
 		}
 	}
 
-	static void DeserializeEntity(const json& entityJson, Scene* scene)
+	static void DeserializeEntity(const json& entityJson, Entity entity, bool includeHierarchy = true)
 	{
-		// Create entity
-		std::string name = "Entity";
-		if (entityJson.contains("TagComponent"))
-		{
-			name = entityJson["TagComponent"]["Tag"];
-		}
-		Entity entity = scene->CreateEntity(name);
-
 		// Point Light Component
 		if (entityJson.contains("PointLightComponent"))
 		{
@@ -599,16 +599,19 @@ namespace Nebula {
 		// Serialize all entities
 		json entitiesJson = json::array();
 		
-		auto view = m_Scene->m_Registry.view<entt::entity>();
-		for (auto entityID : view)
+		// Use m_EntityOrder to preserve the hierarchy order
+		for (auto entityHandle : m_Scene->m_EntityOrder)
 		{
-			Entity entity{ entityID, m_Scene };
+			if (!m_Scene->m_Registry.valid(entityHandle))
+				continue;
+			
+			Entity entity{ entityHandle, m_Scene };
 			
 			if (!entity)
 				continue;
 			
 			json entityJson;
-			entityJson["ID"] = (uint32_t)entityID;
+			entityJson["ID"] = (uint32_t)entityHandle;
 			
 			SerializeEntity(entityJson, entity);
 			entitiesJson.push_back(entityJson);
@@ -667,15 +670,64 @@ namespace Nebula {
 		// Deserialize entities
 		if (sceneJson.contains("Entities"))
 		{
-			for (const auto& entityJson : sceneJson["Entities"])
+		// First pass: Create all entities in order and build ID mapping
+		std::unordered_map<uint32_t, Entity> idMap;
+		std::vector<Entity> createdEntities; // Track creation order
+		
+		for (const auto& entityJson : sceneJson["Entities"])
+		{
+			// Get saved entity ID
+			uint32_t savedID = entityJson.value("ID", 0);
+			
+			// Create entity with its name
+			std::string name = "Entity";
+			if (entityJson.contains("TagComponent"))
 			{
-				DeserializeEntity(entityJson, m_Scene);
+				name = entityJson["TagComponent"]["Tag"];
 			}
+			Entity entity = m_Scene->CreateEntity(name);
+			
+			// Store mapping from saved ID to new entity
+			idMap[savedID] = entity;
+			createdEntities.push_back(entity);
 		}
 		
-		NB_CORE_INFO("Scene deserialized from: {0}", filepath);
-		return true;
+		// Second pass: Deserialize all components (excluding hierarchy)
+		size_t entityIndex = 0;
+		for (const auto& entityJson : sceneJson["Entities"])
+		{
+			uint32_t savedID = entityJson.value("ID", 0);
+			Entity entity = idMap[savedID];
+			
+			// Deserialize all components except hierarchy
+			DeserializeEntity(entityJson, entity, false);
+			entityIndex++;
+		}
+		
+		// Third pass: Rebuild hierarchy with mapped IDs
+		for (const auto& entityJson : sceneJson["Entities"])
+		{
+			uint32_t savedID = entityJson.value("ID", 0);
+			Entity entity = idMap[savedID];
+			
+			if (entityJson.contains("HierarchyComponent"))
+			{
+				const auto& hierarchyJson = entityJson["HierarchyComponent"];
+				uint32_t savedParentID = hierarchyJson["Parent"];
+				
+				// If entity has a parent, set it up
+				if (savedParentID != 0 && idMap.find(savedParentID) != idMap.end())
+				{
+					Entity parentEntity = idMap[savedParentID];
+					m_Scene->SetParent(entity, parentEntity);
+				}
+			}
+		}
 	}
+	
+	NB_CORE_INFO("Scene deserialized from: {0}", filepath);
+	return true;
+}
 
 	std::string SceneSerializer::SerializeToString()
 	{
@@ -686,16 +738,19 @@ namespace Nebula {
 		
 		json entitiesJson = json::array();
 		
-		auto view = m_Scene->m_Registry.view<entt::entity>();
-		for (auto entityID : view)
+		// Use m_EntityOrder to preserve the hierarchy order
+		for (auto entityHandle : m_Scene->m_EntityOrder)
 		{
-			Entity entity{ entityID, m_Scene };
+			if (!m_Scene->m_Registry.valid(entityHandle))
+				continue;
+			
+			Entity entity{ entityHandle, m_Scene };
 			
 			if (!entity)
 				continue;
 			
 			json entityJson;
-			entityJson["ID"] = (uint32_t)entityID;
+			entityJson["ID"] = (uint32_t)entityHandle;
 			
 			SerializeEntity(entityJson, entity);
 			entitiesJson.push_back(entityJson);
