@@ -220,6 +220,7 @@ namespace Cosmic {
 					{
 						std::string meshPath = payload;
 						meshRenderer.Mesh = Nebula::Mesh::LoadOBJ(meshPath);
+						meshRenderer.MeshSource = meshPath;
 					}
 					Nebula::NebulaGui::EndDragDropTarget();
 				}

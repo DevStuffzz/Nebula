@@ -76,7 +76,9 @@ namespace Cosmic {
         {
             auto entity = s_Context->CreateEntity(name);
             auto& meshRenderer = entity.AddComponent<Nebula::MeshRendererComponent>();
-            meshRenderer.Mesh = Nebula::Mesh::LoadOBJ("Library/models/" + objFile);
+            std::string meshPath = "Library/models/" + objFile;
+            meshRenderer.Mesh = Nebula::Mesh::LoadOBJ(meshPath);
+            meshRenderer.MeshSource = meshPath; // Store the source path
             Nebula::Shader* rawShader = Nebula::Shader::Create("Library/shaders/Basic.glsl");
             std::shared_ptr<Nebula::Shader> shader(rawShader);
             auto material = std::make_shared<Nebula::Material>(shader);

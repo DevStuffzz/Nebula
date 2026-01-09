@@ -13,7 +13,7 @@
                     2.0
                 ]
             },
-            "ID": 1048581,
+            "ID": 5,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -36,8 +36,8 @@
                     ],
                     "UseTexture": 1
                 },
-                "MeshID": 1,
-                "MeshSource": "assets\\Models\\Cylinder.obj"
+                "MeshID": 2,
+                "MeshSource": "assets\\Models\\Cube.obj"
             },
             "RigidBodyComponent": {
                 "AngularDrag": 0.05000000074505806,
@@ -82,7 +82,7 @@
                     2.0
                 ]
             },
-            "ID": 1048580,
+            "ID": 4,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -105,8 +105,8 @@
                     ],
                     "UseTexture": 1
                 },
-                "MeshID": 1,
-                "MeshSource": "assets\\Models\\Cylinder.obj"
+                "MeshID": 2,
+                "MeshSource": "assets\\Models\\Cube.obj"
             },
             "RigidBodyComponent": {
                 "AngularDrag": 0.05000000074505806,
@@ -163,7 +163,7 @@
                 "Primary": true,
                 "ProjectionType": "Perspective"
             },
-            "ID": 1048579,
+            "ID": 3,
             "ScriptComponent": {
                 "ClassName": "ExampleProject.CameraController"
             },
@@ -200,7 +200,7 @@
                 ],
                 "Intensity": 1.0
             },
-            "ID": 1048578,
+            "ID": 2,
             "TagComponent": {
                 "Tag": "Sun"
             },
@@ -235,7 +235,7 @@
                     2.0
                 ]
             },
-            "ID": 1048577,
+            "ID": 1,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -304,7 +304,7 @@
                     2.0
                 ]
             },
-            "ID": 2097152,
+            "ID": 1048576,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,

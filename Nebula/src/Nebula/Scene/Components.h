@@ -81,6 +81,7 @@ namespace Nebula {
 	{
 		std::shared_ptr<Mesh> Mesh;
 		std::shared_ptr<Material> Material;
+		std::string MeshSource; // Path to the mesh file
 
 		MeshRendererComponent() = default;
 		MeshRendererComponent(const MeshRendererComponent&) = default;

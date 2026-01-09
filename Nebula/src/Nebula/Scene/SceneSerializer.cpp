@@ -96,11 +96,14 @@ namespace Nebula {
 			meshRendererJson["HasMesh"] = (meshRenderer.Mesh != nullptr);
 			meshRendererJson["HasMaterial"] = (meshRenderer.Material != nullptr);
 			
-			// Serialize mesh ID and source path
+			// Serialize mesh source path (primary) and ID (for caching)
 			if (meshRenderer.Mesh)
 			{
+				// Use stored MeshSource if available, otherwise get from mesh
+				std::string meshSource = !meshRenderer.MeshSource.empty() ? 
+					meshRenderer.MeshSource : meshRenderer.Mesh->GetSourcePath();
+				meshRendererJson["MeshSource"] = meshSource;
 				meshRendererJson["MeshID"] = meshRenderer.Mesh->GetID();
-				meshRendererJson["MeshSource"] = meshRenderer.Mesh->GetSourcePath();
 			}
 			
 			// Serialize material properties if material exists
@@ -295,26 +298,39 @@ namespace Nebula {
 			bool hasMesh = meshRendererJson.value("HasMesh", false);
 			if (hasMesh)
 			{
-				// Try to load by MeshID first (new system)
-				if (meshRendererJson.contains("MeshID"))
+				// Load from MeshSource path (prioritize stable path over unstable MeshID)
+				if (meshRendererJson.contains("MeshSource"))
 				{
-					MeshID meshID = meshRendererJson["MeshID"];
-					meshRenderer.Mesh = Mesh::GetByID(meshID);
+					std::string meshSource = meshRendererJson["MeshSource"];
+					meshRenderer.MeshSource = meshSource; // Store the path
+					NB_CORE_INFO("Deserializing mesh with source: {0}", meshSource);
 					
-					// If not in registry, load from source path
-					if (!meshRenderer.Mesh && meshRendererJson.contains("MeshSource"))
+					// Try to get cached mesh by path first
+					if (meshRendererJson.contains("MeshID"))
 					{
-						std::string meshSource = meshRendererJson["MeshSource"];
-						NB_CORE_INFO("Loading mesh from source: {0} (MeshID: {1})", meshSource, meshID);
+						MeshID meshID = meshRendererJson["MeshID"];
+						auto cachedMesh = Mesh::GetByID(meshID);
+						// Only use cached mesh if source path matches
+						if (cachedMesh && cachedMesh->GetSourcePath() == meshSource)
+						{
+							meshRenderer.Mesh = cachedMesh;
+							NB_CORE_INFO("Reusing cached mesh with ID: {0} from: {1}", meshID, meshSource);
+						}
+						}
+					
+					// Load from source if not cached or cache didn't match
+					if (!meshRenderer.Mesh)
+					{
+						NB_CORE_INFO("Loading mesh from source: {0}", meshSource);
 						meshRenderer.Mesh = Mesh::LoadOBJ(meshSource);
 						if (!meshRenderer.Mesh)
 						{
 							NB_CORE_ERROR("Failed to load mesh from: {0}", meshSource);
 						}
-					}
-					else if (meshRenderer.Mesh)
-					{
-						NB_CORE_INFO("Reusing cached mesh with ID: {0}", meshID);
+						else
+						{
+							NB_CORE_INFO("Successfully loaded mesh from: {0}, mesh ID: {1}", meshSource, meshRenderer.Mesh->GetID());
+						}
 					}
 				}
 				// Fallback to old MeshFile system for backward compatibility
@@ -322,7 +338,10 @@ namespace Nebula {
 				{
 					std::string meshFile = meshRendererJson["MeshFile"];
 					if (!meshFile.empty())
-						meshRenderer.Mesh = Mesh::LoadOBJ("Library/models/" + meshFile);
+					{
+						meshRenderer.MeshSource = "Library/models/" + meshFile;
+						meshRenderer.Mesh = Mesh::LoadOBJ(meshRenderer.MeshSource);
+					}
 				}
 			}
 			
