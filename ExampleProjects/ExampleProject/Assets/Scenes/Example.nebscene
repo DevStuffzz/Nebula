@@ -53,23 +53,23 @@
                 "UseGravity": true
             },
             "TagComponent": {
-                "Tag": "Entity"
+                "Tag": "Wall2"
             },
             "TransformComponent": {
                 "Position": [
-                    12.908210754394531,
-                    0.63287353515625,
-                    -0.8979041576385498
+                    1.0,
+                    0.0,
+                    8.859393119812012
                 ],
                 "Rotation": [
                     0.0,
-                    90.0,
+                    89.9999771118164,
                     0.0
                 ],
                 "Scale": [
-                    10.0,
-                    5.0,
-                    1.0
+                    0.9999986886978149,
+                    1.0,
+                    0.9999988079071045
                 ]
             }
         },
@@ -245,7 +245,7 @@
                     3.200000047683716
                 ]
             },
-            "ID": 6,
+            "ID": 4,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -268,7 +268,7 @@
                     ],
                     "UseTexture": 1
                 },
-                "MeshID": 3,
+                "MeshID": 2,
                 "MeshSource": "assets\\Models\\ToyCar\\toycar.obj"
             },
             "RigidBodyComponent": {
@@ -317,7 +317,7 @@
                     2.0
                 ]
             },
-            "ID": 4,
+            "ID": 5,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -386,7 +386,7 @@
                     2.0
                 ]
             },
-            "ID": 5,
+            "ID": 6,
             "MeshRendererComponent": {
                 "HasMaterial": true,
                 "HasMesh": true,
@@ -402,7 +402,7 @@
                     "Roughness": 0.0,
                     "UseTexture": 0
                 },
-                "MeshID": 2,
+                "MeshID": 3,
                 "MeshSource": "assets\\Models\\Cylinder.obj"
             },
             "RigidBodyComponent": {

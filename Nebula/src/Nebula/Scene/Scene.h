@@ -46,19 +46,23 @@ namespace Nebula {
 		void ReorderEntity(Entity entity, size_t newIndex);
 		void SetParent(Entity child, Entity parent);
 		void RemoveParent(Entity child);
+	glm::mat4 GetWorldTransform(Entity entity) const;
+	glm::vec3 GetWorldPosition(Entity entity) const;
+	glm::quat GetWorldRotation(Entity entity) const;
+	glm::vec3 GetWorldScale(Entity entity) const;
 
-		const std::string& GetName() const { return m_Name; }		
-		entt::registry& GetRegistry() { return m_Registry; }
+	const std::string& GetName() const { return m_Name; }
+	entt::registry& GetRegistry() { return m_Registry; }
 
-		// Physics access
-		PhysicsWorld* GetPhysicsWorld() { return m_PhysicsWorld.get(); }
-		void SetPhysicsDebugDraw(bool enabled);
+	// Physics access
+	PhysicsWorld* GetPhysicsWorld() { return m_PhysicsWorld.get(); }
+	void SetPhysicsDebugDraw(bool enabled);
 
-		// Audio access
-		AudioEngine* GetAudioEngine() { return m_AudioEngine.get(); }
+	// Audio access
+	AudioEngine* GetAudioEngine() { return m_AudioEngine.get(); }
 
-		// Script validation
-		bool ValidateAllScripts(std::string& errorMessage);
+	// Script validation
+	bool ValidateAllScripts(std::string& errorMessage);
 
 		// Script hot-reloading support
 		void ClearScriptInitialization(const std::string& scriptPath);

@@ -416,51 +416,85 @@ namespace Cosmic {
 		
 		// Get entity transform
 		auto& tc = selectedEntity.GetComponent<Nebula::TransformComponent>();
-		glm::mat4 transform = tc.GetTransform();
+	glm::mat4 transform = m_ActiveScene->GetWorldTransform(selectedEntity);
+	
+	// Setup ImGuizmo
+	auto bounds = Viewport::GetViewportBounds();
+	Nebula::NebulaGuizmo::SetOrthographic(false);
+	Nebula::NebulaGuizmo::SetDrawlist();
+	Nebula::NebulaGuizmo::SetRect(bounds[0].x, bounds[0].y, 
+								  bounds[1].x - bounds[0].x, 
+								  bounds[1].y - bounds[0].y);
+	
+	// Determine operation type
+	Nebula::GuizmoOperation operation;
+	switch (gizmoMode)
+	{
+	case Viewport::GizmoMode::Translate: operation = Nebula::GuizmoOperation::Translate; break;
+	case Viewport::GizmoMode::Rotate: operation = Nebula::GuizmoOperation::Rotate; break;
+	case Viewport::GizmoMode::Scale: operation = Nebula::GuizmoOperation::Scale; break;
+	default: return;
+	}
+	
+	// Manipulate the transform
+	if (Nebula::NebulaGuizmo::Manipulate(
+		&cameraView[0][0],
+		&cameraProjection[0][0],
+		operation,
+		Nebula::GuizmoMode::Local,
+		&transform[0][0]))
+	{
+		// Decompose the new world transform
+		glm::vec3 worldTranslation, worldRotation, worldScale;
+		Nebula::NebulaGuizmo::DecomposeMatrixToComponents(
+			&transform[0][0],
+			&worldTranslation[0],
+			&worldRotation[0],
+			&worldScale[0]
+		);
 		
-		// Setup ImGuizmo
-		auto bounds = Viewport::GetViewportBounds();
-		Nebula::NebulaGuizmo::SetOrthographic(false);
-		Nebula::NebulaGuizmo::SetDrawlist();
-		Nebula::NebulaGuizmo::SetRect(bounds[0].x, bounds[0].y, 
-									  bounds[1].x - bounds[0].x, 
-									  bounds[1].y - bounds[0].y);
-		
-		// Determine operation type
-		Nebula::GuizmoOperation operation;
-		switch (gizmoMode)
+		// If entity has a parent, convert world transform to local
+		if (selectedEntity.HasComponent<Nebula::HierarchyComponent>())
 		{
-		case Viewport::GizmoMode::Translate: operation = Nebula::GuizmoOperation::Translate; break;
-		case Viewport::GizmoMode::Rotate: operation = Nebula::GuizmoOperation::Rotate; break;
-		case Viewport::GizmoMode::Scale: operation = Nebula::GuizmoOperation::Scale; break;
-		default: return;
+			auto& hierarchy = selectedEntity.GetComponent<Nebula::HierarchyComponent>();
+			if (hierarchy.Parent != 0)
+			{
+				Nebula::Entity parent = { (entt::entity)hierarchy.Parent, m_ActiveScene.get() };
+				
+				// Get parent's world transform components
+				glm::vec3 parentWorldPos = m_ActiveScene->GetWorldPosition(parent);
+				glm::quat parentWorldRot = m_ActiveScene->GetWorldRotation(parent);
+				glm::vec3 parentWorldScale = m_ActiveScene->GetWorldScale(parent);
+				
+				glm::quat parentWorldRotInv = glm::inverse(parentWorldRot);
+				
+				// Position: rotate and scale the offset from parent
+				tc.Position = parentWorldRotInv * ((worldTranslation - parentWorldPos) / parentWorldScale);
+				
+				// Rotation: absolute (not relative to parent)
+				tc.Rotation = worldRotation;
+				
+				// Scale: divide by parent's scale
+				tc.Scale = worldScale / parentWorldScale;
+			}
+			else
+			{
+				// No parent, use world transform directly
+				tc.Position = worldTranslation;
+				tc.Rotation = worldRotation;
+				tc.Scale = worldScale;
+			}
 		}
-		
-		// Manipulate the transform
-		if (Nebula::NebulaGuizmo::Manipulate(
-			&cameraView[0][0],
-			&cameraProjection[0][0],
-			operation,
-			Nebula::GuizmoMode::Local,
-			&transform[0][0]))
+		else
 		{
-			// Decompose the transform and update entity
-			glm::vec3 translation, rotation, scale;
-			Nebula::NebulaGuizmo::DecomposeMatrixToComponents(
-				&transform[0][0],
-				&translation[0],
-				&rotation[0],
-				&scale[0]
-			);
-			
-			tc.Position = translation;
-			tc.Rotation = rotation;
-			tc.Scale = scale;
-			
-			// Update physics body if entity has one
+			// No hierarchy component, use world transform directly
+			tc.Position = worldTranslation;
+			tc.Rotation = worldRotation;
+			tc.Scale = worldScale;
+		}
 			if (selectedEntity.HasComponent<Nebula::RigidBodyComponent>() && m_ActiveScene->GetPhysicsWorld())
 			{
-				m_ActiveScene->GetPhysicsWorld()->UpdateRigidBodyTransform(selectedEntity);
+				m_ActiveScene->GetPhysicsWorld()->UpdateRigidBodyTransform(selectedEntity, m_ActiveScene.get());
 			}
 		}
 	};

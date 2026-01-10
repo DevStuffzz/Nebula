@@ -222,7 +222,7 @@ namespace Nebula {
 		return new btSphereShape(radius);
 	}
 
-	void PhysicsWorld::AddBoxCollider(Entity entity)
+	void PhysicsWorld::AddBoxCollider(Entity entity, Scene* scene)
 	{
 		if (!entity.HasComponent<BoxColliderComponent>())
 			return;
@@ -235,29 +235,21 @@ namespace Nebula {
 			delete collider.RuntimeShape;
 		}
 
-		// Apply entity scale to collision shape
-		glm::vec3 finalSize = collider.Size;
-		if (entity.HasComponent<TransformComponent>())
-		{
-			auto& transform = entity.GetComponent<TransformComponent>();
-			finalSize *= transform.Scale;
-			collider.LastScale = transform.Scale; // Track current scale
-			collider.LastSize = collider.Size;     // Track current size
-			NB_INFO("Creating BoxCollider - Size: ({0}, {1}, {2}), Scale: ({3}, {4}, {5}), Final: ({6}, {7}, {8})",
-				collider.Size.x, collider.Size.y, collider.Size.z,
-				transform.Scale.x, transform.Scale.y, transform.Scale.z,
-				finalSize.x, finalSize.y, finalSize.z);
-		}
-		else
-		{
-			collider.LastSize = collider.Size; // Track current size even without transform
-		}
+		// Apply entity world scale to collision shape
+		glm::vec3 worldScale = scene->GetWorldScale(entity);
+		glm::vec3 finalSize = collider.Size * worldScale;
+		collider.LastScale = worldScale; // Track current world scale
+		collider.LastSize = collider.Size; // Track current size
+		NB_INFO("Creating BoxCollider - Size: ({0}, {1}, {2}), WorldScale: ({3}, {4}, {5}), Final: ({6}, {7}, {8})",
+			collider.Size.x, collider.Size.y, collider.Size.z,
+			worldScale.x, worldScale.y, worldScale.z,
+			finalSize.x, finalSize.y, finalSize.z);
 
 		// Create new box shape
 		collider.RuntimeShape = CreateBoxShape(finalSize);
 	}
 
-	void PhysicsWorld::AddSphereCollider(Entity entity)
+	void PhysicsWorld::AddSphereCollider(Entity entity, Scene* scene)
 	{
 		if (!entity.HasComponent<SphereColliderComponent>())
 			return;
@@ -270,20 +262,12 @@ namespace Nebula {
 			delete collider.RuntimeShape;
 		}
 
-		// Apply entity scale to collision shape (use max component for uniform sphere scaling)
-		float finalRadius = collider.Radius;
-		if (entity.HasComponent<TransformComponent>())
-		{
-			auto& transform = entity.GetComponent<TransformComponent>();
-			float maxScale = glm::max(glm::max(transform.Scale.x, transform.Scale.y), transform.Scale.z);
-			finalRadius *= maxScale;
-			collider.LastScale = transform.Scale; // Track current scale
-			collider.LastRadius = collider.Radius; // Track current radius
-		}
-		else
-		{
-			collider.LastRadius = collider.Radius; // Track current radius even without transform
-		}
+		// Apply entity world scale to collision shape (use max component for uniform sphere scaling)
+		glm::vec3 worldScale = scene->GetWorldScale(entity);
+		float maxScale = glm::max(glm::max(worldScale.x, worldScale.y), worldScale.z);
+		float finalRadius = collider.Radius * maxScale;
+		collider.LastScale = worldScale; // Track current world scale
+		collider.LastRadius = collider.Radius; // Track current radius
 
 		// Create new sphere shape
 		collider.RuntimeShape = CreateSphereShape(finalRadius);
@@ -312,7 +296,7 @@ namespace Nebula {
 		}
 	}
 
-	void PhysicsWorld::CreateRigidBodyForEntity(Entity entity)
+	void PhysicsWorld::CreateRigidBodyForEntity(Entity entity, Scene* scene)
 	{
 		if (!entity.HasComponent<RigidBodyComponent>() || !entity.HasComponent<TransformComponent>())
 			return;
@@ -326,14 +310,14 @@ namespace Nebula {
 		{
 			auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
 			if (!boxCollider.RuntimeShape)
-				AddBoxCollider(entity);
+				AddBoxCollider(entity, scene);
 			shape = boxCollider.RuntimeShape;
 		}
 		else if (entity.HasComponent<SphereColliderComponent>())
 		{
 			auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
 			if (!sphereCollider.RuntimeShape)
-				AddSphereCollider(entity);
+				AddSphereCollider(entity, scene);
 			shape = sphereCollider.RuntimeShape;
 		}
 
@@ -343,8 +327,12 @@ namespace Nebula {
 			return;
 		}
 
+		// Get world transform
+		glm::vec3 worldPosition = scene->GetWorldPosition(entity);
+		glm::quat worldRotation = scene->GetWorldRotation(entity);
+
 		NB_INFO("Creating RigidBody at position ({0}, {1}, {2})", 
-			transform.Position.x, transform.Position.y, transform.Position.z);
+			worldPosition.x, worldPosition.y, worldPosition.z);
 
 		// Calculate mass and inertia
 		btScalar mass = (rb.Type == RigidBodyComponent::BodyType::Dynamic) ? rb.Mass : 0.0f;
@@ -353,32 +341,25 @@ namespace Nebula {
 			shape->calculateLocalInertia(mass, localInertia);
 
 		// Calculate final position including collider offset
-		glm::vec3 finalPosition = transform.Position;
+		glm::vec3 finalPosition = worldPosition;
 		if (entity.HasComponent<BoxColliderComponent>())
 		{
 			auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
-			// Apply rotation to offset
-			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
-			glm::vec3 rotatedOffset = rotQuat * boxCollider.Offset;
+			glm::vec3 rotatedOffset = worldRotation * boxCollider.Offset;
 			finalPosition += rotatedOffset;
 		}
 		else if (entity.HasComponent<SphereColliderComponent>())
 		{
 			auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
-			// Apply rotation to offset
-			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
-			glm::vec3 rotatedOffset = rotQuat * sphereCollider.Offset;
+			glm::vec3 rotatedOffset = worldRotation * sphereCollider.Offset;
 			finalPosition += rotatedOffset;
 		}
 
-		// Set initial transform
+		// Set initial transform with world coordinates
 		btTransform startTransform;
 		startTransform.setIdentity();
 		startTransform.setOrigin(btVector3(finalPosition.x, finalPosition.y, finalPosition.z));
-		
-		// Convert euler angles to quaternion
-		glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
-		startTransform.setRotation(btQuaternion(rotQuat.x, rotQuat.y, rotQuat.z, rotQuat.w));
+		startTransform.setRotation(btQuaternion(worldRotation.x, worldRotation.y, worldRotation.z, worldRotation.w));
 
 		// Create motion state
 		btDefaultMotionState* motionState = new btDefaultMotionState(startTransform);
@@ -444,9 +425,9 @@ namespace Nebula {
 		}
 	}
 
-	void PhysicsWorld::AddRigidBody(Entity entity)
+	void PhysicsWorld::AddRigidBody(Entity entity, Scene* scene)
 	{
-		CreateRigidBodyForEntity(entity);
+		CreateRigidBodyForEntity(entity, scene);
 	}
 
 	void PhysicsWorld::RemoveRigidBody(Entity entity)
@@ -472,7 +453,7 @@ namespace Nebula {
 		}
 	}
 
-	void PhysicsWorld::UpdateRigidBodyTransform(Entity entity)
+	void PhysicsWorld::UpdateRigidBodyTransform(Entity entity, Scene* scene)
 	{
 		if (!entity.HasComponent<RigidBodyComponent>() || !entity.HasComponent<TransformComponent>())
 			return;
@@ -482,29 +463,31 @@ namespace Nebula {
 
 		if (rb.RuntimeBody)
 		{
-			// Calculate rotation first (needed for offset calculation)
-			glm::quat rotQuat = glm::quat(glm::radians(transform.Rotation));
+			// Get world transform from scene hierarchy
+			glm::vec3 worldPosition = scene->GetWorldPosition(entity);
+			glm::quat worldRotation = scene->GetWorldRotation(entity);
+			glm::vec3 worldScale = scene->GetWorldScale(entity);
 
 			// Calculate final position including collider offset
-			glm::vec3 finalPosition = transform.Position;
+			glm::vec3 finalPosition = worldPosition;
 			if (entity.HasComponent<BoxColliderComponent>())
 			{
 				auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
-				glm::vec3 rotatedOffset = rotQuat * boxCollider.Offset;
+				glm::vec3 rotatedOffset = worldRotation * boxCollider.Offset;
 				finalPosition += rotatedOffset;
 			}
 			else if (entity.HasComponent<SphereColliderComponent>())
 			{
 				auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
-				glm::vec3 rotatedOffset = rotQuat * sphereCollider.Offset;
+				glm::vec3 rotatedOffset = worldRotation * sphereCollider.Offset;
 				finalPosition += rotatedOffset;
 			}
 
-			// Update position and rotation
+			// Update position and rotation with world transform
 			btTransform btTrans;
 			btTrans.setIdentity();
 			btTrans.setOrigin(btVector3(finalPosition.x, finalPosition.y, finalPosition.z));
-			btTrans.setRotation(btQuaternion(rotQuat.x, rotQuat.y, rotQuat.z, rotQuat.w));
+			btTrans.setRotation(btQuaternion(worldRotation.x, worldRotation.y, worldRotation.z, worldRotation.w));
 
 			rb.RuntimeBody->setWorldTransform(btTrans);
 			rb.RuntimeBody->getMotionState()->setWorldTransform(btTrans);
@@ -515,7 +498,7 @@ namespace Nebula {
 				rb.RuntimeBody->activate(true);
 			}
 
-			// Update collision shape if scale changed
+			// Update collision shape if scale changed - use world scale
 			btCollisionShape* currentShape = rb.RuntimeBody->getCollisionShape();
 			if (currentShape)
 			{
@@ -526,15 +509,12 @@ namespace Nebula {
 				{
 					auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
 					
-					// Only recreate if scale or size changed
-					if (boxCollider.LastScale != transform.Scale || boxCollider.LastSize != boxCollider.Size)
+					// Only recreate if scale or size changed - use world scale
+					if (boxCollider.LastScale != worldScale || boxCollider.LastSize != boxCollider.Size)
 					{
-						glm::vec3 finalSize = boxCollider.Size * transform.Scale;
-						newShape = CreateBoxShape(finalSize);
-						boxCollider.LastScale = transform.Scale;
-						boxCollider.LastSize = boxCollider.Size;
-					
-						// Clean up old shape (stored in component)
+					glm::vec3 finalSize = boxCollider.Size * worldScale;
+					newShape = CreateBoxShape(finalSize);
+					boxCollider.LastScale = worldScale;
 						if (boxCollider.RuntimeShape && boxCollider.RuntimeShape == currentShape)
 						{
 							delete boxCollider.RuntimeShape;
@@ -547,13 +527,12 @@ namespace Nebula {
 					auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
 					
 					// Only recreate if scale or radius changed
-					if (sphereCollider.LastScale != transform.Scale || sphereCollider.LastRadius != sphereCollider.Radius)
-					{
-						float maxScale = glm::max(glm::max(transform.Scale.x, transform.Scale.y), transform.Scale.z);
-						float finalRadius = sphereCollider.Radius * maxScale;
-						newShape = CreateSphereShape(finalRadius);
-						sphereCollider.LastScale = transform.Scale;
-						sphereCollider.LastRadius = sphereCollider.Radius;
+				if (sphereCollider.LastScale != worldScale || sphereCollider.LastRadius != sphereCollider.Radius)
+				{
+					float maxScale = glm::max(glm::max(worldScale.x, worldScale.y), worldScale.z);
+					float finalRadius = sphereCollider.Radius * maxScale;
+					newShape = CreateSphereShape(finalRadius);
+					sphereCollider.LastScale = worldScale;
 					
 						// Clean up old shape (stored in component)
 						if (sphereCollider.RuntimeShape && sphereCollider.RuntimeShape == currentShape)
@@ -638,7 +617,7 @@ namespace Nebula {
 		for (auto entity : view)
 		{
 			Entity ent{ entity, scene };
-			UpdateRigidBodyTransform(ent);
+			UpdateRigidBodyTransform(ent, scene);
 		}
 	}
 

@@ -46,23 +46,23 @@ namespace Nebula {
 		const std::vector<glm::vec3>& GetDebugLineColors() const;
 
 		// Rigidbody management
-		void AddRigidBody(Entity entity);
-		void RemoveRigidBody(Entity entity);
-		void UpdateRigidBodyTransform(Entity entity);
-		void SyncTransformFromPhysics(Entity entity);
+	void AddRigidBody(Entity entity, Scene* scene);
+	void RemoveRigidBody(Entity entity);
+	void UpdateRigidBodyTransform(Entity entity, Scene* scene);
 		void SyncAllRigidBodyTransforms(Scene* scene); // Sync all physics bodies from entity transforms
 
 		// Collider management
-		void AddBoxCollider(Entity entity);
-		void AddSphereCollider(Entity entity);
-		void RemoveCollider(Entity entity);
+	void AddBoxCollider(Entity entity, Scene* scene);
+	void AddSphereCollider(Entity entity, Scene* scene);
+	void RemoveCollider(Entity entity);
+	void SyncTransformFromPhysics(Entity entity);
 
 		// Access
 		btDiscreteDynamicsWorld* GetDynamicsWorld() { return m_DynamicsWorld; }
 
 	private:
-		void CreateRigidBodyForEntity(Entity entity);
-		btCollisionShape* CreateBoxShape(const glm::vec3& size);
+	void CreateRigidBodyForEntity(Entity entity, Scene* scene);
+	btCollisionShape* CreateBoxShape(const glm::vec3& size);
 		btCollisionShape* CreateSphereShape(float radius);
 
 	private:

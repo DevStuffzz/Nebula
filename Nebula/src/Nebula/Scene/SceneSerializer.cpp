@@ -471,7 +471,7 @@ namespace Nebula {
 			// Initialize collider in physics world
 			if (entity.GetScene()->GetPhysicsWorld())
 			{
-				entity.GetScene()->GetPhysicsWorld()->AddBoxCollider(entity);
+				entity.GetScene()->GetPhysicsWorld()->AddBoxCollider(entity, entity.GetScene());
 			}
 		}
 
@@ -494,7 +494,7 @@ namespace Nebula {
 			// Initialize collider in physics world
 			if (entity.GetScene()->GetPhysicsWorld())
 			{
-				entity.GetScene()->GetPhysicsWorld()->AddSphereCollider(entity);
+				entity.GetScene()->GetPhysicsWorld()->AddSphereCollider(entity, entity.GetScene());
 			}
 		}
 
@@ -522,7 +522,7 @@ namespace Nebula {
 			// Initialize rigidbody in physics world
 			if (entity.GetScene()->GetPhysicsWorld())
 			{
-				entity.GetScene()->GetPhysicsWorld()->AddRigidBody(entity);
+				entity.GetScene()->GetPhysicsWorld()->AddRigidBody(entity, entity.GetScene());
 			}
 		}
 

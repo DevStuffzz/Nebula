@@ -446,10 +446,10 @@ void Scene::OnUpdate(float deltaTime)
 		for (auto entity : lightView)
 		{
 			auto& light = lightView.get<PointLightComponent>(entity);
-			auto& transform = lightView.get<TransformComponent>(entity);
+		Entity ent = { entity, this };
 
-			m_PointLights.push_back({
-				transform.Position,  // use entity's world position
+		m_PointLights.push_back({
+			GetWorldPosition(ent),  // use entity's world position
 				light.Color,
 				light.Intensity,
 				light.Radius
@@ -464,11 +464,11 @@ void Scene::OnUpdate(float deltaTime)
 		for (auto entity : dirLightView)
 		{
 			auto& dirLight = dirLightView.get<DirectionalLightComponent>(entity);
-			auto& transform = dirLightView.get<TransformComponent>(entity);
+		Entity ent = { entity, this };
 
-			// Calculate direction from entity's rotation (forward vector)
-			glm::quat quat = glm::quat(glm::radians(transform.Rotation));
-			glm::vec3 forward = glm::normalize(quat * glm::vec3(0.0f, 0.0f, -1.0f));
+		// Calculate direction from entity's world rotation (forward vector)
+		glm::quat worldQuat = GetWorldRotation(ent);
+		glm::vec3 forward = glm::normalize(worldQuat * glm::vec3(0.0f, 0.0f, -1.0f));
 
 			m_DirectionalLights.push_back({
 				forward,
@@ -530,15 +530,16 @@ void Scene::OnUpdate(float deltaTime)
 				}
 			}
 			
-			Renderer::Submit(meshRenderer.Material, meshRenderer.Mesh, transform.GetTransform());
-		}
+		Entity ent = { entity, this };
+		Renderer::Submit(meshRenderer.Material, meshRenderer.Mesh, GetWorldTransform(ent));
 	}
+}
 
-		// End the scene
-		Renderer::EndScene();
-	}
+	// End the scene
+	Renderer::EndScene();
+}
 
-	void Scene::SetPhysicsDebugDraw(bool enabled)
+void Scene::SetPhysicsDebugDraw(bool enabled)
 	{
 		if (m_PhysicsWorld)
 		{
@@ -713,6 +714,85 @@ void Scene::OnUpdate(float deltaTime)
 		}
 
 		NB_CORE_INFO("Cleared initialization for {0} entity(ies) using script: {1}", keysToRemove.size(), scriptPath);
+	}
+
+	glm::mat4 Scene::GetWorldTransform(Entity entity) const
+	{
+		if (!entity.HasComponent<TransformComponent>())
+			return glm::mat4(1.0f);
+
+		auto& transform = entity.GetComponent<TransformComponent>();
+		
+		// Rotation is absolute (world rotation)
+		glm::mat4 rotation = glm::toMat4(glm::quat(glm::radians(transform.Rotation)));
+		
+		// If entity has a parent, inherit position and scale but NOT rotation
+		if (entity.HasComponent<HierarchyComponent>())
+		{
+			auto& hierarchy = entity.GetComponent<HierarchyComponent>();
+			if (hierarchy.Parent != 0)
+			{
+				Entity parent = { (entt::entity)hierarchy.Parent, const_cast<Scene*>(this) };
+				
+				// Get parent's world position and scale
+				glm::vec3 parentWorldPos = GetWorldPosition(parent);
+				glm::quat parentWorldRot = GetWorldRotation(parent);
+				glm::vec3 parentWorldScale = GetWorldScale(parent);
+				
+				// Apply parent's rotation and scale to local position offset
+				glm::vec3 worldPos = parentWorldPos + parentWorldRot * (transform.Position * parentWorldScale);
+				glm::vec3 worldScale = transform.Scale * parentWorldScale;
+				
+				// Build transform: translate * rotate(absolute) * scale
+				return glm::translate(glm::mat4(1.0f), worldPos)
+					* rotation
+					* glm::scale(glm::mat4(1.0f), worldScale);
+			}
+		}
+
+		// No parent - use local transform as-is
+		return glm::translate(glm::mat4(1.0f), transform.Position)
+			* rotation
+			* glm::scale(glm::mat4(1.0f), transform.Scale);
+	}
+
+	glm::vec3 Scene::GetWorldPosition(Entity entity) const
+	{
+		glm::mat4 worldTransform = GetWorldTransform(entity);
+		return glm::vec3(worldTransform[3]);
+	}
+
+	glm::quat Scene::GetWorldRotation(Entity entity) const
+	{
+		if (!entity.HasComponent<TransformComponent>())
+			return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+		auto& transform = entity.GetComponent<TransformComponent>();
+		// Rotation is absolute, not relative to parent
+		return glm::quat(glm::radians(transform.Rotation));
+	}
+
+	glm::vec3 Scene::GetWorldScale(Entity entity) const
+	{
+		if (!entity.HasComponent<TransformComponent>())
+			return glm::vec3(1.0f);
+
+		auto& transform = entity.GetComponent<TransformComponent>();
+		glm::vec3 localScale = transform.Scale;
+
+		// If entity has a parent, multiply by parent's world scale
+		if (entity.HasComponent<HierarchyComponent>())
+		{
+			auto& hierarchy = entity.GetComponent<HierarchyComponent>();
+			if (hierarchy.Parent != 0)
+			{
+				Entity parent = { (entt::entity)hierarchy.Parent, const_cast<Scene*>(this) };
+				glm::vec3 parentScale = GetWorldScale(parent);
+				return parentScale * localScale;
+			}
+		}
+
+		return localScale;
 	}
 
 }
