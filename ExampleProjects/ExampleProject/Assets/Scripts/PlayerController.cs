@@ -2,7 +2,7 @@ using Nebula;
 
 namespace ExampleProject
 {
-    public class TopDownController : ScriptBehavior
+    public class PlayerController : ScriptBehavior
     {
         [SerializeField]
         public float Speed = 5.0f;
@@ -21,7 +21,6 @@ namespace ExampleProject
 
         public override void OnCreate()
         {
-            Log.LogInfo("TopDownController created!");
             rb = GetComponent<RigidBodyComponent>();
         }
 
@@ -29,9 +28,8 @@ namespace ExampleProject
         {
             Vector3 inputDir = Vector3.Zero;
 
-            // Use world-space directions for top-down movement
-            Vector3 forward = Vector3.Forward;  // World forward (0, 0, 1)
-            Vector3 right = Vector3.Right;      // World right (1, 0, 0)
+            Vector3 forward = transform.forward;  // World forward (0, 0, 1)
+            Vector3 right = transform.right;      // World right (1, 0, 0)
 
             // Movement input
             if (Input.IsKeyDown(KeyCode.W))

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Nebula/ImGui/NebulaGui.h"
 #include <glm/glm.hpp>
@@ -6,125 +6,102 @@
 
 namespace Cosmic {
 
-    class Viewport {
-    public:
-        enum class GizmoMode {
-            None = 0,
-            Translate,
-            Rotate,
-            Scale
-        };
+	class Viewport {
+	public:
+		enum class GizmoMode {
+			None = 0,
+			Translate,
+			Rotate,
+			Scale
+		};
 
-        static glm::vec2 OnImGuiRender(void* textureID, const glm::vec2& framebufferSize, 
-                                      const glm::vec2& uv0 = { 0,1 }, const glm::vec2& uv1 = { 1,0 },
-                                      std::function<void()> gizmoCallback = nullptr)
-        {
-        Nebula::NebulaGui::Begin("Viewport");
+		static glm::vec2 OnImGuiRender(
+			void* textureID,
+			const glm::vec2& framebufferSize,
+			const glm::vec2& uv0 = { 0, 1 },
+			const glm::vec2& uv1 = { 1, 0 },
+			std::function<void()> gizmoCallback = nullptr)
+		{
+			Nebula::NebulaGui::Begin("Viewport");
 
-        // Gizmo mode toolbar with visual feedback for selected mode
-        Nebula::NebulaGui::PushID("GizmoToolbar");
-        
-        // Helper to push button colors based on selection
-        auto pushButtonStyle = [](bool isSelected) {
-            if (isSelected) {
-                Nebula::NebulaGui::PushStyleColor(21, { 0.3f, 0.5f, 0.8f, 1.0f }); // Button
-                Nebula::NebulaGui::PushStyleColor(22, { 0.4f, 0.6f, 0.9f, 1.0f }); // ButtonHovered
-                Nebula::NebulaGui::PushStyleColor(23, { 0.2f, 0.4f, 0.7f, 1.0f }); // ButtonActive
-            }
-        };
-        
-        // None/Exit mode (X)
-        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::None);
-        bool btnQ = Nebula::NebulaGui::Button("X", { 30.0f, 30.0f });
-        if (s_CurrentGizmoMode == GizmoMode::None) Nebula::NebulaGui::PopStyleColor(3);
-        
-        Nebula::NebulaGui::SameLine();
-        
-        // Translate mode (T)
-        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Translate);
-        bool btnW = Nebula::NebulaGui::Button("T", { 30.0f, 30.0f });
-        if (s_CurrentGizmoMode == GizmoMode::Translate) Nebula::NebulaGui::PopStyleColor(3);
+			// ───────────────── Gizmo Toolbar ─────────────────
+			Nebula::NebulaGui::PushID("GizmoToolbar");
 
-        Nebula::NebulaGui::SameLine();
-        
-        // Rotate mode (R)
-        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Rotate);
-        bool btnE = Nebula::NebulaGui::Button("R", { 30.0f, 30.0f });
-        if (s_CurrentGizmoMode == GizmoMode::Rotate) Nebula::NebulaGui::PopStyleColor(3);
+			auto pushButtonStyle = [](bool selected) {
+				if (selected) {
+					Nebula::NebulaGui::PushStyleColor(21, { 0.3f, 0.5f, 0.8f, 1.0f });
+					Nebula::NebulaGui::PushStyleColor(22, { 0.4f, 0.6f, 0.9f, 1.0f });
+					Nebula::NebulaGui::PushStyleColor(23, { 0.2f, 0.4f, 0.7f, 1.0f });
+				}
+				};
 
-        Nebula::NebulaGui::SameLine();
-        
-        // Scale mode (S)
-        pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Scale);
-        bool btnR = Nebula::NebulaGui::Button("S", { 30.0f, 30.0f });
-        if (s_CurrentGizmoMode == GizmoMode::Scale) Nebula::NebulaGui::PopStyleColor(3);
-        
-        Nebula::NebulaGui::PopID();
+			pushButtonStyle(s_CurrentGizmoMode == GizmoMode::None);
+			bool btnNone = Nebula::NebulaGui::Button("X", { 30.0f, 30.0f });
+			if (s_CurrentGizmoMode == GizmoMode::None) Nebula::NebulaGui::PopStyleColor(3);
 
-        Nebula::NebulaGui::Separator();
-        
-        if (btnQ) s_CurrentGizmoMode = GizmoMode::None;
-        if (btnW) s_CurrentGizmoMode = GizmoMode::Translate;
-        if (btnE) s_CurrentGizmoMode = GizmoMode::Rotate;
-        if (btnR) s_CurrentGizmoMode = GizmoMode::Scale;
+			Nebula::NebulaGui::SameLine();
 
-        glm::vec2 availSize = Nebula::NebulaGui::GetContentRegionAvail();
+			pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Translate);
+			bool btnTranslate = Nebula::NebulaGui::Button("T", { 30.0f, 30.0f });
+			if (s_CurrentGizmoMode == GizmoMode::Translate) Nebula::NebulaGui::PopStyleColor(3);
 
-        constexpr float desiredAspectRatio = 16.0f / 9.0f;
+			Nebula::NebulaGui::SameLine();
 
-        float availWidth = availSize.x;
-        float availHeight = availSize.y;
+			pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Rotate);
+			bool btnRotate = Nebula::NebulaGui::Button("R", { 30.0f, 30.0f });
+			if (s_CurrentGizmoMode == GizmoMode::Rotate) Nebula::NebulaGui::PopStyleColor(3);
 
-        float imageWidth = availWidth;
-        float imageHeight = availWidth / desiredAspectRatio;
+			Nebula::NebulaGui::SameLine();
 
-        if (imageHeight > availHeight)
-        {
-            imageHeight = availHeight;
-            imageWidth = imageHeight * desiredAspectRatio;
-        }
+			pushButtonStyle(s_CurrentGizmoMode == GizmoMode::Scale);
+			bool btnScale = Nebula::NebulaGui::Button("S", { 30.0f, 30.0f });
+			if (s_CurrentGizmoMode == GizmoMode::Scale) Nebula::NebulaGui::PopStyleColor(3);
 
-        // Center offsets
-        float offsetX = (availWidth - imageWidth) * 0.5f;
-        float offsetY = (availHeight - imageHeight) * 0.5f;
+			Nebula::NebulaGui::PopID();
+			Nebula::NebulaGui::Separator();
 
-        // Vertical dummy space for offsetY (top margin)
-        Nebula::NebulaGui::Dummy({ 0.0f, offsetY });
-        // Horizontal offset before image
-        Nebula::NebulaGui::SameLine(0.0f, offsetX);
+			if (btnNone)      s_CurrentGizmoMode = GizmoMode::None;
+			if (btnTranslate) s_CurrentGizmoMode = GizmoMode::Translate;
+			if (btnRotate)    s_CurrentGizmoMode = GizmoMode::Rotate;
+			if (btnScale)     s_CurrentGizmoMode = GizmoMode::Scale;
 
-        // Store viewport bounds for picking - get cursor position right before rendering image
-        glm::vec2 imageTopLeft = Nebula::NebulaGui::GetCursorScreenPos();
-        s_ViewportBounds[0] = imageTopLeft;
-        s_ViewportBounds[1] = { imageTopLeft.x + imageWidth, imageTopLeft.y + imageHeight };
-        s_ViewportHovered = Nebula::NebulaGui::IsWindowHovered();
-        s_ViewportFocused = Nebula::NebulaGui::IsWindowFocused();
+			// ───────────────── Viewport Image ─────────────────
+			glm::vec2 availSize = Nebula::NebulaGui::GetContentRegionAvail();
 
-            Nebula::NebulaGui::Image(textureID, { imageWidth, imageHeight }, uv0, uv1);
+			float imageWidth = availSize.x;
+			float imageHeight = availSize.y;
 
-            // Render gizmo overlay if callback provided - BEFORE End() to have window context
-            if (gizmoCallback)
-            {
-                gizmoCallback();
-            }
+			glm::vec2 imageTopLeft = Nebula::NebulaGui::GetCursorScreenPos();
 
-            Nebula::NebulaGui::End();
-            
-            return { imageWidth, imageHeight };
-        }
+			s_ViewportBounds[0] = imageTopLeft;
+			s_ViewportBounds[1] = { imageTopLeft.x + imageWidth, imageTopLeft.y + imageHeight };
 
-        static const glm::vec2* GetViewportBounds() { return s_ViewportBounds; }
-        static bool IsViewportHovered() { return s_ViewportHovered; }
-        static bool IsViewportFocused() { return s_ViewportFocused; }
-        static GizmoMode GetGizmoMode() { return s_CurrentGizmoMode; }
+			s_ViewportHovered = Nebula::NebulaGui::IsWindowHovered();
+			s_ViewportFocused = Nebula::NebulaGui::IsWindowFocused();
 
-    private:
-        Viewport() = delete;
-        
-        static glm::vec2 s_ViewportBounds[2];
-        static bool s_ViewportHovered;
-        static bool s_ViewportFocused;
-        static GizmoMode s_CurrentGizmoMode;
-    };
+			Nebula::NebulaGui::Image(textureID, { imageWidth, imageHeight }, uv0, uv1);
+
+			// Gizmo overlay
+			if (gizmoCallback)
+				gizmoCallback();
+
+			Nebula::NebulaGui::End();
+
+			return { imageWidth, imageHeight };
+		}
+
+		static const glm::vec2* GetViewportBounds() { return s_ViewportBounds; }
+		static bool IsViewportHovered() { return s_ViewportHovered; }
+		static bool IsViewportFocused() { return s_ViewportFocused; }
+		static GizmoMode GetGizmoMode() { return s_CurrentGizmoMode; }
+
+	private:
+		Viewport() = delete;
+
+		static glm::vec2 s_ViewportBounds[2];
+		static bool s_ViewportHovered;
+		static bool s_ViewportFocused;
+		static GizmoMode s_CurrentGizmoMode;
+	};
 
 }

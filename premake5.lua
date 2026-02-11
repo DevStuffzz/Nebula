@@ -355,6 +355,12 @@ project "Cosmic"
         "%{prj.name}/src/**.h",
         "%{prj.name}/src/**.cpp"
     }
+
+    -- Exclude the in-editor Script Editor UI from the Cosmic project (open scripts externally)
+    removefiles
+    {
+        "%{prj.name}/src/EditorWindows/ScriptEditor.*"
+    }
     
     includedirs
     {

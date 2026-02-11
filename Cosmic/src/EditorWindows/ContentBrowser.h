@@ -4,7 +4,6 @@
 #include "Nebula/Asset/AssetManager.h"
 #include "Nebula/Renderer/Texture.h"
 #include "Nebula/Log.h"
-#include "ScriptEditor.h"
 #include <filesystem>
 #include <string>
 #include <functional>
@@ -28,6 +27,7 @@ namespace Cosmic {
 			s_SceneIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/scene.png"));
 			s_ScriptIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/script.png"));
 			s_ShaderIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/shader.png"));
+			s_MeshIcon = std::shared_ptr<Nebula::Texture2D>(Nebula::Texture2D::Create("Library/editor/icons/mesh.png"));
 		}
 
 		static void SetContentPath(const std::filesystem::path& path)
@@ -115,6 +115,7 @@ namespace Cosmic {
 							case Nebula::AssetType::Scene:     displayTexture = s_SceneIcon; break;
 							case Nebula::AssetType::Audio:     displayTexture = s_AudioIcon; break;
 							case Nebula::AssetType::Script:    displayTexture = s_ScriptIcon; break;
+							case Nebula::AssetType::Mesh:	   displayTexture = s_MeshIcon;
 							default:                           displayTexture = s_DirectoryIcon; break; // Use directory icon as fallback
 						}
 					}
@@ -147,7 +148,27 @@ namespace Cosmic {
 							else if (assetType == Nebula::AssetType::Script)
 							{
 								// Load script in Script Editor
-								ScriptEditor::LoadScript(path.string());
+								std::string command = "code \"" + path.string() + "\"";
+								std::system(command.c_str());
+							}
+							else if (assetType == Nebula::AssetType::Mesh) {
+								std::shared_ptr<Nebula::Scene> meshScene = std::make_shared<Nebula::Scene>();
+
+								auto entity = meshScene->CreateEntity("Mesh");
+								auto& meshRenderer = entity.AddComponent<Nebula::MeshRendererComponent>();
+								std::string meshPath = path.string();
+								meshRenderer.Mesh = Nebula::Mesh::LoadOBJ(meshPath);
+								meshRenderer.MeshSource = meshPath; // Store the source path
+								Nebula::Shader* rawShader = Nebula::Shader::Create("Library/shaders/Basic.glsl");
+								std::shared_ptr<Nebula::Shader> shader(rawShader);
+								auto material = std::make_shared<Nebula::Material>(shader);
+								material->SetFloat4("u_Color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+								material->SetInt("u_UseTexture", 0);
+								meshRenderer.Material = material;
+
+								Nebula::SceneManager::Get().LoadTMPScene(meshScene);
+
 							}
 						}
 					}
@@ -388,6 +409,7 @@ namespace Cosmic {
 		static std::shared_ptr<Nebula::Texture2D> s_SceneIcon;
 		static std::shared_ptr<Nebula::Texture2D> s_ScriptIcon;
 		static std::shared_ptr<Nebula::Texture2D> s_ShaderIcon;
+		static std::shared_ptr<Nebula::Texture2D> s_MeshIcon;
 		
 		// Cache for texture thumbnails
 		static std::unordered_map<std::string, std::shared_ptr<Nebula::Texture2D>> s_TextureCache;
@@ -407,5 +429,6 @@ namespace Cosmic {
 	inline std::shared_ptr<Nebula::Texture2D> ContentBrowser::s_SceneIcon = nullptr;
 	inline std::shared_ptr<Nebula::Texture2D> ContentBrowser::s_ScriptIcon = nullptr;
 	inline std::shared_ptr<Nebula::Texture2D> ContentBrowser::s_ShaderIcon = nullptr;
+	inline std::shared_ptr<Nebula::Texture2D> ContentBrowser::s_MeshIcon = nullptr;
 	inline std::unordered_map<std::string, std::shared_ptr<Nebula::Texture2D>> ContentBrowser::s_TextureCache;
 }

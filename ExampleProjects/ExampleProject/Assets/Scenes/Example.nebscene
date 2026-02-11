@@ -173,6 +173,10 @@
                 "Primary": true,
                 "ProjectionType": "Perspective"
             },
+            "HierarchyComponent": {
+                "Children": [],
+                "Parent": 6
+            },
             "ID": 2,
             "ScriptComponent": {
                 "ClassName": "ExampleProject.CameraController"
@@ -186,18 +190,18 @@
             "TransformComponent": {
                 "Position": [
                     0.0,
-                    2.5,
-                    14.399999618530273
+                    1.5583370923995972,
+                    -0.17950639128684998
                 ],
                 "Rotation": [
-                    -6.571000099182129,
-                    0.0,
+                    -6.570986747741699,
+                    -0.0,
                     0.0
                 ],
                 "Scale": [
                     1.0,
-                    1.0,
-                    1.0
+                    0.9999992847442627,
+                    0.9999992847442627
                 ]
             }
         },
@@ -385,6 +389,12 @@
                     4.0,
                     2.0
                 ]
+            },
+            "HierarchyComponent": {
+                "Children": [
+                    2
+                ],
+                "Parent": 0
             },
             "ID": 6,
             "MeshRendererComponent": {

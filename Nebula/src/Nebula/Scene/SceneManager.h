@@ -41,6 +41,10 @@ namespace Nebula {
 		void ProcessPendingSceneLoad();
 		bool HasPendingSceneLoad() const { return m_PendingSceneIndex >= 0; }
 
+		void LoadTMPScene(std::shared_ptr<Scene> scene) {
+			m_ActiveScene = scene;
+		}
+
 	private:
 		SceneManager() = default;
 		~SceneManager() = default;
